@@ -92,25 +92,34 @@ const TokensTable = () => {
   const [searching, setSearching] = useState(false);
   const [orderBy, setOrderBy] = useState('');
 
-  const loadTokens = useCallback(async (page) => {
-    const normalizedPage = Number(page) > 0 ? Number(page) : 1;
-    const res = await API.get(`/api/v1/public/token/?page=${normalizedPage}&order=${orderBy}`);
-    const { success, message, data } = res.data;
-    if (success) {
-      if (normalizedPage === 1) {
-        setTokens(data);
+  const loadTokens = useCallback(
+    async (page) => {
+      const normalizedPage = Number(page) > 0 ? Number(page) : 1;
+      const res = await API.get(
+        `/api/v1/public/token/?page=${normalizedPage}&order=${orderBy}`,
+      );
+      const { success, message, data } = res.data;
+      if (success) {
+        if (normalizedPage === 1) {
+          setTokens(data);
+        } else {
+          setTokens((prev) => {
+            let next = [...prev];
+            next.splice(
+              (normalizedPage - 1) * ITEMS_PER_PAGE,
+              data.length,
+              ...data,
+            );
+            return next;
+          });
+        }
       } else {
-        setTokens((prev) => {
-          let next = [...prev];
-          next.splice((normalizedPage - 1) * ITEMS_PER_PAGE, data.length, ...data);
-          return next;
-        });
+        showError(message);
       }
-    } else {
-      showError(message);
-    }
-    setLoading(false);
-  }, [orderBy]);
+      setLoading(false);
+    },
+    [orderBy],
+  );
 
   const onPaginationChange = (e, { activePage }) => {
     (async () => {
@@ -270,7 +279,9 @@ const TokensTable = () => {
       return;
     }
     setSearching(true);
-    const res = await API.get(`/api/v1/public/token/search?keyword=${searchKeyword}`);
+    const res = await API.get(
+      `/api/v1/public/token/search?keyword=${searchKeyword}`,
+    );
     const { success, message, data } = res.data;
     if (success) {
       setTokens(data);
@@ -318,10 +329,19 @@ const TokensTable = () => {
     <>
       <div className='router-toolbar'>
         <div className='router-toolbar-start'>
-          <Button className='router-page-button' as={Link} to='/token/add' loading={loading}>
+          <Button
+            className='router-page-button'
+            as={Link}
+            to='/token/add'
+            loading={loading}
+          >
             {t('token.buttons.add')}
           </Button>
-          <Button className='router-page-button' onClick={refresh} loading={loading}>
+          <Button
+            className='router-page-button'
+            onClick={refresh}
+            loading={loading}
+          >
             {t('token.buttons.refresh')}
           </Button>
         </div>
@@ -421,7 +441,7 @@ const TokensTable = () => {
           {tokens
             .slice(
               (activePage - 1) * ITEMS_PER_PAGE,
-              activePage * ITEMS_PER_PAGE
+              activePage * ITEMS_PER_PAGE,
             )
             .map((token, idx) => {
               if (token.deleted) return <></>;
@@ -432,7 +452,7 @@ const TokensTable = () => {
                   onClick: async () => {
                     await onOpenLink(option.value, token.key);
                   },
-                })
+                }),
               );
 
               return (
@@ -447,11 +467,27 @@ const TokensTable = () => {
                   <Table.Cell>{renderStatus(token.status, t)}</Table.Cell>
                   <Table.Cell onClick={stopRowClick}>
                     <span className='router-action-group'>
-                      <span>{renderShortToken(token.key)}</span>
+                      <span
+                        role='button'
+                        tabIndex={0}
+                        className='router-text-link'
+                        onClick={() => navigate(`/token/edit/${token.id}`)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            navigate(`/token/edit/${token.id}`);
+                          }
+                        }}
+                      >
+                        {renderShortToken(token.key)}
+                      </span>
                       <Icon
                         name='copy outline'
                         link
-                        onClick={async () => await onCopy('', token.key)}
+                        onClick={async (event) => {
+                          stopRowClick(event);
+                          await onCopy('', token.key);
+                        }}
                       />
                     </span>
                   </Table.Cell>
@@ -510,7 +546,7 @@ const TokensTable = () => {
                           manageToken(
                             token.id,
                             token.status === 1 ? 'disable' : 'enable',
-                            idx
+                            idx,
                           );
                         }}
                       >
