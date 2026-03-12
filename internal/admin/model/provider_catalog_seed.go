@@ -16,7 +16,7 @@ func normalizeProviderSortOrderValue(sortOrder int) int {
 }
 
 func syncDefaultProviderCatalogWithDB(db *gorm.DB) error {
-	if err := db.AutoMigrate(&Provider{}, &ProviderModel{}); err != nil {
+	if err := db.AutoMigrate(&Provider{}, &ProviderModel{}, &ProviderModelPriceComponent{}); err != nil {
 		return err
 	}
 	seeds := BuildDefaultProviderCatalogSeeds(helper.GetTimestamp())
@@ -28,6 +28,7 @@ func saveProviderCatalogSeedsToTable(db *gorm.DB, seeds []ProviderCatalogSeed) e
 	now := helper.GetTimestamp()
 	providerRows := make([]Provider, 0, len(seeds))
 	modelRows := make([]ProviderModel, 0)
+	componentRows := make([]ProviderModelPriceComponent, 0)
 	providerIDs := make([]string, 0, len(seeds))
 	for _, seed := range seeds {
 		provider := strings.TrimSpace(strings.ToLower(seed.Provider))
@@ -45,7 +46,9 @@ func saveProviderCatalogSeedsToTable(db *gorm.DB, seeds []ProviderCatalogSeed) e
 			Source:      "default",
 			UpdatedAt:   now,
 		})
-		modelRows = append(modelRows, BuildProviderModelRows(provider, details, now)...)
+		storeRows := BuildProviderModelStoreRows(provider, details, now)
+		modelRows = append(modelRows, storeRows.Models...)
+		componentRows = append(componentRows, storeRows.PriceComponents...)
 	}
 	return db.Transaction(func(tx *gorm.DB) error {
 		existingDefaultProviderIDs := make([]string, 0)
@@ -54,6 +57,9 @@ func saveProviderCatalogSeedsToTable(db *gorm.DB, seeds []ProviderCatalogSeed) e
 		}
 		deleteProviderIDs := mergeProviderIDs(existingDefaultProviderIDs, providerIDs)
 		if len(deleteProviderIDs) > 0 {
+			if err := tx.Where("provider IN ?", deleteProviderIDs).Delete(&ProviderModelPriceComponent{}).Error; err != nil {
+				return err
+			}
 			if err := tx.Where("provider IN ?", deleteProviderIDs).Delete(&ProviderModel{}).Error; err != nil {
 				return err
 			}
@@ -68,6 +74,11 @@ func saveProviderCatalogSeedsToTable(db *gorm.DB, seeds []ProviderCatalogSeed) e
 		}
 		if len(modelRows) > 0 {
 			if err := tx.Create(&modelRows).Error; err != nil {
+				return err
+			}
+		}
+		if len(componentRows) > 0 {
+			if err := tx.Create(&componentRows).Error; err != nil {
 				return err
 			}
 		}

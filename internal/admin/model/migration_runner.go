@@ -48,6 +48,34 @@ func runMainVersionedMigrations(db *gorm.DB) error {
 				return syncDefaultProviderCatalogWithDB(tx)
 			},
 		},
+		{
+			Version:     "202603120930_main_provider_price_components",
+			Description: "add provider model price components and capabilities support",
+			Up: func(tx *gorm.DB) error {
+				if err := tx.AutoMigrate(&ProviderModel{}, &ProviderModelPriceComponent{}); err != nil {
+					return err
+				}
+				return syncDefaultProviderCatalogWithDB(tx)
+			},
+		},
+		{
+			Version:     "202603121130_main_user_and_admin_tasks",
+			Description: "rename tasks to admin_tasks and video_tasks to user_tasks",
+			Up: func(tx *gorm.DB) error {
+				migrator := tx.Migrator()
+				if migrator.HasTable("tasks") && !migrator.HasTable(AdminTasksTableName) {
+					if err := migrator.RenameTable("tasks", AdminTasksTableName); err != nil {
+						return err
+					}
+				}
+				if migrator.HasTable("video_tasks") && !migrator.HasTable(UserTasksTableName) {
+					if err := migrator.RenameTable("video_tasks", UserTasksTableName); err != nil {
+						return err
+					}
+				}
+				return tx.AutoMigrate(&AsyncTask{}, &UserTask{})
+			},
+		},
 	}
 	return runVersionedMigrations(db, migrationScopeMain, migrations)
 }

@@ -1735,9 +1735,9 @@ paths:
         name: id
         required: true
         type: string
-      - description: Page index
+      - description: Page (1-based)
         in: query
-        name: p
+        name: page
         type: integer
       - description: Page size
         in: query
@@ -1763,7 +1763,7 @@ paths:
       summary: List channel models (admin)
       tags:
       - admin
-  /api/v1/admin/channel/{id}/models/refresh:
+  /api/v1/admin/channel/{id}/refresh:
     post:
       parameters:
       - description: Channel ID
@@ -1784,10 +1784,33 @@ paths:
             $ref: '#/definitions/docs.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Refresh channel models from upstream (admin)
+      summary: Refresh channel runtime data from upstream (admin)
       tags:
       - admin
   /api/v1/admin/channel/{id}/tests:
+    get:
+      parameters:
+      - description: Channel ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/docs.StandardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/docs.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List latest channel tests (admin)
+      tags:
+      - admin
     post:
       consumes:
       - application/json
@@ -1880,29 +1903,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get channel protocol catalog (admin)
-      tags:
-      - admin
-  /api/v1/admin/channel/search:
-    get:
-      parameters:
-      - description: Keyword
-        in: query
-        name: keyword
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/docs.StandardResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/docs.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Search channels (admin)
       tags:
       - admin
   /api/v1/admin/channel/test:
@@ -2306,9 +2306,9 @@ paths:
       - admin
     get:
       parameters:
-      - description: Page index
+      - description: Page (1-based)
         in: query
-        name: p
+        name: page
         type: integer
       - description: Log type
         in: query
@@ -2468,8 +2468,21 @@ paths:
       summary: Update option (root)
       tags:
       - admin
-  /api/v1/admin/provider:
+  /api/v1/admin/providers:
     get:
+      parameters:
+      - description: Page (1-based)
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Keyword
+        in: query
+        name: keyword
+        type: string
       produces:
       - application/json
       responses:
@@ -2505,7 +2518,7 @@ paths:
       summary: Create provider (admin)
       tags:
       - admin
-  /api/v1/admin/provider/{id}:
+  /api/v1/admin/providers/{id}:
     delete:
       parameters:
       - description: Provider ID
@@ -2577,7 +2590,7 @@ paths:
       summary: Update provider (admin)
       tags:
       - admin
-  /api/v1/admin/provider/{id}/model:
+  /api/v1/admin/providers/{id}/model:
     post:
       consumes:
       - application/json
@@ -2606,9 +2619,9 @@ paths:
   /api/v1/admin/redemption:
     get:
       parameters:
-      - description: Page index
+      - description: Page (1-based)
         in: query
-        name: p
+        name: page
         type: integer
       produces:
       - application/json
@@ -2752,12 +2765,52 @@ paths:
       summary: Search redemptions (admin)
       tags:
       - admin
+  /api/v1/admin/tasks:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List async tasks (admin)
+      tags:
+      - admin
+  /api/v1/admin/tasks/{id}:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Get async task by ID (admin)
+      tags:
+      - admin
+  /api/v1/admin/tasks/{id}/cancel:
+    post:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Cancel async task (admin)
+      tags:
+      - admin
+  /api/v1/admin/tasks/{id}/retry:
+    post:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Retry async task (admin)
+      tags:
+      - admin
   /api/v1/admin/user:
     get:
       parameters:
-      - description: Page index
+      - description: Page (1-based)
         in: query
-        name: p
+        name: page
         type: integer
       - description: Order
         in: query
@@ -2926,6 +2979,26 @@ paths:
       security:
       - BearerAuth: []
       summary: Search users (admin)
+      tags:
+      - admin
+  /api/v1/admin/user/tasks:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List user tasks (admin)
+      tags:
+      - admin
+  /api/v1/admin/user/tasks/{id}:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Get user task by task ID (admin)
       tags:
       - admin
   /api/v1/public/about:
@@ -3753,9 +3826,9 @@ paths:
   /api/v1/public/log/self:
     get:
       parameters:
-      - description: Page index
+      - description: Page (1-based)
         in: query
-        name: p
+        name: page
         type: integer
       - description: Log type
         in: query
@@ -4398,9 +4471,9 @@ paths:
   /api/v1/public/token:
     get:
       parameters:
-      - description: Page index
+      - description: Page (1-based)
         in: query
-        name: p
+        name: page
         type: integer
       - description: Order
         in: query
@@ -4803,6 +4876,26 @@ paths:
       summary: User spend overview
       tags:
       - public
+  /api/v1/public/user/tasks:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: List current user tasks
+      tags:
+      - user
+  /api/v1/public/user/tasks/{id}:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Get current user task by task ID
+      tags:
+      - user
   /api/v1/public/user/token:
     get:
       produces:

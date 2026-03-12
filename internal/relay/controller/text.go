@@ -40,6 +40,12 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	meta.OriginModelName = textRequest.Model
 	textRequest.Model, _ = getMappedModelName(textRequest.Model, meta.ModelMapping)
 	meta.ActualModelName = textRequest.Model
+	upstreamMode, upstreamPath, err := resolveChannelTextUpstream(meta, meta.OriginModelName, textRequest.Model)
+	if err != nil {
+		return openai.ErrorWrapper(err, "unsupported_channel_endpoint", http.StatusBadRequest)
+	}
+	meta.UpstreamMode = upstreamMode
+	meta.UpstreamRequestPath = upstreamPath
 	groupRatio := adminmodel.GetGroupBillingRatio(meta.Group)
 	pricing, err := adminmodel.ResolveChannelModelPricing(meta.ChannelProtocol, meta.ChannelModelConfigs, textRequest.Model)
 	if err != nil {
@@ -56,6 +62,7 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 			return openai.ErrorWrapper(err, "model_pricing_not_configured", http.StatusServiceUnavailable)
 		}
 	}
+	pricing = adminmodel.ResolveTextRequestPricing(pricing, upstreamPath)
 	// pre-consume quota
 	promptTokens := getPromptTokens(textRequest, meta.Mode)
 	meta.PromptTokens = promptTokens
@@ -65,12 +72,6 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 		return bizErr
 	}
 
-	upstreamMode, upstreamPath, err := resolveChannelTextUpstream(meta, meta.OriginModelName, textRequest.Model)
-	if err != nil {
-		return openai.ErrorWrapper(err, "unsupported_channel_endpoint", http.StatusBadRequest)
-	}
-	meta.UpstreamMode = upstreamMode
-	meta.UpstreamRequestPath = upstreamPath
 	upstreamRequest, err := convertTextRequestForUpstream(textRequest, meta.Mode, upstreamMode)
 	if err != nil {
 		return openai.ErrorWrapper(err, "convert_request_failed", http.StatusBadRequest)

@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	TasksTableName = "tasks"
+	AdminTasksTableName = "admin_tasks"
 
 	AsyncTaskTypeChannelModelTest      = "channel_model_test"
 	AsyncTaskTypeChannelRefreshModels  = "channel_refresh_models"
@@ -52,7 +52,7 @@ type AsyncTaskFilter struct {
 }
 
 func (AsyncTask) TableName() string {
-	return TasksTableName
+	return AdminTasksTableName
 }
 
 func NormalizeAsyncTaskType(value string) string {

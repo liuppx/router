@@ -100,3 +100,41 @@ func TestBuildProviderModelRows_CanonicalizeAndMergeDuplicates(t *testing.T) {
 		t.Fatalf("expected existing output price to be preserved, got %f", rows[0].OutputPrice)
 	}
 }
+
+func TestBuildProviderModelStoreRows_IncludesCapabilitiesAndPriceComponents(t *testing.T) {
+	store := BuildProviderModelStoreRows("openai", []ProviderModelDetail{
+		{
+			Model:        "dall-e-3",
+			Type:         ProviderModelTypeImage,
+			Capabilities: []string{ProviderModelTypeImage},
+			InputPrice:   0.04,
+			PriceUnit:    ProviderPriceUnitPerImage,
+			Currency:     ProviderPriceCurrencyUSD,
+			PriceComponents: []ProviderModelPriceComponentDetail{
+				{
+					Component:  ProviderModelPriceComponentImageGeneration,
+					Condition:  "quality=standard;size=1024x1024",
+					InputPrice: 0.04,
+					PriceUnit:  ProviderPriceUnitPerImage,
+					Currency:   ProviderPriceCurrencyUSD,
+					Source:     "default",
+					SourceURL:  "https://platform.openai.com/docs/pricing",
+					SortOrder:  10,
+				},
+			},
+		},
+	}, 300)
+
+	if len(store.Models) != 1 {
+		t.Fatalf("expected 1 model row, got %d", len(store.Models))
+	}
+	if store.Models[0].Capabilities != "image" {
+		t.Fatalf("expected capabilities=image, got %q", store.Models[0].Capabilities)
+	}
+	if len(store.PriceComponents) != 1 {
+		t.Fatalf("expected 1 price component row, got %d", len(store.PriceComponents))
+	}
+	if store.PriceComponents[0].Component != ProviderModelPriceComponentImageGeneration {
+		t.Fatalf("unexpected component %q", store.PriceComponents[0].Component)
+	}
+}

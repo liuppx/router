@@ -1,20 +1,36 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Card, Form, Label } from 'semantic-ui-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import { API, showError, showSuccess, timestamp2string } from '../../helpers';
 
 const normalizeTaskStatus = (value) => {
   const normalized = (value || '').toString().trim().toLowerCase();
   switch (normalized) {
     case 'pending':
-    case 'running':
-    case 'succeeded':
-    case 'failed':
-    case 'canceled':
-      return normalized;
-    default:
+    case 'queued':
       return 'pending';
+    case 'running':
+    case 'processing':
+    case 'in_progress':
+      return 'running';
+    case 'succeeded':
+    case 'success':
+    case 'completed':
+      return 'succeeded';
+    case 'failed':
+    case 'error':
+      return 'failed';
+    case 'canceled':
+    case 'cancelled':
+      return 'canceled';
+    default:
+      return normalized || 'pending';
   }
 };
 
@@ -69,7 +85,9 @@ const renderDetailFields = (data, fields) => {
       if (rawValue === undefined || rawValue === null || rawValue === '') {
         return null;
       }
-      const value = formatter ? formatter(rawValue, data) : formatDetailValue(rawValue);
+      const value = formatter
+        ? formatter(rawValue, data)
+        : formatDetailValue(rawValue);
       return { key, label, value };
     })
     .filter(Boolean);
@@ -110,8 +128,17 @@ const renderStructuredContent = (title, value, fields) => {
 const TaskDetail = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { id } = useParams();
+  const isAdminPage = location.pathname.startsWith('/admin/');
+  const scope =
+    isAdminPage && searchParams.get('scope') === 'user'
+      ? 'user'
+      : isAdminPage
+        ? 'admin'
+        : 'user';
+  const isUserScope = scope === 'user';
   const [loading, setLoading] = useState(true);
   const [task, setTask] = useState(null);
 
@@ -126,10 +153,18 @@ const TaskDetail = () => {
         }
         nextSearchParams.set(key, normalizedValue);
       });
+      if (!isAdminPage) {
+        nextSearchParams.delete('scope');
+      } else if (scope !== 'user') {
+        nextSearchParams.delete('scope');
+      } else {
+        nextSearchParams.set('scope', 'user');
+      }
       const search = nextSearchParams.toString();
-      return `/admin/task${search ? `?${search}` : ''}`;
+      const basePath = isAdminPage ? '/admin/task' : '/workspace/task';
+      return `${basePath}${search ? `?${search}` : ''}`;
     },
-    [searchParams]
+    [isAdminPage, scope, searchParams],
   );
 
   const payloadFields = useMemo(
@@ -141,7 +176,7 @@ const TaskDetail = () => {
       { key: 'refresh_type', label: 'refresh_type' },
       { key: 'round', label: 'round' },
     ],
-    []
+    [],
   );
 
   const resultFields = useMemo(
@@ -154,7 +189,7 @@ const TaskDetail = () => {
       { key: 'model', label: 'model' },
       { key: 'round', label: 'round' },
     ],
-    []
+    [],
   );
 
   const errorFields = useMemo(
@@ -163,7 +198,7 @@ const TaskDetail = () => {
       { key: 'error', label: 'error' },
       { key: 'detail', label: 'detail' },
     ],
-    []
+    [],
   );
 
   const backToList = useCallback(() => {
@@ -173,7 +208,12 @@ const TaskDetail = () => {
   const loadTask = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await API.get(`/api/v1/admin/tasks/${id}`);
+      const endpoint = isAdminPage
+        ? isUserScope
+          ? `/api/v1/admin/user/tasks/${id}`
+          : `/api/v1/admin/tasks/${id}`
+        : `/api/v1/public/user/tasks/${id}`;
+      const res = await API.get(endpoint);
       const { success, message, data } = res.data || {};
       if (!success) {
         showError(message || t('task.messages.load_failed'));
@@ -185,7 +225,7 @@ const TaskDetail = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, t]);
+  }, [id, isAdminPage, isUserScope, t]);
 
   useEffect(() => {
     loadTask().then();
@@ -200,11 +240,7 @@ const TaskDetail = () => {
         return;
       }
       showSuccess(t('task.messages.retry_success'));
-      navigate(
-        buildTaskListPath({
-          refresh_at: String(Date.now()),
-        })
-      );
+      navigate(buildTaskListPath({ refresh_at: String(Date.now()) }));
     } catch (error) {
       showError(error?.message || t('task.messages.retry_failed'));
     }
@@ -219,25 +255,22 @@ const TaskDetail = () => {
         return;
       }
       showSuccess(t('task.messages.cancel_success'));
-      navigate(
-        buildTaskListPath({
-          refresh_at: String(Date.now()),
-        })
-      );
+      navigate(buildTaskListPath({ refresh_at: String(Date.now()) }));
     } catch (error) {
       showError(error?.message || t('task.messages.cancel_failed'));
     }
   }, [buildTaskListPath, id, navigate, t]);
 
-  const canRetry = ['failed', 'canceled'].includes(
-    normalizeTaskStatus(task?.status)
-  );
-  const canCancel = ['pending', 'running'].includes(
-    normalizeTaskStatus(task?.status)
-  );
-  const channelDetailPath = task?.channel_id
-    ? `/admin/channel/detail/${task.channel_id}`
-    : '';
+  const canRetry =
+    !isUserScope &&
+    ['failed', 'canceled'].includes(normalizeTaskStatus(task?.status));
+  const canCancel =
+    !isUserScope &&
+    ['pending', 'running'].includes(normalizeTaskStatus(task?.status));
+  const channelDetailPath =
+    isAdminPage && task?.channel_id
+      ? `/admin/channel/detail/${task.channel_id}`
+      : '';
 
   return (
     <div className='dashboard-container'>
@@ -254,20 +287,24 @@ const TaskDetail = () => {
             >
               {t('task.buttons.refresh')}
             </Button>
-            <Button
-              className='router-page-button'
-              disabled={!canRetry}
-              onClick={handleRetry}
-            >
-              {t('task.buttons.retry')}
-            </Button>
-            <Button
-              className='router-page-button'
-              disabled={!canCancel}
-              onClick={handleCancel}
-            >
-              {t('task.buttons.cancel')}
-            </Button>
+            {!isUserScope ? (
+              <>
+                <Button
+                  className='router-page-button'
+                  disabled={!canRetry}
+                  onClick={handleRetry}
+                >
+                  {t('task.buttons.retry')}
+                </Button>
+                <Button
+                  className='router-page-button'
+                  disabled={!canCancel}
+                  onClick={handleCancel}
+                >
+                  {t('task.buttons.cancel')}
+                </Button>
+              </>
+            ) : null}
             <Button
               className='router-page-button'
               disabled={!channelDetailPath}
@@ -282,7 +319,7 @@ const TaskDetail = () => {
               <Form.Input
                 className='router-section-input'
                 label={t('task.table.type')}
-                value={task ? t(`task.types.${task.type || 'channel_model_test'}`) : ''}
+                value={task ? t(`task.types.${task.type || 'video'}`) : ''}
                 readOnly
               />
               <Form.Field>
@@ -294,6 +331,14 @@ const TaskDetail = () => {
             </Form.Group>
 
             <Form.Group widths='equal'>
+              {isAdminPage && isUserScope ? (
+                <Form.Input
+                  className='router-section-input'
+                  label={t('task.table.user')}
+                  value={task?.user_name || task?.user_id || '-'}
+                  readOnly
+                />
+              ) : null}
               <Form.Input
                 className='router-section-input'
                 label={t('task.table.channel')}
@@ -312,38 +357,84 @@ const TaskDetail = () => {
               <Form.Input
                 className='router-section-input'
                 label={t('task.table.created_at')}
-                value={task?.created_at ? timestamp2string(task.created_at) : '-'}
+                value={
+                  task?.created_at ? timestamp2string(task.created_at) : '-'
+                }
                 readOnly
               />
               <Form.Input
                 className='router-section-input'
-                label={t('task.table.finished_at')}
-                value={task?.finished_at ? timestamp2string(task.finished_at) : '-'}
+                label={
+                  isUserScope
+                    ? t('task.table.updated_at')
+                    : t('task.table.finished_at')
+                }
+                value={
+                  isUserScope
+                    ? task?.updated_at
+                      ? timestamp2string(task.updated_at)
+                      : '-'
+                    : task?.finished_at
+                      ? timestamp2string(task.finished_at)
+                      : '-'
+                }
                 readOnly
               />
             </Form.Group>
 
-            <Form.Input
-              className='router-section-input'
-              label={t('task.detail.endpoint')}
-              value={task?.endpoint || '-'}
-              readOnly
-            />
-
-            {renderStructuredContent(
-              t('task.detail.payload'),
-              task?.payload || '',
-              payloadFields
-            )}
-            {renderStructuredContent(
-              t('task.detail.result'),
-              task?.result || '',
-              resultFields
-            )}
-            {renderStructuredContent(
-              t('task.detail.error'),
-              task?.error_message || '',
-              errorFields
+            {isUserScope ? (
+              <>
+                <Form.Group widths='equal'>
+                  <Form.Input
+                    className='router-section-input'
+                    label={t('task.detail.provider')}
+                    value={task?.provider || '-'}
+                    readOnly
+                  />
+                  <Form.Input
+                    className='router-section-input'
+                    label={t('task.detail.request_id')}
+                    value={task?.request_id || '-'}
+                    readOnly
+                  />
+                </Form.Group>
+                <Form.Input
+                  className='router-section-input'
+                  label={t('task.detail.result_url')}
+                  value={task?.result_url || '-'}
+                  readOnly
+                />
+                <Form.Input
+                  className='router-section-input'
+                  label={t('task.detail.source')}
+                  value={task?.source || '-'}
+                  readOnly
+                />
+              </>
+            ) : (
+              <>
+                <Form.Input
+                  className='router-section-input'
+                  label={t('task.detail.endpoint')}
+                  value={task?.endpoint || '-'}
+                  readOnly
+                />
+                {renderStructuredContent(
+                  t('task.detail.payload'),
+                  task?.payload || '',
+                  payloadFields,
+                )}
+                {renderStructuredContent(
+                  t('task.detail.result'),
+                  task?.result || '',
+                  resultFields,
+                )}
+                {renderStructuredContent(
+                  t('task.detail.error'),
+                  task?.error_message || '',
+                  errorFields,
+                )}
+              </>
             )}
           </Form>
         </Card.Content>

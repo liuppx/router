@@ -81,6 +81,8 @@ func relayModeName(path string) string {
 		return "proxy"
 	case relaymode.Responses:
 		return "responses"
+	case relaymode.Videos:
+		return "videos"
 	default:
 		return "unknown"
 	}

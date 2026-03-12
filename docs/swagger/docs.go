@@ -205,44 +205,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/admin/channel/search": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "summary": "Search channels (admin)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Keyword",
-                        "name": "keyword",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/docs.StandardResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/docs.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/admin/channel/test": {
             "get": {
                 "security": [
@@ -545,8 +507,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Page index",
-                        "name": "p",
+                        "description": "Page (1-based)",
+                        "name": "page",
                         "in": "query"
                     },
                     {
@@ -578,7 +540,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/admin/channel/{id}/models/refresh": {
+        "/api/v1/admin/channel/{id}/refresh": {
             "post": {
                 "security": [
                     {
@@ -591,7 +553,7 @@ const docTemplate = `{
                 "tags": [
                     "admin"
                 ],
-                "summary": "Refresh channel models from upstream (admin)",
+                "summary": "Refresh channel runtime data from upstream (admin)",
                 "parameters": [
                     {
                         "type": "string",
@@ -618,6 +580,43 @@ const docTemplate = `{
             }
         },
         "/api/v1/admin/channel/{id}/tests": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "List latest channel tests (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Channel ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/docs.StandardResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/docs.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -1091,8 +1090,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Page index",
-                        "name": "p",
+                        "description": "Page (1-based)",
+                        "name": "page",
                         "in": "query"
                     },
                     {
@@ -1375,7 +1374,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/admin/provider": {
+        "/api/v1/admin/providers": {
             "get": {
                 "security": [
                     {
@@ -1389,6 +1388,26 @@ const docTemplate = `{
                     "admin"
                 ],
                 "summary": "Get paged provider catalog (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page (1-based)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Keyword",
+                        "name": "keyword",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1436,7 +1455,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/admin/provider/{id}": {
+        "/api/v1/admin/providers/{id}": {
             "get": {
                 "security": [
                     {
@@ -1552,7 +1571,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/admin/provider/{id}/model": {
+        "/api/v1/admin/providers/{id}/model": {
             "post": {
                 "security": [
                     {
@@ -1611,8 +1630,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Page index",
-                        "name": "p",
+                        "description": "Page (1-based)",
+                        "name": "page",
                         "in": "query"
                     }
                 ],
@@ -1836,6 +1855,74 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/admin/tasks": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "List async tasks (admin)",
+                "responses": {}
+            }
+        },
+        "/api/v1/admin/tasks/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Get async task by ID (admin)",
+                "responses": {}
+            }
+        },
+        "/api/v1/admin/tasks/{id}/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Cancel async task (admin)",
+                "responses": {}
+            }
+        },
+        "/api/v1/admin/tasks/{id}/retry": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Retry async task (admin)",
+                "responses": {}
+            }
+        },
         "/api/v1/admin/user": {
             "get": {
                 "security": [
@@ -1853,8 +1940,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Page index",
-                        "name": "p",
+                        "description": "Page (1-based)",
+                        "name": "page",
                         "in": "query"
                     },
                     {
@@ -2044,6 +2131,40 @@ const docTemplate = `{
                         }
                     }
                 }
+            }
+        },
+        "/api/v1/admin/user/tasks": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "List user tasks (admin)",
+                "responses": {}
+            }
+        },
+        "/api/v1/admin/user/tasks/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Get user task by task ID (admin)",
+                "responses": {}
             }
         },
         "/api/v1/admin/user/{id}": {
@@ -3473,8 +3594,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Page index",
-                        "name": "p",
+                        "description": "Page (1-based)",
+                        "name": "page",
                         "in": "query"
                     },
                     {
@@ -4525,8 +4646,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Page index",
-                        "name": "p",
+                        "description": "Page (1-based)",
+                        "name": "page",
                         "in": "query"
                     },
                     {
@@ -5164,6 +5285,40 @@ const docTemplate = `{
                         }
                     }
                 }
+            }
+        },
+        "/api/v1/public/user/tasks": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "List current user tasks",
+                "responses": {}
+            }
+        },
+        "/api/v1/public/user/tasks/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Get current user task by task ID",
+                "responses": {}
             }
         },
         "/api/v1/public/user/token": {

@@ -43,12 +43,7 @@ const APP_VERSION = import.meta.env.VITE_APP_VERSION || '';
 
 function AdminOnlyRoute({ children }) {
   if (!isAdmin()) {
-    return (
-      <Navigate
-        to='/workspace/token'
-        replace
-      />
-    );
+    return <Navigate to='/workspace/token' replace />;
   }
   return children;
 }
@@ -87,10 +82,7 @@ function PrefixRedirect({ from, to }) {
     : '';
   const targetPath = `${to}${suffix}`;
   return (
-    <Navigate
-      to={`${targetPath}${location.search}${location.hash}`}
-      replace
-    />
+    <Navigate to={`${targetPath}${location.search}${location.hash}`} replace />
   );
 }
 
@@ -129,7 +121,7 @@ function App() {
           APP_VERSION !== ''
         ) {
           showNotice(
-            `新版本可用：${data.version}，请使用快捷键 Shift + F5 刷新页面`
+            `新版本可用：${data.version}，请使用快捷键 Shift + F5 刷新页面`,
           );
         }
       } else {
@@ -158,27 +150,14 @@ function App() {
 
   return (
     <Routes>
-      <Route
-        path='/'
-        element={<RootRedirect />}
-      />
+      <Route path='/' element={<RootRedirect />} />
       <Route
         path='/workspace'
-        element={
-          <Navigate
-            to='/workspace/token'
-            replace
-          />
-        }
+        element={<Navigate to='/workspace/token' replace />}
       />
       <Route
         path='/admin'
-        element={
-          <Navigate
-            to='/admin/dashboard'
-            replace
-          />
-        }
+        element={<Navigate to='/admin/dashboard' replace />}
       />
 
       <Route
@@ -217,12 +196,7 @@ function App() {
         />
         <Route
           path='/workspace/about'
-          element={
-            <Navigate
-              to='/workspace/token'
-              replace
-            />
-          }
+          element={<Navigate to='/workspace/token' replace />}
         />
         <Route
           path='/workspace/chat'
@@ -241,10 +215,7 @@ function App() {
           </PrivateRoute>
         }
       >
-        <Route
-          path='/workspace/token'
-          element={<Token />}
-        />
+        <Route path='/workspace/token' element={<Token />} />
         <Route
           path='/workspace/token/edit/:id'
           element={
@@ -269,14 +240,17 @@ function App() {
             </Suspense>
           }
         />
+        <Route path='/workspace/log' element={<Log />} />
+        <Route path='/workspace/task' element={<Task />} />
         <Route
-          path='/workspace/log'
-          element={<Log />}
+          path='/workspace/task/:id'
+          element={
+            <Suspense fallback={<Loading />}>
+              <TaskDetail />
+            </Suspense>
+          }
         />
-        <Route
-          path='/workspace/dashboard'
-          element={<Dashboard />}
-        />
+        <Route path='/workspace/dashboard' element={<Dashboard />} />
         <Route
           path='/workspace/setting'
           element={
@@ -296,10 +270,7 @@ function App() {
           </PrivateRoute>
         }
       >
-        <Route
-          path='/admin/channel'
-          element={<Channel />}
-        />
+        <Route path='/admin/channel' element={<Channel />} />
         <Route
           path='/admin/channel/edit/:id'
           element={
@@ -324,18 +295,9 @@ function App() {
             </Suspense>
           }
         />
-        <Route
-          path='/admin/provider'
-          element={<Providers />}
-        />
-        <Route
-          path='/admin/group'
-          element={<Group />}
-        />
-        <Route
-          path='/admin/redemption'
-          element={<Redemption />}
-        />
+        <Route path='/admin/provider' element={<Providers />} />
+        <Route path='/admin/group' element={<Group />} />
+        <Route path='/admin/redemption' element={<Redemption />} />
         <Route
           path='/admin/redemption/edit/:id'
           element={
@@ -360,10 +322,7 @@ function App() {
             </Suspense>
           }
         />
-        <Route
-          path='/admin/user'
-          element={<User />}
-        />
+        <Route path='/admin/user' element={<User />} />
         <Route
           path='/admin/user/edit/:id'
           element={
@@ -388,18 +347,9 @@ function App() {
             </Suspense>
           }
         />
-        <Route
-          path='/admin/dashboard'
-          element={<Dashboard />}
-        />
-        <Route
-          path='/admin/log'
-          element={<Log />}
-        />
-        <Route
-          path='/admin/task'
-          element={<Task />}
-        />
+        <Route path='/admin/dashboard' element={<Dashboard />} />
+        <Route path='/admin/log' element={<Log />} />
+        <Route path='/admin/task' element={<Task />} />
         <Route
           path='/admin/task/:id'
           element={
@@ -420,99 +370,42 @@ function App() {
 
       <Route
         path='/about'
-        element={
-          <Navigate
-            to='/workspace/token'
-            replace
-          />
-        }
+        element={<Navigate to='/workspace/token' replace />}
       />
-      <Route
-        path='/chat'
-        element={
-          <Navigate
-            to='/workspace/chat'
-            replace
-          />
-        }
-      />
-      <Route
-        path='/dashboard'
-        element={<DashboardRedirect />}
-      />
-      <Route
-        path='/setting'
-        element={<SettingRedirect />}
-      />
+      <Route path='/chat' element={<Navigate to='/workspace/chat' replace />} />
+      <Route path='/dashboard' element={<DashboardRedirect />} />
+      <Route path='/setting' element={<SettingRedirect />} />
 
       <Route
         path='/channel/*'
-        element={
-          <PrefixRedirect
-            from='/channel'
-            to='/admin/channel'
-          />
-        }
+        element={<PrefixRedirect from='/channel' to='/admin/channel' />}
       />
       <Route
         path='/provider/*'
-        element={
-          <PrefixRedirect
-            from='/provider'
-            to='/admin/provider'
-          />
-        }
+        element={<PrefixRedirect from='/provider' to='/admin/provider' />}
       />
       <Route
         path='/redemption/*'
-        element={
-          <PrefixRedirect
-            from='/redemption'
-            to='/admin/redemption'
-          />
-        }
+        element={<PrefixRedirect from='/redemption' to='/admin/redemption' />}
       />
       <Route
         path='/user/*'
-        element={
-          <PrefixRedirect
-            from='/user'
-            to='/admin/user'
-          />
-        }
+        element={<PrefixRedirect from='/user' to='/admin/user' />}
       />
       <Route
         path='/token/*'
-        element={
-          <PrefixRedirect
-            from='/token'
-            to='/workspace/token'
-          />
-        }
+        element={<PrefixRedirect from='/token' to='/workspace/token' />}
       />
       <Route
         path='/topup/*'
-        element={
-          <PrefixRedirect
-            from='/topup'
-            to='/workspace/topup'
-          />
-        }
+        element={<PrefixRedirect from='/topup' to='/workspace/topup' />}
       />
       <Route
         path='/log/*'
-        element={
-          <PrefixRedirect
-            from='/log'
-            to='/workspace/log'
-          />
-        }
+        element={<PrefixRedirect from='/log' to='/workspace/log' />}
       />
 
-      <Route
-        path='*'
-        element={<NotFound />}
-      />
+      <Route path='*' element={<NotFound />} />
     </Routes>
   );
 }

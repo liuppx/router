@@ -7,6 +7,11 @@ import (
 	"gorm.io/gorm"
 )
 
+type ProviderModelStoreRows struct {
+	Models          []ProviderModel
+	PriceComponents []ProviderModelPriceComponent
+}
+
 func canonicalizeModelNameForProvider(provider string, modelName string) string {
 	normalizedProvider := commonutils.NormalizeProvider(provider)
 	if normalizedProvider == "" {
@@ -54,7 +59,16 @@ func LoadProviderModelDetailsMapForProviders(db *gorm.DB, providers []string) (m
 	if err := query.Find(&rows).Error; err != nil {
 		return nil, err
 	}
+	componentRows := make([]ProviderModelPriceComponent, 0)
+	componentQuery := db.Order("provider asc, model asc, sort_order asc, component asc, condition asc")
+	if len(providers) > 0 {
+		componentQuery = componentQuery.Where("provider IN ?", providers)
+	}
+	if err := componentQuery.Find(&componentRows).Error; err != nil {
+		return nil, err
+	}
 	result := make(map[string][]ProviderModelDetail, 0)
+	detailIndex := make(map[string]int, len(rows))
 	for _, row := range rows {
 		provider := commonutils.NormalizeProvider(row.Provider)
 		if provider == "" {
@@ -67,16 +81,51 @@ func LoadProviderModelDetailsMapForProviders(db *gorm.DB, providers []string) (m
 		if modelName == "" {
 			continue
 		}
-		result[provider] = append(result[provider], ProviderModelDetail{
-			Model:       modelName,
-			Type:        strings.TrimSpace(strings.ToLower(row.Type)),
+		detail := ProviderModelDetail{
+			Model:        modelName,
+			Type:         strings.TrimSpace(strings.ToLower(row.Type)),
+			Capabilities: splitProviderModelCapabilities(row.Capabilities),
+			InputPrice:   row.InputPrice,
+			OutputPrice:  row.OutputPrice,
+			PriceUnit:    strings.TrimSpace(strings.ToLower(row.PriceUnit)),
+			Currency:     strings.TrimSpace(strings.ToUpper(row.Currency)),
+			Source:       strings.TrimSpace(strings.ToLower(row.Source)),
+			UpdatedAt:    row.UpdatedAt,
+		}
+		result[provider] = append(result[provider], detail)
+		detailIndex[provider+"\x00"+modelName] = len(result[provider]) - 1
+	}
+	for _, row := range componentRows {
+		provider := commonutils.NormalizeProvider(row.Provider)
+		if provider == "" {
+			provider = strings.TrimSpace(strings.ToLower(row.Provider))
+		}
+		if provider == "" {
+			continue
+		}
+		modelName := canonicalizeModelNameForProvider(provider, row.Model)
+		if modelName == "" {
+			continue
+		}
+		key := provider + "\x00" + modelName
+		index, ok := detailIndex[key]
+		if !ok {
+			continue
+		}
+		detail := result[provider][index]
+		detail.PriceComponents = append(detail.PriceComponents, ProviderModelPriceComponentDetail{
+			Component:   strings.TrimSpace(strings.ToLower(row.Component)),
+			Condition:   strings.TrimSpace(row.Condition),
 			InputPrice:  row.InputPrice,
 			OutputPrice: row.OutputPrice,
 			PriceUnit:   strings.TrimSpace(strings.ToLower(row.PriceUnit)),
 			Currency:    strings.TrimSpace(strings.ToUpper(row.Currency)),
 			Source:      strings.TrimSpace(strings.ToLower(row.Source)),
+			SourceURL:   strings.TrimSpace(row.SourceURL),
+			SortOrder:   row.SortOrder,
 			UpdatedAt:   row.UpdatedAt,
 		})
+		result[provider][index] = detail
 	}
 	for provider, details := range result {
 		result[provider] = NormalizeProviderModelDetails(details)
@@ -85,12 +134,16 @@ func LoadProviderModelDetailsMapForProviders(db *gorm.DB, providers []string) (m
 }
 
 func BuildProviderModelRows(provider string, details []ProviderModelDetail, now int64) []ProviderModel {
+	return BuildProviderModelStoreRows(provider, details, now).Models
+}
+
+func BuildProviderModelStoreRows(provider string, details []ProviderModelDetail, now int64) ProviderModelStoreRows {
 	normalizedProvider := commonutils.NormalizeProvider(provider)
 	if normalizedProvider == "" {
 		normalizedProvider = strings.TrimSpace(strings.ToLower(provider))
 	}
 	if normalizedProvider == "" {
-		return nil
+		return ProviderModelStoreRows{}
 	}
 	detailInput := make([]ProviderModelDetail, 0, len(details))
 	for _, detail := range details {
@@ -102,22 +155,71 @@ func BuildProviderModelRows(provider string, details []ProviderModelDetail, now 
 	}
 	normalizedDetails := NormalizeProviderModelDetails(detailInput)
 	rows := make([]ProviderModel, 0, len(normalizedDetails))
+	componentRows := make([]ProviderModelPriceComponent, 0)
 	for _, detail := range normalizedDetails {
 		updatedAt := detail.UpdatedAt
 		if updatedAt == 0 {
 			updatedAt = now
 		}
 		rows = append(rows, ProviderModel{
-			Provider:    normalizedProvider,
-			Model:       detail.Model,
-			Type:        detail.Type,
-			InputPrice:  detail.InputPrice,
-			OutputPrice: detail.OutputPrice,
-			PriceUnit:   detail.PriceUnit,
-			Currency:    detail.Currency,
-			Source:      detail.Source,
-			UpdatedAt:   updatedAt,
+			Provider:     normalizedProvider,
+			Model:        detail.Model,
+			Type:         detail.Type,
+			Capabilities: joinProviderModelCapabilities(detail.Capabilities),
+			InputPrice:   detail.InputPrice,
+			OutputPrice:  detail.OutputPrice,
+			PriceUnit:    detail.PriceUnit,
+			Currency:     detail.Currency,
+			Source:       detail.Source,
+			UpdatedAt:    updatedAt,
 		})
+		for _, component := range NormalizeProviderModelPriceComponents(detail.PriceComponents) {
+			componentUpdatedAt := component.UpdatedAt
+			if componentUpdatedAt == 0 {
+				componentUpdatedAt = updatedAt
+			}
+			componentRows = append(componentRows, ProviderModelPriceComponent{
+				Provider:    normalizedProvider,
+				Model:       detail.Model,
+				Component:   component.Component,
+				Condition:   component.Condition,
+				InputPrice:  component.InputPrice,
+				OutputPrice: component.OutputPrice,
+				PriceUnit:   component.PriceUnit,
+				Currency:    component.Currency,
+				Source:      component.Source,
+				SourceURL:   component.SourceURL,
+				SortOrder:   component.SortOrder,
+				UpdatedAt:   componentUpdatedAt,
+			})
+		}
 	}
-	return rows
+	return ProviderModelStoreRows{
+		Models:          rows,
+		PriceComponents: componentRows,
+	}
+}
+
+func splitProviderModelCapabilities(raw string) []string {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		value := strings.TrimSpace(strings.ToLower(part))
+		if value == "" {
+			continue
+		}
+		result = append(result, value)
+	}
+	return result
+}
+
+func joinProviderModelCapabilities(values []string) string {
+	normalized := normalizeProviderModelCapabilities(values, "", nil)
+	if len(normalized) == 0 {
+		return ""
+	}
+	return strings.Join(normalized, ",")
 }

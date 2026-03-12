@@ -20,19 +20,44 @@ const (
 	ProviderPriceUnitPerVideo    = "per_video"
 	ProviderPriceUnitPerMinute   = "per_minute"
 	ProviderPriceUnitPerSecond   = "per_second"
+	ProviderPriceUnitPerRequest  = "per_request"
+	ProviderPriceUnitPerTask     = "per_task"
 
 	ProviderPriceCurrencyUSD = "USD"
+
+	ProviderModelPriceComponentText            = "text"
+	ProviderModelPriceComponentImageGeneration = "image_generation"
+	ProviderModelPriceComponentAudioInput      = "audio_input"
+	ProviderModelPriceComponentAudioOutput     = "audio_output"
+	ProviderModelPriceComponentVideoGeneration = "video_generation"
+	ProviderModelPriceComponentRealtimeText    = "realtime_text"
+	ProviderModelPriceComponentRealtimeAudio   = "realtime_audio"
 )
 
-type ProviderModelDetail struct {
-	Model       string  `json:"model"`
-	Type        string  `json:"type,omitempty"`
+type ProviderModelPriceComponentDetail struct {
+	Component   string  `json:"component"`
+	Condition   string  `json:"condition,omitempty"`
 	InputPrice  float64 `json:"input_price,omitempty"`
 	OutputPrice float64 `json:"output_price,omitempty"`
 	PriceUnit   string  `json:"price_unit,omitempty"`
 	Currency    string  `json:"currency,omitempty"`
 	Source      string  `json:"source,omitempty"`
+	SourceURL   string  `json:"source_url,omitempty"`
+	SortOrder   int     `json:"sort_order,omitempty"`
 	UpdatedAt   int64   `json:"updated_at,omitempty"`
+}
+
+type ProviderModelDetail struct {
+	Model           string                              `json:"model"`
+	Type            string                              `json:"type,omitempty"`
+	Capabilities    []string                            `json:"capabilities,omitempty"`
+	InputPrice      float64                             `json:"input_price,omitempty"`
+	OutputPrice     float64                             `json:"output_price,omitempty"`
+	PriceUnit       string                              `json:"price_unit,omitempty"`
+	Currency        string                              `json:"currency,omitempty"`
+	Source          string                              `json:"source,omitempty"`
+	UpdatedAt       int64                               `json:"updated_at,omitempty"`
+	PriceComponents []ProviderModelPriceComponentDetail `json:"price_components,omitempty"`
 }
 
 type ProviderCatalogSeed struct {
@@ -74,14 +99,16 @@ func NormalizeProviderModelDetails(details []ProviderModelDetail) []ProviderMode
 			outputPrice = 0
 		}
 		entry := ProviderModelDetail{
-			Model:       modelName,
-			Type:        t,
-			InputPrice:  inputPrice,
-			OutputPrice: outputPrice,
-			PriceUnit:   priceUnit,
-			Currency:    currency,
-			Source:      source,
-			UpdatedAt:   detail.UpdatedAt,
+			Model:           modelName,
+			Type:            t,
+			Capabilities:    normalizeProviderModelCapabilities(detail.Capabilities, t, detail.PriceComponents),
+			InputPrice:      inputPrice,
+			OutputPrice:     outputPrice,
+			PriceUnit:       priceUnit,
+			Currency:        currency,
+			Source:          source,
+			UpdatedAt:       detail.UpdatedAt,
+			PriceComponents: NormalizeProviderModelPriceComponents(detail.PriceComponents),
 		}
 		if idx, ok := index[modelName]; ok {
 			existing := normalized[idx]
@@ -106,6 +133,8 @@ func NormalizeProviderModelDetails(details []ProviderModelDetail) []ProviderMode
 			if entry.UpdatedAt > existing.UpdatedAt {
 				existing.UpdatedAt = entry.UpdatedAt
 			}
+			existing.Capabilities = normalizeProviderModelCapabilities(append(existing.Capabilities, entry.Capabilities...), existing.Type, append(existing.PriceComponents, entry.PriceComponents...))
+			existing.PriceComponents = NormalizeProviderModelPriceComponents(append(existing.PriceComponents, entry.PriceComponents...))
 			normalized[idx] = existing
 			continue
 		}
@@ -116,6 +145,153 @@ func NormalizeProviderModelDetails(details []ProviderModelDetail) []ProviderMode
 		return normalized[i].Model < normalized[j].Model
 	})
 	return normalized
+}
+
+func NormalizeProviderModelPriceComponents(details []ProviderModelPriceComponentDetail) []ProviderModelPriceComponentDetail {
+	index := make(map[string]int, len(details))
+	normalized := make([]ProviderModelPriceComponentDetail, 0, len(details))
+	for _, detail := range details {
+		component := strings.TrimSpace(strings.ToLower(detail.Component))
+		if component == "" {
+			continue
+		}
+		condition := strings.TrimSpace(detail.Condition)
+		priceUnit := strings.TrimSpace(strings.ToLower(detail.PriceUnit))
+		if priceUnit == "" {
+			priceUnit = defaultPriceUnitByComponent(component)
+		}
+		currency := strings.TrimSpace(strings.ToUpper(detail.Currency))
+		if currency == "" {
+			currency = ProviderPriceCurrencyUSD
+		}
+		source := strings.TrimSpace(strings.ToLower(detail.Source))
+		if source == "" {
+			source = "manual"
+		}
+		entry := ProviderModelPriceComponentDetail{
+			Component:   component,
+			Condition:   condition,
+			InputPrice:  maxProviderPrice(detail.InputPrice),
+			OutputPrice: maxProviderPrice(detail.OutputPrice),
+			PriceUnit:   priceUnit,
+			Currency:    currency,
+			Source:      source,
+			SourceURL:   strings.TrimSpace(detail.SourceURL),
+			SortOrder:   detail.SortOrder,
+			UpdatedAt:   detail.UpdatedAt,
+		}
+		key := component + "\x00" + condition
+		if idx, ok := index[key]; ok {
+			existing := normalized[idx]
+			if existing.InputPrice <= 0 && entry.InputPrice > 0 {
+				existing.InputPrice = entry.InputPrice
+			}
+			if existing.OutputPrice <= 0 && entry.OutputPrice > 0 {
+				existing.OutputPrice = entry.OutputPrice
+			}
+			if existing.PriceUnit == "" {
+				existing.PriceUnit = entry.PriceUnit
+			}
+			if existing.Currency == "" {
+				existing.Currency = entry.Currency
+			}
+			if existing.Source == "" || existing.Source == "default" {
+				existing.Source = entry.Source
+			}
+			if existing.SourceURL == "" {
+				existing.SourceURL = entry.SourceURL
+			}
+			if existing.SortOrder == 0 {
+				existing.SortOrder = entry.SortOrder
+			}
+			if entry.UpdatedAt > existing.UpdatedAt {
+				existing.UpdatedAt = entry.UpdatedAt
+			}
+			normalized[idx] = existing
+			continue
+		}
+		index[key] = len(normalized)
+		normalized = append(normalized, entry)
+	}
+	sort.SliceStable(normalized, func(i, j int) bool {
+		if normalized[i].SortOrder != normalized[j].SortOrder {
+			if normalized[i].SortOrder == 0 {
+				return false
+			}
+			if normalized[j].SortOrder == 0 {
+				return true
+			}
+			return normalized[i].SortOrder < normalized[j].SortOrder
+		}
+		if normalized[i].Component != normalized[j].Component {
+			return normalized[i].Component < normalized[j].Component
+		}
+		return normalized[i].Condition < normalized[j].Condition
+	})
+	return normalized
+}
+
+func normalizeProviderModelCapabilities(capabilities []string, modelType string, components []ProviderModelPriceComponentDetail) []string {
+	seen := make(map[string]struct{}, len(capabilities)+4)
+	result := make([]string, 0, len(capabilities)+4)
+	appendCapability := func(value string) {
+		normalized := strings.TrimSpace(strings.ToLower(value))
+		switch normalized {
+		case ProviderModelTypeText, ProviderModelTypeImage, ProviderModelTypeAudio, ProviderModelTypeVideo:
+		default:
+			return
+		}
+		if _, ok := seen[normalized]; ok {
+			return
+		}
+		seen[normalized] = struct{}{}
+		result = append(result, normalized)
+	}
+	appendCapability(modelType)
+	for _, capability := range capabilities {
+		appendCapability(capability)
+	}
+	for _, component := range components {
+		appendCapability(providerCapabilityFromComponent(component.Component))
+	}
+	sort.Strings(result)
+	return result
+}
+
+func providerCapabilityFromComponent(component string) string {
+	switch strings.TrimSpace(strings.ToLower(component)) {
+	case ProviderModelPriceComponentImageGeneration:
+		return ProviderModelTypeImage
+	case ProviderModelPriceComponentAudioInput, ProviderModelPriceComponentAudioOutput, ProviderModelPriceComponentRealtimeAudio:
+		return ProviderModelTypeAudio
+	case ProviderModelPriceComponentVideoGeneration:
+		return ProviderModelTypeVideo
+	case ProviderModelPriceComponentText, ProviderModelPriceComponentRealtimeText:
+		return ProviderModelTypeText
+	default:
+		return ""
+	}
+}
+
+func defaultPriceUnitByComponent(component string) string {
+	switch strings.TrimSpace(strings.ToLower(component)) {
+	case ProviderModelPriceComponentImageGeneration:
+		return ProviderPriceUnitPerImage
+	case ProviderModelPriceComponentVideoGeneration:
+		return ProviderPriceUnitPerSecond
+	case ProviderModelPriceComponentAudioInput, ProviderModelPriceComponentAudioOutput,
+		ProviderModelPriceComponentRealtimeAudio, ProviderModelPriceComponentRealtimeText:
+		return ProviderPriceUnitPer1KTokens
+	default:
+		return ProviderPriceUnitPer1KTokens
+	}
+}
+
+func maxProviderPrice(value float64) float64 {
+	if value < 0 {
+		return 0
+	}
+	return value
 }
 
 func inferProviderByModel(modelName string, channelProtocol int, hasChannelProtocol bool) string {

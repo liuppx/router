@@ -70,6 +70,7 @@ func RelayAudioHelper(c *gin.Context, relayMode int) *relaymodel.ErrorWithStatus
 			return openai.ErrorWrapper(pricingErr, "model_pricing_not_configured", http.StatusServiceUnavailable)
 		}
 	}
+	pricing = adminmodel.ResolveAudioRequestPricing(pricing, relayMode == relaymode.AudioSpeech)
 	var quota int64
 	var preConsumedQuota int64
 	switch relayMode {

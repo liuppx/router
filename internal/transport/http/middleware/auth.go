@@ -20,6 +20,31 @@ import (
 	"github.com/yeying-community/router/internal/admin/model"
 )
 
+func hydrateVideoTaskRelayContext(c *gin.Context, requestModel string) (string, error) {
+	path := normalizeRelayPath(c.Request.URL.Path)
+	if !strings.HasPrefix(path, "/v1/videos/") || c.Request.Method != http.MethodGet {
+		return requestModel, nil
+	}
+	taskID := strings.TrimSpace(c.Param("id"))
+	if taskID == "" {
+		return requestModel, nil
+	}
+	taskRow, err := model.GetUserTaskByTaskIDWithDB(model.DB, taskID)
+	if err != nil {
+		if requestModel != "" {
+			return requestModel, nil
+		}
+		return "", err
+	}
+	if requestModel == "" {
+		requestModel = taskRow.Model
+	}
+	if c.GetString(ctxkey.SpecificChannelId) == "" && strings.TrimSpace(taskRow.ChannelID) != "" {
+		c.Set(ctxkey.SpecificChannelId, strings.TrimSpace(taskRow.ChannelID))
+	}
+	return requestModel, nil
+}
+
 func authHelper(c *gin.Context, minRole int) {
 	session := sessions.Default(c)
 	username := session.Get("username")
@@ -202,6 +227,11 @@ func TokenAuth() func(c *gin.Context) {
 				abortWithMessage(c, http.StatusBadRequest, err.Error())
 				return
 			}
+			requestModel, err = hydrateVideoTaskRelayContext(c, requestModel)
+			if err != nil && shouldCheckModel(c) {
+				abortWithMessage(c, http.StatusBadRequest, err.Error())
+				return
+			}
 			c.Set(ctxkey.RequestModel, requestModel)
 			c.Set(ctxkey.Id, user.Id)
 
@@ -256,6 +286,11 @@ func TokenAuth() func(c *gin.Context) {
 				return
 			}
 			requestModel, err := getRequestModel(c)
+			if err != nil && shouldCheckModel(c) {
+				abortWithMessage(c, http.StatusBadRequest, err.Error())
+				return
+			}
+			requestModel, err = hydrateVideoTaskRelayContext(c, requestModel)
 			if err != nil && shouldCheckModel(c) {
 				abortWithMessage(c, http.StatusBadRequest, err.Error())
 				return
@@ -319,6 +354,11 @@ func TokenAuth() func(c *gin.Context) {
 			return
 		}
 		requestModel, err := getRequestModel(c)
+		if err != nil && shouldCheckModel(c) {
+			abortWithMessage(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		requestModel, err = hydrateVideoTaskRelayContext(c, requestModel)
 		if err != nil && shouldCheckModel(c) {
 			abortWithMessage(c, http.StatusBadRequest, err.Error())
 			return
@@ -420,6 +460,9 @@ func shouldCheckModel(c *gin.Context) bool {
 		return true
 	}
 	if strings.HasPrefix(path, "/v1/audio") {
+		return true
+	}
+	if strings.HasPrefix(path, "/v1/videos") {
 		return true
 	}
 	return false

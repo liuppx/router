@@ -73,6 +73,9 @@ func TestResolveChannelModelPricingUsesProviderDefaultAndChannelOverride(t *test
 	if pricing.OutputPrice != 0.015 {
 		t.Fatalf("expected provider output price 0.015000, got %.6f", pricing.OutputPrice)
 	}
+	if len(pricing.Capabilities) == 0 || pricing.Capabilities[0] != ProviderModelTypeText {
+		t.Fatalf("expected text capability, got %#v", pricing.Capabilities)
+	}
 }
 
 func TestResolveChannelModelPricingRequiresPositivePrice(t *testing.T) {
@@ -96,5 +99,338 @@ func TestResolveChannelModelPricingRequiresPositivePrice(t *testing.T) {
 	}, "missing-model")
 	if err == nil {
 		t.Fatalf("expected error when neither provider default nor positive channel override exists")
+	}
+}
+
+func TestResolveChannelModelPricingCarriesPriceComponents(t *testing.T) {
+	restore := setModelPricingIndexForTest(providerModelPricingIndex{
+		byProviderAndModel: map[string]providerModelPricingEntry{
+			"openai:dall-e-3": {
+				Provider: "openai",
+				Detail: ProviderModelDetail{
+					Model:        "dall-e-3",
+					Type:         ProviderModelTypeImage,
+					Capabilities: []string{ProviderModelTypeImage},
+					InputPrice:   0.04,
+					PriceUnit:    ProviderPriceUnitPerImage,
+					Currency:     ProviderPriceCurrencyUSD,
+					PriceComponents: []ProviderModelPriceComponentDetail{
+						{
+							Component:  ProviderModelPriceComponentImageGeneration,
+							Condition:  "quality=hd;size=1024x1024",
+							InputPrice: 0.08,
+							PriceUnit:  ProviderPriceUnitPerImage,
+							Currency:   ProviderPriceCurrencyUSD,
+							Source:     "default",
+						},
+					},
+				},
+			},
+		},
+		byModel: map[string][]providerModelPricingEntry{
+			"dall-e-3": {
+				{
+					Provider: "openai",
+					Detail: ProviderModelDetail{
+						Model:        "dall-e-3",
+						Type:         ProviderModelTypeImage,
+						Capabilities: []string{ProviderModelTypeImage},
+						InputPrice:   0.04,
+						PriceUnit:    ProviderPriceUnitPerImage,
+						Currency:     ProviderPriceCurrencyUSD,
+						PriceComponents: []ProviderModelPriceComponentDetail{
+							{
+								Component:  ProviderModelPriceComponentImageGeneration,
+								Condition:  "quality=hd;size=1024x1024",
+								InputPrice: 0.08,
+								PriceUnit:  ProviderPriceUnitPerImage,
+								Currency:   ProviderPriceCurrencyUSD,
+								Source:     "default",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	defer restore()
+
+	pricing, err := ResolveChannelModelPricing(0, nil, "dall-e-3")
+	if err != nil {
+		t.Fatalf("ResolveChannelModelPricing returned error: %v", err)
+	}
+	if len(pricing.PriceComponents) != 1 {
+		t.Fatalf("expected 1 price component, got %d", len(pricing.PriceComponents))
+	}
+	if pricing.PriceComponents[0].Condition != "quality=hd;size=1024x1024" {
+		t.Fatalf("unexpected component condition %q", pricing.PriceComponents[0].Condition)
+	}
+}
+
+func TestResolveImageRequestPricingMatchesComponent(t *testing.T) {
+	pricing := ResolveImageRequestPricing(ResolvedModelPricing{
+		Model:      "dall-e-3",
+		Provider:   "openai",
+		Type:       ProviderModelTypeImage,
+		InputPrice: 0.04,
+		PriceUnit:  ProviderPriceUnitPerImage,
+		Currency:   ProviderPriceCurrencyUSD,
+		Source:     "provider_default",
+		PriceComponents: []ProviderModelPriceComponentDetail{
+			{
+				Component:  ProviderModelPriceComponentImageGeneration,
+				Condition:  "quality=hd;size=1024x1024",
+				InputPrice: 0.08,
+				PriceUnit:  ProviderPriceUnitPerImage,
+				Currency:   ProviderPriceCurrencyUSD,
+				Source:     "default",
+			},
+		},
+	}, "1024x1024", "hd")
+
+	if pricing.Source != "provider_component" {
+		t.Fatalf("expected source provider_component, got %q", pricing.Source)
+	}
+	if pricing.InputPrice != 0.08 {
+		t.Fatalf("expected input price 0.08, got %f", pricing.InputPrice)
+	}
+	if pricing.MatchedCondition != "quality=hd;size=1024x1024" {
+		t.Fatalf("unexpected matched condition %q", pricing.MatchedCondition)
+	}
+}
+
+func TestResolveImageRequestPricingFallsBackWhenNoComponentMatches(t *testing.T) {
+	pricing := ResolveImageRequestPricing(ResolvedModelPricing{
+		Model:      "dall-e-3",
+		Provider:   "openai",
+		Type:       ProviderModelTypeImage,
+		InputPrice: 0.04,
+		PriceUnit:  ProviderPriceUnitPerImage,
+		Currency:   ProviderPriceCurrencyUSD,
+		Source:     "provider_default",
+		PriceComponents: []ProviderModelPriceComponentDetail{
+			{
+				Component:  ProviderModelPriceComponentImageGeneration,
+				Condition:  "quality=hd;size=1024x1024",
+				InputPrice: 0.08,
+				PriceUnit:  ProviderPriceUnitPerImage,
+				Currency:   ProviderPriceCurrencyUSD,
+				Source:     "default",
+			},
+		},
+	}, "1792x1024", "standard")
+
+	if pricing.Source != "provider_default" {
+		t.Fatalf("expected source provider_default, got %q", pricing.Source)
+	}
+	if pricing.InputPrice != 0.04 {
+		t.Fatalf("expected base input price 0.04, got %f", pricing.InputPrice)
+	}
+	if pricing.MatchedCondition != "" {
+		t.Fatalf("expected empty matched condition, got %q", pricing.MatchedCondition)
+	}
+}
+
+func TestResolveTextRequestPricingMatchesEndpointComponent(t *testing.T) {
+	pricing := ResolveTextRequestPricing(ResolvedModelPricing{
+		Model:       "gpt-5",
+		Provider:    "openai",
+		Type:        ProviderModelTypeText,
+		InputPrice:  0.001,
+		OutputPrice: 0.002,
+		PriceUnit:   ProviderPriceUnitPer1KTokens,
+		Currency:    ProviderPriceCurrencyUSD,
+		Source:      "provider_default",
+		PriceComponents: []ProviderModelPriceComponentDetail{
+			{
+				Component:   ProviderModelPriceComponentText,
+				Condition:   "endpoint=/v1/responses",
+				InputPrice:  0.003,
+				OutputPrice: 0.004,
+				PriceUnit:   ProviderPriceUnitPer1KTokens,
+				Currency:    ProviderPriceCurrencyUSD,
+				Source:      "official",
+			},
+		},
+	}, "/v1/responses")
+
+	if pricing.Source != "provider_component" {
+		t.Fatalf("expected source provider_component, got %q", pricing.Source)
+	}
+	if pricing.MatchedComponent != ProviderModelPriceComponentText {
+		t.Fatalf("unexpected matched component %q", pricing.MatchedComponent)
+	}
+	if pricing.MatchedCondition != "endpoint=/v1/responses" {
+		t.Fatalf("unexpected matched condition %q", pricing.MatchedCondition)
+	}
+	if pricing.InputPrice != 0.003 || pricing.OutputPrice != 0.004 {
+		t.Fatalf("unexpected matched prices input=%f output=%f", pricing.InputPrice, pricing.OutputPrice)
+	}
+}
+
+func TestResolveTextRequestPricingFallsBackWhenNoEndpointMatch(t *testing.T) {
+	pricing := ResolveTextRequestPricing(ResolvedModelPricing{
+		Model:       "gpt-5",
+		Provider:    "openai",
+		Type:        ProviderModelTypeText,
+		InputPrice:  0.001,
+		OutputPrice: 0.002,
+		PriceUnit:   ProviderPriceUnitPer1KTokens,
+		Currency:    ProviderPriceCurrencyUSD,
+		Source:      "provider_default",
+		PriceComponents: []ProviderModelPriceComponentDetail{
+			{
+				Component:   ProviderModelPriceComponentText,
+				Condition:   "endpoint=/v1/responses",
+				InputPrice:  0.003,
+				OutputPrice: 0.004,
+				PriceUnit:   ProviderPriceUnitPer1KTokens,
+				Currency:    ProviderPriceCurrencyUSD,
+				Source:      "official",
+			},
+		},
+	}, "/v1/chat/completions")
+
+	if pricing.Source != "provider_default" {
+		t.Fatalf("expected source provider_default, got %q", pricing.Source)
+	}
+	if pricing.MatchedCondition != "" || pricing.MatchedComponent != "" {
+		t.Fatalf("expected no matched component, got component=%q condition=%q", pricing.MatchedComponent, pricing.MatchedCondition)
+	}
+	if pricing.InputPrice != 0.001 || pricing.OutputPrice != 0.002 {
+		t.Fatalf("unexpected fallback prices input=%f output=%f", pricing.InputPrice, pricing.OutputPrice)
+	}
+}
+
+func TestResolveAudioRequestPricingMatchesAudioOutputComponent(t *testing.T) {
+	pricing := ResolveAudioRequestPricing(ResolvedModelPricing{
+		Model:      "gpt-4o-mini-tts",
+		Provider:   "openai",
+		Type:       ProviderModelTypeAudio,
+		InputPrice: 0.015,
+		PriceUnit:  ProviderPriceUnitPer1KChars,
+		Currency:   ProviderPriceCurrencyUSD,
+		Source:     "provider_default",
+		PriceComponents: []ProviderModelPriceComponentDetail{
+			{
+				Component:  ProviderModelPriceComponentAudioOutput,
+				InputPrice: 0.03,
+				PriceUnit:  ProviderPriceUnitPer1KChars,
+				Currency:   ProviderPriceCurrencyUSD,
+				Source:     "official",
+			},
+		},
+	}, true)
+
+	if pricing.Source != "provider_component" {
+		t.Fatalf("expected source provider_component, got %q", pricing.Source)
+	}
+	if pricing.MatchedComponent != ProviderModelPriceComponentAudioOutput {
+		t.Fatalf("unexpected matched component %q", pricing.MatchedComponent)
+	}
+	if pricing.InputPrice != 0.03 {
+		t.Fatalf("expected input price 0.03, got %f", pricing.InputPrice)
+	}
+}
+
+func TestResolveAudioRequestPricingMatchesAudioInputComponent(t *testing.T) {
+	pricing := ResolveAudioRequestPricing(ResolvedModelPricing{
+		Model:      "whisper-1",
+		Provider:   "openai",
+		Type:       ProviderModelTypeAudio,
+		InputPrice: 0.006,
+		PriceUnit:  ProviderPriceUnitPerMinute,
+		Currency:   ProviderPriceCurrencyUSD,
+		Source:     "provider_default",
+		PriceComponents: []ProviderModelPriceComponentDetail{
+			{
+				Component:  ProviderModelPriceComponentAudioInput,
+				InputPrice: 0.01,
+				PriceUnit:  ProviderPriceUnitPerMinute,
+				Currency:   ProviderPriceCurrencyUSD,
+				Source:     "official",
+			},
+		},
+	}, false)
+
+	if pricing.Source != "provider_component" {
+		t.Fatalf("expected source provider_component, got %q", pricing.Source)
+	}
+	if pricing.MatchedComponent != ProviderModelPriceComponentAudioInput {
+		t.Fatalf("unexpected matched component %q", pricing.MatchedComponent)
+	}
+	if pricing.InputPrice != 0.01 {
+		t.Fatalf("expected input price 0.01, got %f", pricing.InputPrice)
+	}
+}
+
+func TestResolveVideoRequestPricingMatchesComponent(t *testing.T) {
+	pricing := ResolveVideoRequestPricing(ResolvedModelPricing{
+		Model:      "veo-3.0-generate-preview",
+		Provider:   "google",
+		Type:       ProviderModelTypeVideo,
+		InputPrice: 0.5,
+		PriceUnit:  ProviderPriceUnitPerSecond,
+		Currency:   ProviderPriceCurrencyUSD,
+		Source:     "provider_default",
+		PriceComponents: []ProviderModelPriceComponentDetail{
+			{
+				Component:  ProviderModelPriceComponentVideoGeneration,
+				Condition:  "resolution=720p",
+				InputPrice: 0.4,
+				PriceUnit:  ProviderPriceUnitPerSecond,
+				Currency:   ProviderPriceCurrencyUSD,
+				Source:     "official",
+			},
+		},
+	}, map[string]string{
+		"resolution": "720p",
+	})
+
+	if pricing.Source != "provider_component" {
+		t.Fatalf("expected source provider_component, got %q", pricing.Source)
+	}
+	if pricing.MatchedComponent != ProviderModelPriceComponentVideoGeneration {
+		t.Fatalf("unexpected matched component %q", pricing.MatchedComponent)
+	}
+	if pricing.MatchedCondition != "resolution=720p" {
+		t.Fatalf("unexpected matched condition %q", pricing.MatchedCondition)
+	}
+	if pricing.InputPrice != 0.4 {
+		t.Fatalf("expected input price 0.4, got %f", pricing.InputPrice)
+	}
+}
+
+func TestResolveVideoRequestPricingFallsBackWhenNoComponentMatches(t *testing.T) {
+	pricing := ResolveVideoRequestPricing(ResolvedModelPricing{
+		Model:      "veo-3.0-generate-preview",
+		Provider:   "google",
+		Type:       ProviderModelTypeVideo,
+		InputPrice: 0.5,
+		PriceUnit:  ProviderPriceUnitPerSecond,
+		Currency:   ProviderPriceCurrencyUSD,
+		Source:     "provider_default",
+		PriceComponents: []ProviderModelPriceComponentDetail{
+			{
+				Component:  ProviderModelPriceComponentVideoGeneration,
+				Condition:  "resolution=720p",
+				InputPrice: 0.4,
+				PriceUnit:  ProviderPriceUnitPerSecond,
+				Currency:   ProviderPriceCurrencyUSD,
+				Source:     "official",
+			},
+		},
+	}, map[string]string{
+		"resolution": "1080p",
+	})
+
+	if pricing.Source != "provider_default" {
+		t.Fatalf("expected source provider_default, got %q", pricing.Source)
+	}
+	if pricing.MatchedComponent != "" || pricing.MatchedCondition != "" {
+		t.Fatalf("expected no matched component, got component=%q condition=%q", pricing.MatchedComponent, pricing.MatchedCondition)
+	}
+	if pricing.InputPrice != 0.5 {
+		t.Fatalf("expected input price 0.5, got %f", pricing.InputPrice)
 	}
 }

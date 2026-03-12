@@ -390,13 +390,23 @@ func saveProviderCatalogItem(item providerCatalogItem, create bool) (providerCat
 		}
 	}
 
+	if err := tx.Where("provider = ?", normalized.ID).Delete(&model.ProviderModelPriceComponent{}).Error; err != nil {
+		_ = tx.Rollback()
+		return providerCatalogItem{}, err
+	}
 	if err := tx.Where("provider = ?", normalized.ID).Delete(&model.ProviderModel{}).Error; err != nil {
 		_ = tx.Rollback()
 		return providerCatalogItem{}, err
 	}
-	modelRows := model.BuildProviderModelRows(normalized.ID, normalized.ModelDetails, normalized.UpdatedAt)
-	if len(modelRows) > 0 {
-		if err := tx.Create(&modelRows).Error; err != nil {
+	storeRows := model.BuildProviderModelStoreRows(normalized.ID, normalized.ModelDetails, normalized.UpdatedAt)
+	if len(storeRows.Models) > 0 {
+		if err := tx.Create(&storeRows.Models).Error; err != nil {
+			_ = tx.Rollback()
+			return providerCatalogItem{}, err
+		}
+	}
+	if len(storeRows.PriceComponents) > 0 {
+		if err := tx.Create(&storeRows.PriceComponents).Error; err != nil {
 			_ = tx.Rollback()
 			return providerCatalogItem{}, err
 		}
@@ -418,6 +428,10 @@ func deleteProviderCatalogItem(id string) error {
 	tx := model.DB.Begin()
 	if tx.Error != nil {
 		return tx.Error
+	}
+	if err := tx.Where("provider = ?", provider).Delete(&model.ProviderModelPriceComponent{}).Error; err != nil {
+		_ = tx.Rollback()
+		return err
 	}
 	if err := tx.Where("provider = ?", provider).Delete(&model.ProviderModel{}).Error; err != nil {
 		_ = tx.Rollback()

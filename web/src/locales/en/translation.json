@@ -91,9 +91,9 @@
       "enable": "Enable",
       "disable": "Disable",
       "edit": "Edit",
-    "copy": "Copy",
-    "tasks": "Tasks",
-    "add": "Add New Channel",
+      "copy": "Copy",
+      "tasks": "Tasks",
+      "add": "Add New Channel",
       "test_all": "Test All Channels",
       "refresh": "Refresh"
     },
@@ -143,6 +143,7 @@
         "key_not_set": "Not Set",
         "models": "Supported Models",
         "source": "Source",
+        "complex_pricing_count": "{{count}} complex pricing models",
         "updated_at": "Updated At",
         "actions": "Actions",
         "empty": "No provider catalog",
@@ -153,13 +154,34 @@
         "search_placeholder": "Search model details...",
         "model": "Model",
         "type": "Type",
+        "capabilities": "Capabilities",
         "input_price": "Input Price",
         "output_price": "Output Price",
         "price_unit": "Price Unit",
         "currency": "Currency",
         "source": "Source",
+        "price_components": "Complex Pricing",
+        "add_price_component": "Add Rule",
         "actions": "Actions",
         "empty": "No model details"
+      },
+      "price_component_table": {
+        "component": "Component",
+        "condition": "Condition",
+        "input_price": "Input Price",
+        "output_price": "Output Price",
+        "price_unit": "Price Unit",
+        "currency": "Currency",
+        "source": "Source",
+        "source_url": "Source URL",
+        "actions": "Actions",
+        "empty": "No pricing rules",
+        "template": {
+          "endpoint": "Endpoint Template",
+          "quality": "Quality Template",
+          "size": "Size Template",
+          "no_condition": "This component does not need a condition template yet"
+        }
       },
       "dialog": {
         "title_create": "Add Provider",
@@ -175,6 +197,8 @@
         "name_placeholder": "Optional, defaults to provider id",
         "base_url": "Base URL",
         "base_url_placeholder": "Leave empty to use official default URL",
+        "official_url": "Official URL",
+        "official_url_placeholder": "Official pricing or model documentation page",
         "key": "API Key",
         "key_placeholder": "Used when fetching models from provider API",
         "models": "Models (one per line, or comma-separated)",
@@ -477,20 +501,20 @@
     "title": "Token Management",
     "search": "Search tokens by name ...",
     "table": {
-    "name": "Name",
-    "status": "Status",
-    "token": "Token",
-    "used_quota": "Used Quota",
-    "remain_quota": "Remaining Quota",
-    "created_time": "Created Time",
+      "name": "Name",
+      "status": "Status",
+      "token": "Token",
+      "used_quota": "Used Quota",
+      "remain_quota": "Remaining Quota",
+      "created_time": "Created Time",
       "expired_time": "Expiry Time",
       "actions": "Actions",
       "no_name": "None",
       "never_expire": "never",
-    "unlimited": "Unlimited",
-    "status_enabled": "Enabled",
-    "status_disabled": "Disabled",
-    "status_expired": "Expired",
+      "unlimited": "Unlimited",
+      "status_enabled": "Enabled",
+      "status_disabled": "Disabled",
+      "status_expired": "Expired",
       "status_depleted": "Depleted",
       "status_unknown": "Unknown Status"
     },
@@ -507,20 +531,20 @@
     },
     "edit": {
       "title_edit": "Update Token Information",
-    "title_create": "Create New Token",
-    "name": "Name",
-    "name_placeholder": "Please enter name",
-    "models": "Model Scope",
-    "models_placeholder": "Please select allowed models, leave empty for no restrictions",
-    "models_table_notice": "All models are selected by default. Keeping all selected means no extra restriction, so newly available account models remain accessible to this token.",
-    "models_select_all": "Select All",
-    "models_table_name": "Model",
-    "models_table_empty": "No available models",
-    "models_search_placeholder": "Search models",
-    "models_search_empty": "No matching models",
-    "ip_limit": "IP Restriction",
-    "ip_limit_placeholder": "Please enter allowed subnets, e.g.: 192.168.0.0/24, use commas to separate multiple subnets",
-    "expire_time": "Expiry Time",
+      "title_create": "Create New Token",
+      "name": "Name",
+      "name_placeholder": "Please enter name",
+      "models": "Model Scope",
+      "models_placeholder": "Please select allowed models, leave empty for no restrictions",
+      "models_table_notice": "All models are selected by default. Keeping all selected means no extra restriction, so newly available account models remain accessible to this token.",
+      "models_select_all": "Select All",
+      "models_table_name": "Model",
+      "models_table_empty": "No available models",
+      "models_search_placeholder": "Search models",
+      "models_search_empty": "No matching models",
+      "ip_limit": "IP Restriction",
+      "ip_limit_placeholder": "Please enter allowed subnets, e.g.: 192.168.0.0/24, use commas to separate multiple subnets",
+      "expire_time": "Expiry Time",
       "expire_time_placeholder": "Please enter expiry time in yyyy-MM-dd HH:mm:ss format, -1 for no limit",
       "quota_notice": "Note: Token quota only limits the maximum usage of the token itself, actual usage is subject to account remaining quota.",
       "quota": "Quota",
@@ -536,13 +560,13 @@
         "submit": "Submit",
         "cancel": "Cancel"
       },
-    "messages": {
-      "update_success": "Token updated successfully!",
-      "create_success": "Token created successfully, please copy it from the list page!",
-      "expire_time_invalid": "Invalid expiry time format!",
-      "models_required": "Please select at least one model."
-    }
-  },
+      "messages": {
+        "update_success": "Token updated successfully!",
+        "create_success": "Token created successfully, please copy it from the list page!",
+        "expire_time_invalid": "Invalid expiry time format!",
+        "models_required": "Please select at least one model."
+      }
+    },
     "copy_options": {
       "raw": "Copy Raw Token",
       "ama": "Copy AMA Link",
@@ -679,13 +703,21 @@
     "title": "Tasks",
     "empty": "No tasks yet",
     "summary": "{{total}} tasks",
-  "filters": {
-    "type_all": "All types",
-    "status_all": "All statuses",
-    "channel_id": "Filter by channel ID",
-    "quick_all": "All"
-  },
+    "scopes": {
+      "admin": "System Tasks",
+      "user": "User Tasks"
+    },
+    "filters": {
+      "type_all": "All types",
+      "status_all": "All statuses",
+      "channel_id": "Filter by channel ID",
+      "user_id": "Filter by user ID",
+      "user_keyword": "Filter by user / ID",
+      "model": "Filter by model",
+      "quick_all": "All"
+    },
     "types": {
+      "video": "Video Task",
       "channel_model_test": "Model Test",
       "channel_refresh_models": "Refresh Models",
       "channel_refresh_balance": "Refresh Balance"
@@ -699,10 +731,12 @@
     },
     "table": {
       "type": "Type",
+      "user": "User",
       "channel": "Channel",
       "model": "Model",
       "status": "Status",
       "created_at": "Created At",
+      "updated_at": "Updated At",
       "finished_at": "Finished At",
       "message": "Result",
       "actions": "Actions"
@@ -711,17 +745,22 @@
       "refresh": "Refresh",
       "model_tests": "Test Tasks",
       "running": "Running",
+      "view": "View",
       "retry": "Retry",
       "cancel": "Cancel"
     },
-  "detail": {
-    "buttons": {
-      "back": "Back",
-      "channel": "View Channel"
-    },
-    "endpoint": "Endpoint",
-    "payload": "Task Payload",
-    "result": "Execution Result",
+    "detail": {
+      "buttons": {
+        "back": "Back",
+        "channel": "View Channel"
+      },
+      "endpoint": "Endpoint",
+      "provider": "Provider",
+      "request_id": "Request ID",
+      "result_url": "Result URL",
+      "source": "Source",
+      "payload": "Task Payload",
+      "result": "Execution Result",
       "error": "Error Message"
     },
     "messages": {

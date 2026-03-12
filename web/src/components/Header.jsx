@@ -85,6 +85,11 @@ const USER_HEADER_BUTTONS = [
     icon: 'book',
   },
   {
+    name: 'header.task',
+    to: '/workspace/task',
+    icon: 'tasks',
+  },
+  {
     name: 'header.setting',
     to: '/workspace/setting',
     icon: 'setting',
@@ -213,7 +218,9 @@ const Header = ({ workspace = 'user' }) => {
             'router-header-menu-mobile',
             shouldFixHeader ? 'router-fixed-header' : '',
             showSidebar ? 'router-header-menu-mobile-open' : '',
-          ].filter(Boolean).join(' ')}
+          ]
+            .filter(Boolean)
+            .join(' ')}
         >
           <Container className='router-header-container'>
             <Menu.Item
@@ -222,10 +229,7 @@ const Header = ({ workspace = 'user' }) => {
               target='_blank'
               rel='noopener noreferrer'
             >
-              <img
-                src={logo}
-                alt='logo'
-              />
+              <img src={logo} alt='logo' />
             </Menu.Item>
             <Menu.Menu position='right'>
               <Menu.Item onClick={toggleSidebar}>
@@ -236,11 +240,7 @@ const Header = ({ workspace = 'user' }) => {
         </Menu>
         {showSidebar ? (
           <Segment className='router-header-mobile-segment'>
-            <Menu
-              secondary
-              vertical
-              className='router-header-mobile-list'
-            >
+            <Menu secondary vertical className='router-header-mobile-list'>
               {renderButtons(true)}
               {hasAdminAccess && (
                 <Menu.Item>
@@ -265,16 +265,19 @@ const Header = ({ workspace = 'user' }) => {
                 </Menu.Item>
               )}
               <Menu.Item>
-                  <Dropdown
-                    className='router-header-dropdown'
-                    selection
-                    trigger={
-                      <Icon name='language' className='router-header-trigger-icon' />
-                    }
-                    options={languageOptions}
-                    value={i18n.language}
-                    onChange={(_, { value }) => changeLanguage(value)}
-                  />
+                <Dropdown
+                  className='router-header-dropdown'
+                  selection
+                  trigger={
+                    <Icon
+                      name='language'
+                      className='router-header-trigger-icon'
+                    />
+                  }
+                  options={languageOptions}
+                  value={i18n.language}
+                  onChange={(_, { value }) => changeLanguage(value)}
+                />
               </Menu.Item>
               <Menu.Item>
                 {userState.user ? (
@@ -323,7 +326,9 @@ const Header = ({ workspace = 'user' }) => {
         className={[
           'router-header-menu',
           shouldFixHeader ? 'router-fixed-header' : '',
-        ].filter(Boolean).join(' ')}
+        ]
+          .filter(Boolean)
+          .join(' ')}
       >
         <Container className='router-header-container'>
           <Menu.Item
@@ -333,10 +338,7 @@ const Header = ({ workspace = 'user' }) => {
             rel='noopener noreferrer'
             className={'hide-on-mobile'}
           >
-            <img
-              src={logo}
-              alt='logo'
-            />
+            <img src={logo} alt='logo' />
           </Menu.Item>
           {renderButtons(false)}
           <Menu.Menu position='right'>

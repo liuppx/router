@@ -11,15 +11,19 @@ import (
 )
 
 type ResolvedModelPricing struct {
-	Model              string  `json:"model"`
-	Provider           string  `json:"provider,omitempty"`
-	Type               string  `json:"type"`
-	InputPrice         float64 `json:"input_price"`
-	OutputPrice        float64 `json:"output_price"`
-	PriceUnit          string  `json:"price_unit"`
-	Currency           string  `json:"currency"`
-	Source             string  `json:"source"`
-	HasChannelOverride bool    `json:"has_channel_override"`
+	Model              string                              `json:"model"`
+	Provider           string                              `json:"provider,omitempty"`
+	Type               string                              `json:"type"`
+	Capabilities       []string                            `json:"capabilities,omitempty"`
+	InputPrice         float64                             `json:"input_price"`
+	OutputPrice        float64                             `json:"output_price"`
+	PriceUnit          string                              `json:"price_unit"`
+	Currency           string                              `json:"currency"`
+	Source             string                              `json:"source"`
+	PriceComponents    []ProviderModelPriceComponentDetail `json:"price_components,omitempty"`
+	MatchedComponent   string                              `json:"matched_component,omitempty"`
+	MatchedCondition   string                              `json:"matched_condition,omitempty"`
+	HasChannelOverride bool                                `json:"has_channel_override"`
 }
 
 func (pricing ResolvedModelPricing) IsConfigured() bool {
@@ -73,14 +77,15 @@ func SyncModelPricingCatalogWithDB(db *gorm.DB) error {
 		}
 
 		detail := ProviderModelDetail{
-			Model:       modelName,
-			Type:        normalizeModelType(row.Type, modelName),
-			InputPrice:  row.InputPrice,
-			OutputPrice: row.OutputPrice,
-			PriceUnit:   strings.TrimSpace(strings.ToLower(row.PriceUnit)),
-			Currency:    strings.TrimSpace(strings.ToUpper(row.Currency)),
-			Source:      strings.TrimSpace(strings.ToLower(row.Source)),
-			UpdatedAt:   row.UpdatedAt,
+			Model:        modelName,
+			Type:         normalizeModelType(row.Type, modelName),
+			Capabilities: splitProviderModelCapabilities(row.Capabilities),
+			InputPrice:   row.InputPrice,
+			OutputPrice:  row.OutputPrice,
+			PriceUnit:    strings.TrimSpace(strings.ToLower(row.PriceUnit)),
+			Currency:     strings.TrimSpace(strings.ToUpper(row.Currency)),
+			Source:       strings.TrimSpace(strings.ToLower(row.Source)),
+			UpdatedAt:    row.UpdatedAt,
 		}
 		detail = NormalizeProviderModelDetails([]ProviderModelDetail{detail})[0]
 		entry := providerModelPricingEntry{
@@ -241,15 +246,178 @@ func pickProviderModelPricingEntry(entries []providerModelPricingEntry, preferre
 
 func resolvedModelPricingFromProviderEntry(modelName string, entry providerModelPricingEntry) ResolvedModelPricing {
 	return ResolvedModelPricing{
-		Model:       modelName,
-		Provider:    entry.Provider,
-		Type:        normalizeModelType(entry.Detail.Type, entry.Detail.Model),
-		InputPrice:  entry.Detail.InputPrice,
-		OutputPrice: entry.Detail.OutputPrice,
-		PriceUnit:   entry.Detail.PriceUnit,
-		Currency:    entry.Detail.Currency,
-		Source:      "provider_default",
+		Model:           modelName,
+		Provider:        entry.Provider,
+		Type:            normalizeModelType(entry.Detail.Type, entry.Detail.Model),
+		Capabilities:    normalizeProviderModelCapabilities(entry.Detail.Capabilities, entry.Detail.Type, entry.Detail.PriceComponents),
+		InputPrice:      entry.Detail.InputPrice,
+		OutputPrice:     entry.Detail.OutputPrice,
+		PriceUnit:       entry.Detail.PriceUnit,
+		Currency:        entry.Detail.Currency,
+		Source:          "provider_default",
+		PriceComponents: NormalizeProviderModelPriceComponents(entry.Detail.PriceComponents),
 	}
+}
+
+func ResolveImageRequestPricing(pricing ResolvedModelPricing, size string, quality string) ResolvedModelPricing {
+	component, ok := selectProviderPriceComponent(
+		pricing.PriceComponents,
+		ProviderModelPriceComponentImageGeneration,
+		map[string]string{
+			"size":    strings.TrimSpace(strings.ToLower(size)),
+			"quality": strings.TrimSpace(strings.ToLower(quality)),
+		},
+	)
+	if !ok {
+		return pricing
+	}
+	pricing.InputPrice = component.InputPrice
+	if component.OutputPrice > 0 {
+		pricing.OutputPrice = component.OutputPrice
+	} else {
+		pricing.OutputPrice = 0
+	}
+	if component.PriceUnit != "" {
+		pricing.PriceUnit = component.PriceUnit
+	}
+	if component.Currency != "" {
+		pricing.Currency = component.Currency
+	}
+	pricing.Source = "provider_component"
+	pricing.MatchedComponent = component.Component
+	pricing.MatchedCondition = component.Condition
+	return pricing
+}
+
+func ResolveTextRequestPricing(pricing ResolvedModelPricing, endpoint string) ResolvedModelPricing {
+	componentType := ProviderModelPriceComponentText
+	normalizedEndpoint := strings.TrimSpace(strings.ToLower(endpoint))
+	if normalizedEndpoint == "" {
+		return pricing
+	}
+	component, ok := selectProviderPriceComponent(
+		pricing.PriceComponents,
+		componentType,
+		map[string]string{
+			"endpoint": normalizedEndpoint,
+		},
+	)
+	if !ok {
+		return pricing
+	}
+	if component.InputPrice > 0 {
+		pricing.InputPrice = component.InputPrice
+	}
+	if component.OutputPrice > 0 {
+		pricing.OutputPrice = component.OutputPrice
+	}
+	if component.PriceUnit != "" {
+		pricing.PriceUnit = component.PriceUnit
+	}
+	if component.Currency != "" {
+		pricing.Currency = component.Currency
+	}
+	pricing.Source = "provider_component"
+	pricing.MatchedComponent = component.Component
+	pricing.MatchedCondition = component.Condition
+	return pricing
+}
+
+func ResolveAudioRequestPricing(pricing ResolvedModelPricing, output bool) ResolvedModelPricing {
+	componentType := ProviderModelPriceComponentAudioInput
+	if output {
+		componentType = ProviderModelPriceComponentAudioOutput
+	}
+	component, ok := selectProviderPriceComponent(
+		pricing.PriceComponents,
+		componentType,
+		nil,
+	)
+	if !ok {
+		return pricing
+	}
+	if component.InputPrice > 0 {
+		pricing.InputPrice = component.InputPrice
+	}
+	if component.OutputPrice > 0 {
+		pricing.OutputPrice = component.OutputPrice
+	}
+	if component.PriceUnit != "" {
+		pricing.PriceUnit = component.PriceUnit
+	}
+	if component.Currency != "" {
+		pricing.Currency = component.Currency
+	}
+	pricing.Source = "provider_component"
+	pricing.MatchedComponent = component.Component
+	pricing.MatchedCondition = component.Condition
+	return pricing
+}
+
+func ResolveVideoRequestPricing(pricing ResolvedModelPricing, attrs map[string]string) ResolvedModelPricing {
+	component, ok := selectProviderPriceComponent(
+		pricing.PriceComponents,
+		ProviderModelPriceComponentVideoGeneration,
+		attrs,
+	)
+	if !ok {
+		return pricing
+	}
+	if component.InputPrice > 0 {
+		pricing.InputPrice = component.InputPrice
+	}
+	if component.OutputPrice > 0 {
+		pricing.OutputPrice = component.OutputPrice
+	}
+	if component.PriceUnit != "" {
+		pricing.PriceUnit = component.PriceUnit
+	}
+	if component.Currency != "" {
+		pricing.Currency = component.Currency
+	}
+	pricing.Source = "provider_component"
+	pricing.MatchedComponent = component.Component
+	pricing.MatchedCondition = component.Condition
+	return pricing
+}
+
+func selectProviderPriceComponent(components []ProviderModelPriceComponentDetail, componentType string, attrs map[string]string) (ProviderModelPriceComponentDetail, bool) {
+	for _, component := range NormalizeProviderModelPriceComponents(components) {
+		if component.Component != strings.TrimSpace(strings.ToLower(componentType)) {
+			continue
+		}
+		if providerPriceComponentMatches(component.Condition, attrs) {
+			return component, true
+		}
+	}
+	return ProviderModelPriceComponentDetail{}, false
+}
+
+func providerPriceComponentMatches(condition string, attrs map[string]string) bool {
+	normalizedCondition := strings.TrimSpace(condition)
+	if normalizedCondition == "" {
+		return true
+	}
+	parts := strings.Split(normalizedCondition, ";")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		pair := strings.SplitN(part, "=", 2)
+		if len(pair) != 2 {
+			return false
+		}
+		key := strings.TrimSpace(strings.ToLower(pair[0]))
+		value := strings.TrimSpace(strings.ToLower(pair[1]))
+		if key == "" {
+			return false
+		}
+		if strings.TrimSpace(strings.ToLower(attrs[key])) != value {
+			return false
+		}
+	}
+	return true
 }
 
 func findSelectedChannelModelPricingOverride(rows []ChannelModel, modelName string) (ChannelModel, bool) {

@@ -27,6 +27,9 @@ func TestBuildDefaultProviderCatalogSeeds_OpenAIIncludesDALLE3(t *testing.T) {
 			if detail.Currency != ProviderPriceCurrencyUSD {
 				t.Fatalf("dall-e-3 currency=%q, want %q", detail.Currency, ProviderPriceCurrencyUSD)
 			}
+			if len(detail.PriceComponents) != 6 {
+				t.Fatalf("dall-e-3 price_components=%d, want 6", len(detail.PriceComponents))
+			}
 			return
 		}
 		t.Fatalf("expected openai seed to include dall-e-3")

@@ -151,6 +151,10 @@ func RelayImageHelper(c *gin.Context, relayMode int) *relaymodel.ErrorWithStatus
 			return openai.ErrorWrapper(pricingErr, "model_pricing_not_configured", http.StatusServiceUnavailable)
 		}
 	}
+	pricing = adminmodel.ResolveImageRequestPricing(pricing, imageRequest.Size, imageRequest.Quality)
+	if pricing.MatchedComponent != "" {
+		imageCostRatio = 1
+	}
 
 	var requestBody io.Reader
 	if isModelMapped || meta.ChannelProtocol == relaychannel.Azure { // make Azure channel request body

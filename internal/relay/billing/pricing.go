@@ -61,16 +61,31 @@ func ComputeAudioTextQuota(tokenCount int, pricing model.ResolvedModelPricing, g
 	return normalizeQuota(quotaFromPrice(price, pricing.PriceUnit, pricing.Currency, float64(tokenCount), groupRatio), tokenCount > 0, pricing, groupRatio), nil
 }
 
+func ComputeVideoQuota(quantity float64, pricing model.ResolvedModelPricing, groupRatio float64) (int64, error) {
+	if quantity <= 0 {
+		return 0, nil
+	}
+	price := pricing.InputPrice
+	if price <= 0 && pricing.OutputPrice > 0 {
+		price = pricing.OutputPrice
+	}
+	return normalizeQuota(quotaFromPrice(price, pricing.PriceUnit, pricing.Currency, quantity, groupRatio), quantity > 0, pricing, groupRatio), nil
+}
+
 func FormatPricingLog(pricing model.ResolvedModelPricing, groupRatio float64) string {
 	source := strings.TrimSpace(pricing.Source)
 	if source == "" {
 		source = "unknown"
 	}
+	component := strings.TrimSpace(pricing.MatchedComponent)
+	condition := strings.TrimSpace(pricing.MatchedCondition)
 	return fmt.Sprintf(
-		"计费: source=%s provider=%s type=%s unit=%s currency=%s input=%.6f output=%.6f group=%.2f",
+		"计费: source=%s provider=%s type=%s component=%s condition=%s unit=%s currency=%s input=%.6f output=%.6f group=%.2f",
 		source,
 		strings.TrimSpace(pricing.Provider),
 		strings.TrimSpace(pricing.Type),
+		component,
+		condition,
 		strings.TrimSpace(pricing.PriceUnit),
 		strings.TrimSpace(pricing.Currency),
 		pricing.InputPrice,
@@ -87,7 +102,12 @@ func quotaFromPrice(price float64, priceUnit string, currency string, quantity f
 	switch normalizedUnit {
 	case "", model.ProviderPriceUnitPer1KTokens, model.ProviderPriceUnitPer1KChars:
 		return quantity * price * quotaPerCurrencyUnit(currency) / 1000 * groupRatio
-	case model.ProviderPriceUnitPerImage, model.ProviderPriceUnitPerVideo:
+	case model.ProviderPriceUnitPerImage,
+		model.ProviderPriceUnitPerVideo,
+		model.ProviderPriceUnitPerSecond,
+		model.ProviderPriceUnitPerMinute,
+		model.ProviderPriceUnitPerRequest,
+		model.ProviderPriceUnitPerTask:
 		return quantity * price * quotaPerCurrencyUnit(currency) * groupRatio
 	default:
 		return quantity * price * quotaPerCurrencyUnit(currency) / 1000 * groupRatio
