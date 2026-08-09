@@ -14,6 +14,8 @@ func runMainBaselineMigrationWithDB(tx *gorm.DB) error {
 	if err := tx.AutoMigrate(
 		&User{},
 		&WalletAddressCleanupAuditLog{},
+		&PassportIdentityBinding{},
+		&PassportLoginSession{},
 		&Channel{},
 		&ChannelBillingProfile{},
 		&ChannelBillingSnapshot{},

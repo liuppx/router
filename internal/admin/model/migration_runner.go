@@ -61,6 +61,13 @@ type versionedMigration struct {
 func runMainVersionedMigrations(db *gorm.DB) error {
 	migrations := []versionedMigration{
 		{
+			Version:     "202608081100_passport_login",
+			Description: "add YeYing Passport identity bindings and short-lived PKCE login sessions",
+			Up: func(tx *gorm.DB) error {
+				return tx.AutoMigrate(&PassportIdentityBinding{}, &PassportLoginSession{})
+			},
+		},
+		{
 			Version:     "202603122230_main_baseline_v30",
 			Description: "baseline: create current main schema with user password-state flag, current task tables, and current provider data",
 			Up: func(tx *gorm.DB) error {

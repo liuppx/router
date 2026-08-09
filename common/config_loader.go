@@ -43,6 +43,7 @@ type AppConfig struct {
 	Operation OperationConfig `yaml:"operation"`
 	Notify    NotifyConfig    `yaml:"notify"`
 	Billing   BillingConfig   `yaml:"billing_service"`
+	Passport  PassportConfig  `yaml:"passport"`
 	Relay     RelayConfig     `yaml:"relay"`
 	RateLimit RateLimitConfig `yaml:"rate_limit"`
 	Metrics   MetricsConfig   `yaml:"metrics"`
@@ -142,6 +143,12 @@ type BillingConfig struct {
 	BaseURL        string `yaml:"base_url"`
 	APIKey         string `yaml:"api_key"`
 	TimeoutSeconds int    `yaml:"timeout_seconds"`
+}
+
+type PassportConfig struct {
+	NodeURL     string `yaml:"node_url"`
+	AppID       string `yaml:"app_id"`
+	CallbackURL string `yaml:"callback_url"`
 }
 
 type RelayConfig struct {
@@ -371,6 +378,9 @@ func ApplyAppConfig(cfg *AppConfig, portFlagSet bool, logDirFlagSet bool) error 
 	} else {
 		config.BillingServiceTimeoutSeconds = 20
 	}
+	config.PassportNodeURL = strings.TrimRight(strings.TrimSpace(cfg.Passport.NodeURL), "/")
+	config.PassportAppID = strings.TrimSpace(cfg.Passport.AppID)
+	config.PassportCallbackURL = strings.TrimSpace(cfg.Passport.CallbackURL)
 	SQLDSN = strings.TrimSpace(cfg.Database.SQLDSN)
 	LogSQLDSN = strings.TrimSpace(cfg.Database.LogSQLDSN)
 	SQLMaxIdleConns = cfg.Database.MaxIdleConns

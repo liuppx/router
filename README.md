@@ -86,6 +86,7 @@ curl http://127.0.0.1:3011/api/v1/public/status
 8. `ucan.aud`：公网部署或域名/端口非默认值时建议显式配置。
 9. `ucan.trusted_issuer_dids`：使用 Node 中心化 TOTP/UCAN 登录时必须配置 Node 当前 issuer DID。
 10. `bootstrap.root_wallet_address`：按需配置系统级用户管理钱包地址。
+11. `passport.node_url`、`passport.app_id`：启用夜莺通行证登录；`passport.callback_url` 可选，用于 Router 对外回调地址与 `server.public_url` 不同时。该回调地址必须与 Node 应用的 `redirectUris` 精确一致。
 
 ## 文档入口
 

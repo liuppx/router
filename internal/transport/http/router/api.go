@@ -40,6 +40,8 @@ func SetApiRouter(engine *gin.Engine) {
 		web3AuthRouter.POST("/verify", middleware.CriticalRateLimit(), auth.WalletVerifyWeb3)
 		web3AuthRouter.POST("/refresh", middleware.CriticalRateLimit(), auth.WalletRefreshWeb3)
 		web3AuthRouter.POST("/logout", middleware.CriticalRateLimit(), auth.WalletLogoutWeb3)
+		web3AuthRouter.POST("/passport/login/session", middleware.CriticalRateLimit(), auth.CreatePassportLoginSession)
+		web3AuthRouter.GET("/passport/login/status", middleware.CriticalRateLimit(), auth.PassportLoginStatus)
 	}
 
 	publicRouter := engine.Group("/api/v1/public")
@@ -67,6 +69,7 @@ func SetApiRouter(engine *gin.Engine) {
 		publicRouter.GET("/oauth/state", middleware.CriticalRateLimit(), auth.GenerateOAuthCode)
 		publicRouter.GET("/oauth/github", middleware.CriticalRateLimit(), auth.GitHubOAuth)
 		publicRouter.GET("/oauth/lark", middleware.CriticalRateLimit(), auth.LarkOAuth)
+		publicRouter.GET("/oauth/passport/callback", middleware.CriticalRateLimit(), auth.PassportLoginCallback)
 
 		publicUserRoute := publicRouter.Group("/user")
 		{
