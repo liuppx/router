@@ -64,7 +64,7 @@ func runMainVersionedMigrations(db *gorm.DB) error {
 			Version:     "202608081100_passport_login",
 			Description: "add YeYing Passport identity bindings and short-lived PKCE login sessions",
 			Up: func(tx *gorm.DB) error {
-				return tx.AutoMigrate(&PassportIdentityBinding{}, &PassportLoginSession{})
+				return tx.AutoMigrate(&PassportIdentityBinding{}, &PassportLoginSession{}, &WalletIdentityBinding{})
 			},
 		},
 		{

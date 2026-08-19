@@ -9,7 +9,7 @@ import {
   logout as sdkLogout,
   refreshAccessToken as sdkRefreshAccessToken,
   requestAccounts,
-  requestPassportAssertion,
+  requestIdentityPresentation,
   signMessage,
   watchProvider,
 } from '@yeying-community/web3-bs';
@@ -129,41 +129,35 @@ export async function getWalletContext(preferredAddress = '') {
 
 async function loginWithWalletOnce(preferredAddress = '') {
   const { provider, address } = await getWalletContext(preferredAddress);
-  const challengeResponse = await fetch(`${WEB3_AUTH_OPTIONS.baseUrl}/challenge`, {
+  const challengeResponse = await fetch(`${WEB3_AUTH_OPTIONS.baseUrl}/identity/login/session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', accept: 'application/json' },
     credentials: WEB3_AUTH_OPTIONS.credentials,
     body: JSON.stringify({ address }),
   });
   const challengePayload = await challengeResponse.json();
-  if (!challengeResponse.ok || challengePayload?.code || !challengePayload?.data?.challenge) {
+  if (!challengeResponse.ok || challengePayload?.code || !challengePayload?.data?.nonce) {
     throw new Error(challengePayload?.message || '无法创建钱包登录请求');
   }
   const loginRequest = challengePayload.data;
-  const signature = await signMessage({
+  const presentation = await requestIdentityPresentation({
     provider,
-    address,
-    message: loginRequest.challenge,
-  });
-  const passportLogin = await requestPassportAssertion({
-    provider,
-    appId: loginRequest.appId,
+    appId: loginRequest.app_id || loginRequest.appId,
     audience: loginRequest.audience,
     nonce: loginRequest.nonce,
-    scopes: loginRequest.scope,
-    passportEndpoint: loginRequest.passportEndpoint,
+    scopes: loginRequest.scopes,
+    requestId: loginRequest.request_id || loginRequest.requestId,
+    account: { chainKey: 'eip155', address },
   });
-  const verifyResponse = await fetch(`${WEB3_AUTH_OPTIONS.baseUrl}/verify`, {
+  const verifyResponse = await fetch(`${WEB3_AUTH_OPTIONS.baseUrl}/identity/login/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', accept: 'application/json' },
     credentials: WEB3_AUTH_OPTIONS.credentials,
     body: JSON.stringify({
+      session_id: loginRequest.session_id,
+      request_id: loginRequest.request_id,
       address,
-      signature,
-      nonce: loginRequest.nonce,
-      message: loginRequest.challenge,
-      passportAssertion: passportLogin.passportAssertion,
-      walletProof: passportLogin.walletProof,
+      presentation,
     }),
   });
   const verifyPayload = await verifyResponse.json();
@@ -174,7 +168,7 @@ async function loginWithWalletOnce(preferredAddress = '') {
   if (token) {
     localStorage.setItem(WEB3_TOKEN_STORAGE_KEY, token);
   }
-  return { token, address, signature, challenge: loginRequest.challenge, response: verifyPayload.data, provider };
+  return { token, address, presentation, response: verifyPayload.data, provider };
 }
 
 export async function loginWithWallet(preferredAddress = '') {

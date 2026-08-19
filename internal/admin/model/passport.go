@@ -46,6 +46,29 @@ type PassportLoginSession struct {
 	UpdatedAt    int64  `gorm:"bigint;index"`
 }
 
+type WalletIdentityBinding struct {
+	WalletIdentityID string `gorm:"type:varchar(128);primaryKey"`
+	DID              string `gorm:"type:varchar(160);not null;uniqueIndex"`
+	UserID           string `gorm:"type:char(36);not null;uniqueIndex"`
+	WalletAddress    string `gorm:"type:varchar(128);not null;default:'';index"`
+	CreatedAt        int64  `gorm:"bigint;index"`
+	UpdatedAt        int64  `gorm:"bigint;index"`
+}
+
+func (WalletIdentityBinding) TableName() string { return "wallet_identity_bindings" }
+
+func FindWalletIdentityBinding(identityID string) (*WalletIdentityBinding, error) {
+	row := &WalletIdentityBinding{}
+	if err := DB.Where("wallet_identity_id = ?", strings.TrimSpace(identityID)).First(row).Error; err != nil {
+		return nil, err
+	}
+	return row, nil
+}
+
+func UpsertWalletIdentityBinding(binding *WalletIdentityBinding) error {
+	return DB.Where("wallet_identity_id = ?", binding.WalletIdentityID).Assign(binding).FirstOrCreate(&WalletIdentityBinding{}).Error
+}
+
 func (PassportLoginSession) TableName() string { return "passport_login_sessions" }
 
 func FindPassportLoginSessionByID(sessionID string) (*PassportLoginSession, error) {
