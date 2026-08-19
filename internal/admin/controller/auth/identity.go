@@ -209,7 +209,7 @@ func VerifyIdentityAccountLink(c *gin.Context) {
 	}
 	identityID := strings.TrimSpace(req.WalletIdentityID)
 	if identityID == "" {
-		identityID = strings.TrimPrefix(req.Identity, "did:yeying:wid_")
+		identityID = strings.TrimPrefix(req.Identity, "did:yeying:")
 	}
 	addr := model.NormalizeWalletAddress(req.Address)
 	user := &model.User{WalletAddress: &addr}
