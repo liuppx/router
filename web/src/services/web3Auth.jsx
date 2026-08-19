@@ -161,7 +161,7 @@ async function loginWithWalletOnce(preferredAddress = '', identityBindAttempted 
     }),
   });
   const verifyPayload = await verifyResponse.json();
-  if (!identityBindAttempted && verifyPayload?.code && /尚未绑定|完成身份绑定/.test(String(verifyPayload?.message || ''))) {
+  if (!identityBindAttempted && verifyPayload?.code && verifyPayload?.reason === 'wallet_confirmation_required') {
     await bindIdentityAccount({ provider, address, chainId: `eip155:${chainId}`, presentation });
     return loginWithWalletOnce(preferredAddress, true);
   }

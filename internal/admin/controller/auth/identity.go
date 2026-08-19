@@ -106,7 +106,7 @@ func CreateIdentityLoginSession(c *gin.Context) {
 		identityError(c, "无法保存登录会话")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "ok", "data": gin.H{"session_id": sessionID, "request_id": result.Data.RequestID, "nonce": result.Data.Nonce, "audience": result.Data.Audience, "scopes": result.Data.Scopes, "verify_url": callbackURL, "expires_at": expiresAt}})
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "ok", "data": gin.H{"session_id": sessionID, "request_id": result.Data.RequestID, "app_id": appID, "nonce": result.Data.Nonce, "audience": result.Data.Audience, "scopes": result.Data.Scopes, "verify_url": callbackURL, "expires_at": expiresAt}})
 }
 
 func VerifyIdentityWalletLogin(c *gin.Context) {
@@ -145,7 +145,7 @@ func VerifyIdentityWalletLogin(c *gin.Context) {
 	}
 	user, err := resolveWalletIdentityUser(exchange.Data.WalletIdentityID, exchange.Data.DID, req.Address, c.Request.Context())
 	if err != nil {
-		identityError(c, err.Error())
+		identityErrorReason(c, "请在夜莺钱包中继续完成登录确认", "wallet_confirmation_required")
 		return
 	}
 	if err := model.DB.Model(row).Updates(map[string]any{"status": model.PassportLoginSessionStatusComplete, "user_id": user.Id, "code": "", "code_verifier": ""}).Error; err != nil {
@@ -236,7 +236,7 @@ func resolveWalletIdentityUser(identityID, did, walletAddress string, ctx contex
 	// the DID; account-link proof is required before creating a local binding.
 	_ = walletAddress
 	_ = ctx
-	return nil, errors.New("此钱包身份尚未绑定 Router 账户，请先完成身份绑定")
+	return nil, errors.New("wallet identity is not associated with a Router user")
 }
 
 func identityScopeIncluded(scopes []string, target string) bool {
@@ -262,4 +262,8 @@ func identityCredentialIncluded(credentials []struct {
 }
 func identityError(c *gin.Context, message string) {
 	c.JSON(http.StatusOK, gin.H{"code": 1, "message": message})
+}
+
+func identityErrorReason(c *gin.Context, message, reason string) {
+	c.JSON(http.StatusOK, gin.H{"code": 1, "message": message, "reason": reason})
 }
