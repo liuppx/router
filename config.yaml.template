@@ -181,6 +181,8 @@ operation:
   chat_link: ""
 
 notify:
+  # 用户可用余额低于该额度时发送邮件提醒；0 表示关闭。
+  user_balance_low_threshold: 0
   # 通知通道：
   # - dingtalk：钉钉机器人 WebHook
   # - lark：飞书机器人 WebHook

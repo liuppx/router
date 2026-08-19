@@ -46,8 +46,64 @@ type passportAuthorizeRequestResult struct {
 }
 
 type passportExchangeResult struct {
-	SubjectID     string `json:"subjectId"`
-	WalletAddress string `json:"walletAddress"`
+	SubjectID     string   `json:"subjectId"`
+	WalletAddress string   `json:"walletAddress"`
+	Scopes        []string `json:"scopes"`
+	Claims        struct {
+		Email           string `json:"email"`
+		EmailVerified   *bool  `json:"emailVerified"`
+		EmailVerifiedAt string `json:"emailVerifiedAt"`
+	} `json:"claims"`
+}
+
+type passportAssertionIntrospectionResult struct {
+	Active bool `json:"active"`
+	Claims struct {
+		SubjectID       string   `json:"subjectId"`
+		WalletAddress   string   `json:"walletAddress"`
+		AppID           string   `json:"appId"`
+		Audience        string   `json:"aud"`
+		Nonce           string   `json:"nonce"`
+		Scope           []string `json:"scope"`
+		Email           string   `json:"email"`
+		EmailVerified   bool     `json:"emailVerified"`
+		EmailVerifiedAt string   `json:"emailVerifiedAt"`
+	} `json:"claims"`
+}
+
+var routerPassportBaseScopes = []string{"identity.basic", "identity.wallet"}
+
+func routerPassportScopes(requireEmail bool) []string {
+	scopes := append([]string(nil), routerPassportBaseScopes...)
+	if requireEmail {
+		scopes = append(scopes, "identity.email")
+	}
+	return scopes
+}
+
+func passportScopeIncluded(scopes []string, target string) bool {
+	target = strings.TrimSpace(strings.ToLower(target))
+	for _, scope := range scopes {
+		if strings.TrimSpace(strings.ToLower(scope)) == target {
+			return true
+		}
+	}
+	return false
+}
+
+func validatePassportExchangeIdentity(exchange *passportExchangeResult, requireEmail bool) error {
+	if exchange == nil || strings.TrimSpace(exchange.SubjectID) == "" {
+		return errors.New("夜莺通行证未返回身份信息")
+	}
+	for _, scope := range routerPassportScopes(requireEmail) {
+		if !passportScopeIncluded(exchange.Scopes, scope) {
+			return errors.New("夜莺通行证未授权 Router 所需身份信息")
+		}
+	}
+	if requireEmail && (exchange.Claims.EmailVerified == nil || !*exchange.Claims.EmailVerified || strings.TrimSpace(exchange.Claims.Email) == "") {
+		return errors.New("需要已验证的夜莺通行证邮箱")
+	}
+	return nil
 }
 
 func passportConfiguration() (string, string, string, error) {
@@ -61,6 +117,25 @@ func passportConfiguration() (string, string, string, error) {
 		return "", "", "", errors.New("夜莺通行证登录尚未配置")
 	}
 	return nodeURL, appID, callbackURL, nil
+}
+
+func passportWalletAudience() string {
+	return strings.TrimRight(strings.TrimSpace(config.ServerAddress), "/")
+}
+
+func introspectPassportWalletAssertion(ctx context.Context, assertion string) (*passportAssertionIntrospectionResult, error) {
+	nodeURL, appID, _, err := passportConfiguration()
+	if err != nil {
+		return nil, err
+	}
+	result := passportNodeResponse[passportAssertionIntrospectionResult]{}
+	if err := passportNodePost(ctx, nodeURL, "/api/v1/public/auth/passport/assertions/introspect", gin.H{"assertion": assertion}, &result); err != nil {
+		return nil, err
+	}
+	if !result.Data.Active || result.Data.Claims.AppID != appID || result.Data.Claims.Audience != passportWalletAudience() {
+		return nil, errors.New("夜莺通行证身份声明无效")
+	}
+	return &result.Data, nil
 }
 
 func passportRandomURLValue(size int) (string, error) {
@@ -121,7 +196,7 @@ func CreatePassportLoginSession(c *gin.Context) {
 	err = passportNodePost(c.Request.Context(), nodeURL, "/api/v1/public/auth/passport/authorize/request", gin.H{
 		"appId": appID, "redirectUri": callbackURL, "state": state,
 		"codeChallenge": passportPKCEChallenge(verifier), "codeChallengeMethod": "S256",
-		"scopes":       []string{"identity.basic", "identity.wallet"},
+		"scopes":       routerPassportScopes(true),
 		"requestTtlMs": passportLoginTTL.Milliseconds(),
 	}, &requestResult)
 	if err != nil || strings.TrimSpace(requestResult.Data.RequestID) == "" || strings.TrimSpace(requestResult.Data.VerifyURL) == "" {
@@ -228,17 +303,56 @@ func completePassportLogin(c *gin.Context, row *model.PassportLoginSession) {
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"status": "failed", "message": "夜莺通行证授权失败"}})
 		return
 	}
-	user, err := resolvePassportUser(exchange.Data.SubjectID, exchange.Data.WalletAddress)
-	if err != nil {
+	candidateUser := findPassportUserWithoutBinding(exchange.Data.SubjectID, exchange.Data.WalletAddress)
+	requireEmail := !passportUserHasConfiguredEmail(candidateUser)
+	if err := validatePassportExchangeIdentity(&exchange.Data, requireEmail); err != nil {
 		failPassportLogin(row, err.Error())
-		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"status": "unbound", "message": err.Error()}})
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"status": "failed", "message": err.Error()}})
 		return
+	}
+	user, resolveErr := resolvePassportUser(exchange.Data.SubjectID, exchange.Data.WalletAddress)
+	if resolveErr != nil {
+		failPassportLogin(row, resolveErr.Error())
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"status": "unbound", "message": resolveErr.Error()}})
+		return
+	}
+	if passportScopeIncluded(exchange.Data.Scopes, "identity.email") && exchange.Data.Claims.EmailVerified != nil && *exchange.Data.Claims.EmailVerified && strings.TrimSpace(exchange.Data.Claims.Email) != "" {
+		if err := model.SyncPassportIdentityEmail(
+			exchange.Data.SubjectID,
+			true,
+			exchange.Data.Claims.Email,
+			exchange.Data.Claims.EmailVerifiedAt,
+		); err != nil {
+			logger.SysError("sync passport identity email failed: " + err.Error())
+		}
 	}
 	if err := model.DB.Model(row).Updates(map[string]any{"status": model.PassportLoginSessionStatusComplete, "user_id": user.Id, "code": "", "code_verifier": ""}).Error; err != nil {
 		passportLoginError(c, "无法完成登录")
 		return
 	}
 	completePassportUserResponse(c, user)
+}
+
+func passportUserHasConfiguredEmail(user *model.User) bool {
+	return user != nil && (strings.TrimSpace(user.Email) != "" || model.UserHasConfiguredPassportEmail(user.Id))
+}
+
+func findPassportUserWithoutBinding(subjectID, walletAddress string) *model.User {
+	if binding, err := model.FindPassportIdentityBinding(subjectID); err == nil {
+		user := &model.User{Id: binding.UserID}
+		if user.FillUserById() == nil && user.Status == model.UserStatusEnabled {
+			return user
+		}
+	}
+	addr := model.NormalizeWalletAddress(walletAddress)
+	if addr == "" {
+		return nil
+	}
+	user := &model.User{WalletAddress: &addr}
+	if user.FillUserByWalletAddress() == nil && user.Status == model.UserStatusEnabled {
+		return user
+	}
+	return nil
 }
 
 func resolvePassportUser(subjectID, walletAddress string) (*model.User, error) {
@@ -263,6 +377,33 @@ func resolvePassportUser(subjectID, walletAddress string) (*model.User, error) {
 	user := &model.User{WalletAddress: &addr}
 	if err := user.FillUserByWalletAddress(); err != nil || user.Status != model.UserStatusEnabled {
 		return nil, errors.New("此夜莺通行证尚未绑定 Router 账户")
+	}
+	if err := model.UpsertPassportIdentityBinding(&model.PassportIdentityBinding{SubjectID: subjectID, UserID: user.Id, WalletAddress: addr}); err != nil {
+		return nil, errors.New("无法绑定夜莺通行证身份")
+	}
+	return user, nil
+}
+
+func resolvePassportWalletUser(subjectID, walletAddress string, ctx context.Context) (*model.User, error) {
+	subjectID = strings.TrimSpace(subjectID)
+	if subjectID == "" {
+		return nil, errors.New("夜莺通行证未返回身份信息")
+	}
+	if binding, err := model.FindPassportIdentityBinding(subjectID); err == nil {
+		user := &model.User{Id: binding.UserID}
+		if err := user.FillUserById(); err != nil || user.Status != model.UserStatusEnabled {
+			return nil, errors.New("Router 账户不可用")
+		}
+		return user, nil
+	}
+	addr := model.NormalizeWalletAddress(walletAddress)
+	user, err := findOrCreateWalletUser(addr, ctx)
+	if err != nil || user.Status != model.UserStatusEnabled {
+		return nil, errors.New("此夜莺通行证尚未绑定 Router 账户")
+	}
+	var existingForUser model.PassportIdentityBinding
+	if err := model.DB.Where("user_id = ?", user.Id).First(&existingForUser).Error; err == nil && existingForUser.SubjectID != subjectID {
+		return nil, errors.New("Router 账户已绑定其他夜莺通行证身份")
 	}
 	if err := model.UpsertPassportIdentityBinding(&model.PassportIdentityBinding{SubjectID: subjectID, UserID: user.Id, WalletAddress: addr}); err != nil {
 		return nil, errors.New("无法绑定夜莺通行证身份")

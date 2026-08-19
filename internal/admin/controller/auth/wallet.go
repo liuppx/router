@@ -27,11 +27,23 @@ type walletNonceRequest struct {
 }
 
 type walletLoginRequest struct {
-	Address   string `json:"address"`
-	Signature string `json:"signature"`
-	Nonce     string `json:"nonce"`
-	ChainId   string `json:"chain_id"`
-	Message   string `json:"message"`
+	Address           string              `json:"address"`
+	Signature         string              `json:"signature"`
+	Nonce             string              `json:"nonce"`
+	ChainId           string              `json:"chain_id"`
+	Message           string              `json:"message"`
+	PassportAssertion string              `json:"passportAssertion"`
+	WalletProof       walletPassportProof `json:"walletProof"`
+}
+
+type walletPassportProof struct {
+	Address   string   `json:"address"`
+	Message   string   `json:"message"`
+	Signature string   `json:"signature"`
+	AppID     string   `json:"appId"`
+	Audience  string   `json:"audience"`
+	Nonce     string   `json:"nonce"`
+	Scopes    []string `json:"scopes"`
 }
 
 const walletRefreshCookieName = "refresh_token"
@@ -504,14 +516,42 @@ func WalletChallengeWeb3(c *gin.Context) {
 	now := time.Now()
 	nonce, message := common.GenerateWalletNonce(addr, "Login to "+config.SystemName, req.ChainId)
 	expiresAt := now.Add(time.Duration(config.NonceTTLMinutes) * time.Minute)
+	scopes := routerPassportScopes(walletAddressRequiresEmail(addr))
+	common.SetWalletNonceScopes(addr, scopes)
 	logger.Loginf(c.Request.Context(), "wallet web3 challenge success addr=%s nonce=%s chain=%s", addr, nonce, req.ChainId)
-	writeWeb3OK(c, gin.H{
+	data, err := walletChallengeWeb3Data(addr, message, nonce, scopes, now, expiresAt)
+	if err != nil {
+		writeWeb3Error(c, 8, err.Error())
+		return
+	}
+	writeWeb3OK(c, data)
+}
+
+func walletChallengeWeb3Data(addr, message, nonce string, scopes []string, issuedAt, expiresAt time.Time) (gin.H, error) {
+	data := gin.H{
 		"address":   addr,
 		"challenge": message,
 		"nonce":     nonce,
-		"issuedAt":  now.UnixMilli(),
+		"issuedAt":  issuedAt.UnixMilli(),
 		"expiresAt": expiresAt.UnixMilli(),
-	})
+	}
+	if _, appID, _, err := passportConfiguration(); err == nil {
+		data["appId"] = appID
+		data["audience"] = passportWalletAudience()
+		data["scope"] = scopes
+		data["passportEndpoint"] = strings.TrimRight(strings.TrimSpace(config.PassportNodeURL), "/")
+	} else {
+		return nil, errors.New("夜莺通行证登录尚未配置")
+	}
+	return data, nil
+}
+
+func walletAddressRequiresEmail(addr string) bool {
+	user := &model.User{WalletAddress: &addr}
+	if err := user.FillUserByWalletAddress(); err != nil {
+		return true
+	}
+	return !passportUserHasConfiguredEmail(user)
 }
 
 // WalletVerifyWeb3 implements /api/v1/public/auth/verify
@@ -522,12 +562,49 @@ func WalletVerifyWeb3(c *gin.Context) {
 		writeWeb3Error(c, 2, "参数错误")
 		return
 	}
-	user, err := walletAuthenticate(c, req)
-	if err != nil {
-		logger.Loginf(c.Request.Context(), "wallet web3 verify auth fail addr=%s err=%v", req.Address, err)
+	if err := verifyWalletRequest(req); err != nil {
+		logger.Loginf(c.Request.Context(), "wallet web3 verify signature failed addr=%s err=%v", req.Address, err)
 		writeWeb3Error(c, 3, err.Error())
 		return
 	}
+	nonceEntry, ok := common.GetWalletNonce(req.Address)
+	if !ok || len(nonceEntry.Scopes) == 0 {
+		writeWeb3Error(c, 3, "钱包登录请求无效或已过期")
+		return
+	}
+	requireEmail := passportScopeIncluded(nonceEntry.Scopes, "identity.email")
+	assertion, err := introspectPassportWalletAssertion(c.Request.Context(), req.PassportAssertion)
+	if err != nil || assertion.Claims.SubjectID == "" ||
+		model.NormalizeWalletAddress(assertion.Claims.WalletAddress) != model.NormalizeWalletAddress(req.Address) ||
+		assertion.Claims.Nonce != req.Nonce ||
+		!passportScopeIncluded(assertion.Claims.Scope, "identity.basic") ||
+		!passportScopeIncluded(assertion.Claims.Scope, "identity.wallet") ||
+		(requireEmail && (!passportScopeIncluded(assertion.Claims.Scope, "identity.email") || !assertion.Claims.EmailVerified || strings.TrimSpace(assertion.Claims.Email) == "")) {
+		logger.Loginf(c.Request.Context(), "wallet web3 passport assertion invalid addr=%s err=%v", req.Address, err)
+		writeWeb3Error(c, 3, "需要已验证的夜莺通行证邮箱")
+		return
+	}
+	if model.NormalizeWalletAddress(req.WalletProof.Address) != model.NormalizeWalletAddress(req.Address) ||
+		strings.TrimSpace(req.WalletProof.Nonce) != req.Nonce ||
+		strings.TrimSpace(req.WalletProof.AppID) != assertion.Claims.AppID ||
+		strings.TrimSpace(req.WalletProof.Audience) != assertion.Claims.Audience ||
+		!passportScopesIncluded(req.WalletProof.Scopes, nonceEntry.Scopes) {
+		writeWeb3Error(c, 3, "夜莺通行证钱包证明无效")
+		return
+	}
+	user, err := resolvePassportWalletUser(assertion.Claims.SubjectID, req.Address, c.Request.Context())
+	if err != nil {
+		logger.Loginf(c.Request.Context(), "wallet web3 passport user resolve fail addr=%s err=%v", req.Address, err)
+		writeWeb3Error(c, 3, err.Error())
+		return
+	}
+	if requireEmail {
+		if err := model.SyncPassportIdentityEmail(assertion.Claims.SubjectID, true, assertion.Claims.Email, assertion.Claims.EmailVerifiedAt); err != nil {
+			writeWeb3Error(c, 8, "无法同步夜莺通行证邮箱")
+			return
+		}
+	}
+	common.ConsumeWalletNonce(model.NormalizeWalletAddress(req.Address))
 	if err := usercontroller.SetupSession(user, c); err != nil {
 		logger.LoginErrorf(c.Request.Context(), "wallet web3 verify setup session failed user=%s err=%v", user.Id, err)
 		writeWeb3Error(c, 8, "无法保存会话信息，请重试")
@@ -557,6 +634,15 @@ func WalletVerifyWeb3(c *gin.Context) {
 		"expiresAt":        accessExp.UnixMilli(),
 		"refreshExpiresAt": refreshExp.UnixMilli(),
 	})
+}
+
+func passportScopesIncluded(actual, required []string) bool {
+	for _, scope := range required {
+		if !passportScopeIncluded(actual, scope) {
+			return false
+		}
+	}
+	return true
 }
 
 // WalletRefreshWeb3 implements /api/v1/public/auth/refresh

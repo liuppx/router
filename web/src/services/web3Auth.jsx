@@ -6,10 +6,10 @@ import {
   getProvider,
   isUserRejectedWalletAction,
   isWalletReconnectError,
-  loginWithChallenge,
   logout as sdkLogout,
   refreshAccessToken as sdkRefreshAccessToken,
   requestAccounts,
+  requestPassportAssertion,
   signMessage,
   watchProvider,
 } from '@yeying-community/web3-bs';
@@ -129,12 +129,52 @@ export async function getWalletContext(preferredAddress = '') {
 
 async function loginWithWalletOnce(preferredAddress = '') {
   const { provider, address } = await getWalletContext(preferredAddress);
-  const loginResult = await loginWithChallenge({
+  const challengeResponse = await fetch(`${WEB3_AUTH_OPTIONS.baseUrl}/challenge`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', accept: 'application/json' },
+    credentials: WEB3_AUTH_OPTIONS.credentials,
+    body: JSON.stringify({ address }),
+  });
+  const challengePayload = await challengeResponse.json();
+  if (!challengeResponse.ok || challengePayload?.code || !challengePayload?.data?.challenge) {
+    throw new Error(challengePayload?.message || '无法创建钱包登录请求');
+  }
+  const loginRequest = challengePayload.data;
+  const signature = await signMessage({
     provider,
     address,
-    ...WEB3_AUTH_OPTIONS,
+    message: loginRequest.challenge,
   });
-  return { ...loginResult, provider, address };
+  const passportLogin = await requestPassportAssertion({
+    provider,
+    appId: loginRequest.appId,
+    audience: loginRequest.audience,
+    nonce: loginRequest.nonce,
+    scopes: loginRequest.scope,
+    passportEndpoint: loginRequest.passportEndpoint,
+  });
+  const verifyResponse = await fetch(`${WEB3_AUTH_OPTIONS.baseUrl}/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', accept: 'application/json' },
+    credentials: WEB3_AUTH_OPTIONS.credentials,
+    body: JSON.stringify({
+      address,
+      signature,
+      nonce: loginRequest.nonce,
+      message: loginRequest.challenge,
+      passportAssertion: passportLogin.passportAssertion,
+      walletProof: passportLogin.walletProof,
+    }),
+  });
+  const verifyPayload = await verifyResponse.json();
+  if (!verifyResponse.ok || verifyPayload?.code || !verifyPayload?.data?.token) {
+    throw new Error(verifyPayload?.message || '钱包登录失败');
+  }
+  const token = verifyPayload.data.token;
+  if (token) {
+    localStorage.setItem(WEB3_TOKEN_STORAGE_KEY, token);
+  }
+  return { token, address, signature, challenge: loginRequest.challenge, response: verifyPayload.data, provider };
 }
 
 export async function loginWithWallet(preferredAddress = '') {

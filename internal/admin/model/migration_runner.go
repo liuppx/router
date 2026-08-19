@@ -1983,6 +1983,20 @@ func runMainVersionedMigrations(db *gorm.DB) error {
 				return replaceProviderMigrationSeedsWithDB(tx)
 			},
 		},
+		{
+			Version:     "202608091030_passport_identity_email",
+			Description: "store verified passport email snapshots for user notifications",
+			Up: func(tx *gorm.DB) error {
+				return tx.AutoMigrate(&PassportIdentityBinding{})
+			},
+		},
+		{
+			Version:     "202608091130_user_notification_events",
+			Description: "add idempotent user email notification outbox",
+			Up: func(tx *gorm.DB) error {
+				return tx.AutoMigrate(&UserNotificationEvent{}, &UserBalanceNotificationState{})
+			},
+		},
 	}
 	return runVersionedMigrations(db, migrationScopeMain, migrations)
 }

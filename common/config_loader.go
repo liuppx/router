@@ -133,10 +133,11 @@ type OperationConfig struct {
 }
 
 type NotifyConfig struct {
-	Provider   string `yaml:"provider"`
-	WebhookURL string `yaml:"webhook_url"`
-	Secret     string `yaml:"secret"`
-	Token      string `yaml:"token"`
+	Provider                string `yaml:"provider"`
+	WebhookURL              string `yaml:"webhook_url"`
+	Secret                  string `yaml:"secret"`
+	Token                   string `yaml:"token"`
+	UserBalanceLowThreshold int64  `yaml:"user_balance_low_threshold"`
 }
 
 type BillingConfig struct {
@@ -371,6 +372,7 @@ func ApplyAppConfig(cfg *AppConfig, portFlagSet bool, logDirFlagSet bool) error 
 	config.NotifyWebhookURL = strings.TrimSpace(cfg.Notify.WebhookURL)
 	config.NotifySecret = strings.TrimSpace(cfg.Notify.Secret)
 	config.NotifyToken = strings.TrimSpace(cfg.Notify.Token)
+	config.UserBalanceLowNotificationThreshold = cfg.Notify.UserBalanceLowThreshold
 	config.BillingServiceBaseURL = strings.TrimRight(strings.TrimSpace(cfg.Billing.BaseURL), "/")
 	config.BillingServiceAPIKey = strings.TrimSpace(cfg.Billing.APIKey)
 	if cfg.Billing.TimeoutSeconds > 0 {
