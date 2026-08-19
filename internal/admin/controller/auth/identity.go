@@ -24,6 +24,25 @@ type identityPresentationRequest struct {
 	Presentation map[string]any `json:"presentation"`
 }
 
+type identityAccountLinkChallengeRequest struct {
+	Identity string `json:"identity"`
+	ChainKey string `json:"chainKey"`
+	Address  string `json:"address"`
+}
+
+type identityAccountLinkVerifyRequest struct {
+	IdentityDocument map[string]any `json:"identityDocument"`
+	Identity         string         `json:"identity"`
+	ChainKey         string         `json:"chainKey"`
+	Address          string         `json:"address"`
+	Nonce            string         `json:"nonce"`
+	IssuedAt         string         `json:"issuedAt"`
+	ExpiresAt        string         `json:"expiresAt"`
+	AccountSignature string         `json:"accountSignature"`
+	WalletIdentityID string         `json:"walletIdentityId"`
+	DID              string         `json:"did"`
+}
+
 type identityAuthorizationRequestResult struct {
 	RequestID string   `json:"requestId"`
 	Nonce     string   `json:"nonce"`
@@ -147,6 +166,62 @@ func VerifyIdentityWalletLogin(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "ok", "data": gin.H{"token": token, "expires_at": exp.UnixMilli(), "wallet_identity_id": exchange.Data.WalletIdentityID, "did": exchange.Data.DID, "user": user}})
+}
+
+func CreateIdentityAccountLinkChallenge(c *gin.Context) {
+	var req identityAccountLinkChallengeRequest
+	if err := c.ShouldBindJSON(&req); err != nil || strings.TrimSpace(req.Identity) == "" || strings.TrimSpace(req.Address) == "" {
+		identityError(c, "参数错误")
+		return
+	}
+	nodeURL, _, _, err := passportConfiguration()
+	if err != nil {
+		identityError(c, err.Error())
+		return
+	}
+	result := passportNodeResponse[map[string]any]{}
+	if err := passportNodePost(c.Request.Context(), nodeURL, "/api/v1/public/identity/account-links/challenge", gin.H{"identity": req.Identity, "account": gin.H{"chainKey": req.ChainKey, "address": req.Address}}, &result); err != nil {
+		identityError(c, "无法创建身份绑定请求")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "ok", "data": result.Data})
+}
+
+func VerifyIdentityAccountLink(c *gin.Context) {
+	var req identityAccountLinkVerifyRequest
+	if err := c.ShouldBindJSON(&req); err != nil || req.IdentityDocument == nil || strings.TrimSpace(req.Identity) == "" {
+		identityError(c, "参数错误")
+		return
+	}
+	nodeURL, _, _, err := passportConfiguration()
+	if err != nil {
+		identityError(c, err.Error())
+		return
+	}
+	result := passportNodeResponse[map[string]any]{}
+	if err := passportNodePost(c.Request.Context(), nodeURL, "/api/v1/public/identity/account-links/verify", gin.H{
+		"identityDocument": req.IdentityDocument, "identity": req.Identity,
+		"account": gin.H{"chainKey": req.ChainKey, "address": req.Address}, "nonce": req.Nonce,
+		"issuedAt": req.IssuedAt, "expiresAt": req.ExpiresAt, "accountSignature": req.AccountSignature,
+	}, &result); err != nil {
+		identityError(c, "身份账户绑定验证失败")
+		return
+	}
+	identityID := strings.TrimSpace(req.WalletIdentityID)
+	if identityID == "" {
+		identityID = strings.TrimPrefix(req.Identity, "did:yeying:wid_")
+	}
+	addr := model.NormalizeWalletAddress(req.Address)
+	user := &model.User{WalletAddress: &addr}
+	if err := user.FillUserByWalletAddress(); err != nil || user.Status != model.UserStatusEnabled {
+		identityError(c, "该钱包尚未绑定 Router 账户")
+		return
+	}
+	if err := model.UpsertWalletIdentityBinding(&model.WalletIdentityBinding{WalletIdentityID: identityID, DID: req.Identity, UserID: user.Id, WalletAddress: addr}); err != nil {
+		identityError(c, "无法保存身份绑定")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "ok", "data": gin.H{"wallet_identity_id": identityID, "did": req.Identity, "user_id": user.Id, "result": result.Data}})
 }
 
 func resolveWalletIdentityUser(identityID, did, walletAddress string, ctx context.Context) (*model.User, error) {
