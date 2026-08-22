@@ -51,7 +51,7 @@ func identityAppID() string {
 func CreateIdentityLoginSession(c *gin.Context) {
 	appID := identityAppID()
 	if appID == "" {
-		identityError(c, "夜莺身份登录尚未配置")
+		identityError(c, "Router 钱包身份登录尚未配置，请配置 identity.app_id")
 		return
 	}
 	nonce, err := identityRandomURLValue(32)

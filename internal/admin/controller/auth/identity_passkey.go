@@ -85,7 +85,7 @@ func identityPasskeyConfiguration() (string, string, string, error) {
 		callbackURL = strings.TrimRight(strings.TrimSpace(config.ServerAddress), "/") + "/api/v1/public/oauth/identity/callback"
 	}
 	if nodeURL == "" || appID == "" {
-		return "", "", "", errors.New("夜莺身份登录尚未配置")
+		return "", "", "", errors.New("Router 钱包身份登录尚未配置，请配置 identity.node_url 和 identity.app_id")
 	}
 	return nodeURL, appID, callbackURL, nil
 }
