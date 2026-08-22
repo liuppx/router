@@ -38,10 +38,10 @@ var BillingServiceTimeoutSeconds = 20
 var BillingTargetMargin = 0.0
 var BillingRiskBuffer = 0.0
 
-// YeYing Passport login configuration, loaded from the passport section in config.yaml.
-var PassportNodeURL = ""
-var PassportAppID = ""
-var PassportCallbackURL = ""
+// YeYing wallet identity login configuration, loaded from the identity section in config.yaml.
+var IdentityNodeURL = ""
+var IdentityAppID = ""
+var IdentityCallbackURL = ""
 
 // Any options with "Secret", "Token" in its key won't be return by GetOptions
 

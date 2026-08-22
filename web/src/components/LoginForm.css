@@ -188,7 +188,7 @@
   border-color: #a8c2f4 !important;
 }
 
-.router-passport-login-panel {
+.router-identity-login-panel {
   display: flex;
   min-height: 282px;
   align-items: center;
@@ -198,20 +198,20 @@
   text-align: center;
 }
 
-.router-passport-login-panel p {
+.router-identity-login-panel p {
   max-width: 360px;
   margin: 0;
   color: #667085;
   line-height: 1.6;
 }
 
-.router-passport-local-link {
+.router-identity-local-link {
   color: #70bf53;
   font-size: 15px;
   text-decoration: none;
 }
 
-.router-passport-local-link:hover {
+.router-identity-local-link:hover {
   color: #58aa3b;
   text-decoration: underline;
 }
@@ -416,7 +416,7 @@
 .router-login-form-shell { width: min(360px, 100%); }
 .router-login-heading { text-align: center; }
 .router-login-heading p { margin-bottom: 28px; }
-.router-passport-login-panel { min-height: 300px; }
+.router-identity-login-panel { min-height: 300px; }
 @media (max-width: 760px) { .router-login-layout { min-height: 0; } .router-login-auth { padding: 42px 28px; } }
 
 .router-login-mode-corner { position: absolute !important; top: 0; right: 0; width: 72px; min-width: 72px !important; height: 72px; padding: 10px 8px 32px 34px !important; color: #fff !important; border: 0 !important; border-radius: 0 !important; background: #9dcc86 !important; clip-path: polygon(100% 0, 100% 100%, 0 0); box-shadow: none !important; }

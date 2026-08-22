@@ -7,6 +7,7 @@ import { API, showError } from '../helpers';
 import { toastConstants } from '../constants';
 import {
   focusWalletPendingApproval,
+  isWalletIdentityEmailRequiredError,
   isWalletUserRejectedError,
   loginWithWallet,
 } from '../services/web3Auth';
@@ -137,9 +138,9 @@ const LoginForm = () => {
   const [walletLoginAwaitingApproval, setWalletLoginAwaitingApproval] =
     useState(false);
   const walletLoginPromiseRef = useRef(null);
-  const passportPollTimerRef = useRef(null);
-  const passportSessionRef = useRef('');
-  const [passportLogin, setPassportLogin] = useState({
+  const identityPollTimerRef = useRef(null);
+  const identitySessionRef = useRef('');
+  const [identityLogin, setIdentityLogin] = useState({
     loading: false,
     verifyUrl: '',
     message: '',
@@ -209,23 +210,23 @@ const LoginForm = () => {
 
   useEffect(
     () => () => {
-      if (passportPollTimerRef.current) {
-        window.clearInterval(passportPollTimerRef.current);
+      if (identityPollTimerRef.current) {
+        window.clearInterval(identityPollTimerRef.current);
       }
     },
     []
   );
 
-  const finishPassportLogin = (user) => {
+  const finishIdentityLogin = (user) => {
     if (!user) {
       showError(t('auth.login.user_fetch_failed'));
       return;
     }
-    if (passportPollTimerRef.current) {
-      window.clearInterval(passportPollTimerRef.current);
-      passportPollTimerRef.current = null;
+    if (identityPollTimerRef.current) {
+      window.clearInterval(identityPollTimerRef.current);
+      identityPollTimerRef.current = null;
     }
-    setPassportLogin({
+    setIdentityLogin({
       loading: false,
       verifyUrl: '',
       message: '',
@@ -238,53 +239,53 @@ const LoginForm = () => {
     );
   };
 
-  const pollPassportLogin = async () => {
-    const sessionId = passportSessionRef.current;
+  const pollIdentityLogin = async () => {
+    const sessionId = identitySessionRef.current;
     if (!sessionId) return;
     try {
       const response = await API.get(
-        '/api/v1/public/auth/passport/login/status',
+        '/api/v1/public/auth/identity/passkey/login/status',
         { params: { session_id: sessionId } }
       );
       const payload = response?.data || {};
       if (!payload.success) {
-        setPassportLogin((current) => ({
+        setIdentityLogin((current) => ({
           ...current,
           loading: false,
-          message: payload.message || t('auth.login.passport_failed'),
+          message: payload.message || t('auth.login.identity_failed'),
         }));
         return;
       }
       const result = payload.data || {};
       if (result.status === 'complete') {
-        finishPassportLogin(result.user);
+        finishIdentityLogin(result.user);
         return;
       }
       if (['expired', 'failed', 'unbound'].includes(result.status)) {
-        if (passportPollTimerRef.current)
-          window.clearInterval(passportPollTimerRef.current);
-        passportPollTimerRef.current = null;
-        setPassportLogin((current) => ({
+        if (identityPollTimerRef.current)
+          window.clearInterval(identityPollTimerRef.current);
+        identityPollTimerRef.current = null;
+        setIdentityLogin((current) => ({
           ...current,
           loading: false,
-          message: result.message || t(`auth.login.passport_${result.status}`),
+          message: result.message || t(`auth.login.identity_${result.status}`),
         }));
       }
     } catch (error) {
-      setPassportLogin((current) => ({
+      setIdentityLogin((current) => ({
         ...current,
         loading: false,
-        message: error.message || t('auth.login.passport_failed'),
+        message: error.message || t('auth.login.identity_failed'),
       }));
     }
   };
 
-  const startPassportLogin = async () => {
-    if (passportLogin.loading) return;
-    setPassportLogin({ loading: true, verifyUrl: '', message: '' });
+  const startIdentityLogin = async () => {
+    if (identityLogin.loading) return;
+    setIdentityLogin({ loading: true, verifyUrl: '', message: '' });
     try {
       const response = await API.post(
-        '/api/v1/public/auth/passport/login/session'
+        '/api/v1/public/auth/identity/passkey/login/session'
       );
       const payload = response?.data || {};
       if (
@@ -292,34 +293,34 @@ const LoginForm = () => {
         !payload.data?.session_id ||
         !payload.data?.verify_url
       ) {
-        throw new Error(payload.message || t('auth.login.passport_failed'));
+        throw new Error(payload.message || t('auth.login.identity_failed'));
       }
-      passportSessionRef.current = payload.data.session_id;
-      setPassportLogin({
+      identitySessionRef.current = payload.data.session_id;
+      setIdentityLogin({
         loading: false,
         verifyUrl: payload.data.verify_url,
         message: '',
       });
-      await pollPassportLogin();
-      passportPollTimerRef.current = window.setInterval(
-        pollPassportLogin,
+      await pollIdentityLogin();
+      identityPollTimerRef.current = window.setInterval(
+        pollIdentityLogin,
         (Number(payload.data.poll_interval) || 2) * 1000
       );
     } catch (error) {
-      setPassportLogin({
+      setIdentityLogin({
         loading: false,
         verifyUrl: '',
-        message: error.message || t('auth.login.passport_failed'),
+        message: error.message || t('auth.login.identity_failed'),
       });
     }
   };
 
-  const closePassportLogin = () => {
-    if (passportPollTimerRef.current)
-      window.clearInterval(passportPollTimerRef.current);
-    passportPollTimerRef.current = null;
-    passportSessionRef.current = '';
-    setPassportLogin({
+  const closeIdentityLogin = () => {
+    if (identityPollTimerRef.current)
+      window.clearInterval(identityPollTimerRef.current);
+    identityPollTimerRef.current = null;
+    identitySessionRef.current = '';
+    setIdentityLogin({
       loading: false,
       verifyUrl: '',
       message: '',
@@ -327,21 +328,21 @@ const LoginForm = () => {
   };
 
   const toggleAuthMode = () => {
-    if (authMode === 'passport') {
-      closePassportLogin();
+    if (authMode === 'identity') {
+      closeIdentityLogin();
       setAuthMode('wallet');
       return;
     }
-    setAuthMode('passport');
-    startPassportLogin();
+    setAuthMode('identity');
+    startIdentityLogin();
   };
 
   useEffect(() => {
-    const refresh = () => pollPassportLogin();
+    const refresh = () => pollIdentityLogin();
     const channel =
       typeof BroadcastChannel === 'undefined'
         ? null
-        : new BroadcastChannel('router-passport-login');
+        : new BroadcastChannel('router-identity-login');
     if (channel) channel.onmessage = refresh;
     window.addEventListener('storage', refresh);
     return () => {
@@ -402,6 +403,8 @@ const LoginForm = () => {
       setWalletLoginAwaitingApproval(false);
       if (isWalletUserRejectedError(error)) {
         showError(t('auth.login.wallet_rejected'));
+      } else if (isWalletIdentityEmailRequiredError(error)) {
+        showError(t('auth.login.wallet_identity_email_required'));
       } else {
         showError(error.message || t('auth.login.wallet_failed'));
       }
@@ -451,13 +454,13 @@ const LoginForm = () => {
           <div className='router-login-form-shell'>
             <div className='router-login-heading'>
               <h2 id='login-title'>
-                {authMode === 'passport'
-                  ? t('auth.login.passport_title')
+                {authMode === 'identity'
+                  ? t('auth.login.identity_title')
                   : t('auth.login.wallet_title')}
               </h2>
               <p>
-                {authMode === 'passport'
-                  ? t('auth.login.passport_hint')
+                {authMode === 'identity'
+                  ? t('auth.login.identity_hint')
                   : t('auth.login.wallet_subtitle')}
               </p>
             </div>
@@ -512,33 +515,33 @@ const LoginForm = () => {
                 </div>
               </>
             ) : null}
-            {authMode === 'passport' ? (
-              <div className='router-passport-login-panel'>
-                {passportLogin.verifyUrl ? (
-                  <AppQRCode value={passportLogin.verifyUrl} size={220} />
+            {authMode === 'identity' ? (
+              <div className='router-identity-login-panel'>
+                {identityLogin.verifyUrl ? (
+                  <AppQRCode value={identityLogin.verifyUrl} size={220} />
                 ) : null}
-                {passportLogin.loading ? (
-                  <p>{t('auth.login.passport_loading')}</p>
+                {identityLogin.loading ? (
+                  <p>{t('auth.login.identity_loading')}</p>
                 ) : null}
-                {passportLogin.verifyUrl ? (
+                {identityLogin.verifyUrl ? (
                   <a
-                    className='router-passport-local-link'
-                    href={passportLogin.verifyUrl}
+                    className='router-identity-local-link'
+                    href={identityLogin.verifyUrl}
                     target='_blank'
                     rel='noopener noreferrer'
                   >
-                    {t('auth.login.passport_open')}
+                    {t('auth.login.identity_open')}
                   </a>
                 ) : null}
-                {passportLogin.message ? (
+                {identityLogin.message ? (
                   <>
                     <AppAlert
                       type='warning'
                       showIcon
-                      title={passportLogin.message}
+                      title={identityLogin.message}
                     />
-                    <AppButton onClick={startPassportLogin}>
-                      {t('auth.login.passport_refresh')}
+                    <AppButton onClick={startIdentityLogin}>
+                      {t('auth.login.identity_refresh')}
                     </AppButton>
                   </>
                 ) : null}
@@ -616,19 +619,19 @@ const LoginForm = () => {
         </section>
         <AppTooltip
           title={
-            authMode === 'passport'
+            authMode === 'identity'
               ? t('auth.login.switch_to_wallet')
-              : t('auth.login.switch_to_passport')
+              : t('auth.login.switch_to_identity')
           }
         >
           <AppButton
             className='router-login-mode-corner'
             aria-label={
-              authMode === 'passport'
+              authMode === 'identity'
                 ? t('auth.login.switch_to_wallet')
-                : t('auth.login.switch_to_passport')
+                : t('auth.login.switch_to_identity')
             }
-            icon={<AppIcon name={authMode === 'passport' ? 'key' : 'qrcode'} />}
+            icon={<AppIcon name={authMode === 'identity' ? 'key' : 'qrcode'} />}
             onClick={toggleAuthMode}
           />
         </AppTooltip>

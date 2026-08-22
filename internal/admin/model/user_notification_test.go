@@ -13,7 +13,7 @@ func newUserNotificationTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("open database: %v", err)
 	}
-	if err := db.AutoMigrate(&PassportIdentityBinding{}, &UserBalanceLot{}, &UserNotificationEvent{}, &UserBalanceNotificationState{}); err != nil {
+	if err := db.AutoMigrate(&User{}, &UserBalanceLot{}, &UserNotificationEvent{}, &UserBalanceNotificationState{}); err != nil {
 		t.Fatalf("migrate notification tables: %v", err)
 	}
 	return db
@@ -21,8 +21,8 @@ func newUserNotificationTestDB(t *testing.T) *gorm.DB {
 
 func TestCreateUserOrderNotificationEventIsIdempotent(t *testing.T) {
 	db := newUserNotificationTestDB(t)
-	if err := db.Create(&PassportIdentityBinding{SubjectID: "subject-1", UserID: "user-1", Email: "person@example.com", EmailStatus: "verified"}).Error; err != nil {
-		t.Fatalf("create binding: %v", err)
+	if err := db.Create(&User{Id: "user-1", Username: "test", Email: "person@example.com"}).Error; err != nil {
+		t.Fatalf("create user: %v", err)
 	}
 	order := TopupOrder{Id: "order-1", UserID: "user-1", BusinessType: TopupOrderBusinessBalance, CreditOrigin: TopupOrderCreditOriginPaid, Status: TopupOrderStatusFulfilled, Quota: 100}
 	for range 2 {
@@ -41,8 +41,8 @@ func TestCreateUserOrderNotificationEventIsIdempotent(t *testing.T) {
 
 func TestRefreshUserBalanceLowNotificationEventsRequiresRecovery(t *testing.T) {
 	db := newUserNotificationTestDB(t)
-	if err := db.Create(&PassportIdentityBinding{SubjectID: "subject-1", UserID: "user-1", Email: "person@example.com", EmailStatus: "verified"}).Error; err != nil {
-		t.Fatalf("create binding: %v", err)
+	if err := db.Create(&User{Id: "user-1", Username: "test", Email: "person@example.com"}).Error; err != nil {
+		t.Fatalf("create user: %v", err)
 	}
 	lot := UserBalanceLot{Id: "lot-1", UserID: "user-1", SourceType: UserBalanceLotSourceTopup, SourceID: "order-1", TotalAmount: 50, RemainingAmount: 50, Status: UserBalanceLotStatusActive}
 	if err := db.Create(&lot).Error; err != nil {

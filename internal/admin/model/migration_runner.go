@@ -61,10 +61,10 @@ type versionedMigration struct {
 func runMainVersionedMigrations(db *gorm.DB) error {
 	migrations := []versionedMigration{
 		{
-			Version:     "202608081100_passport_login",
-			Description: "add YeYing Passport identity bindings and short-lived PKCE login sessions",
+			Version:     "202608081100_identity_passkey_login",
+			Description: "add wallet identity passkey PKCE login sessions",
 			Up: func(tx *gorm.DB) error {
-				return tx.AutoMigrate(&PassportIdentityBinding{}, &PassportLoginSession{}, &WalletIdentityBinding{})
+				return tx.AutoMigrate(&IdentityPasskeyLoginSession{}, &IdentityLoginSession{})
 			},
 		},
 		{
@@ -1984,10 +1984,11 @@ func runMainVersionedMigrations(db *gorm.DB) error {
 			},
 		},
 		{
-			Version:     "202608091030_passport_identity_email",
-			Description: "store verified passport email snapshots for user notifications",
+			Version:     "202608091030_identity_email",
+			Description: "drop legacy passport identity bindings and add identity login sessions",
 			Up: func(tx *gorm.DB) error {
-				return tx.AutoMigrate(&PassportIdentityBinding{})
+				_ = tx.Migrator().DropTable("passport_identity_bindings")
+				return tx.AutoMigrate(&IdentityLoginSession{})
 			},
 		},
 		{
@@ -1995,6 +1996,20 @@ func runMainVersionedMigrations(db *gorm.DB) error {
 			Description: "add idempotent user email notification outbox",
 			Up: func(tx *gorm.DB) error {
 				return tx.AutoMigrate(&UserNotificationEvent{}, &UserBalanceNotificationState{})
+			},
+		},
+		{
+			Version:     "202608200900_drop_wallet_identity_bindings",
+			Description: "drop obsolete wallet identity bindings table after moving identity login into web3-bs",
+			Up: func(tx *gorm.DB) error {
+				return tx.Migrator().DropTable("wallet_identity_bindings")
+			},
+		},
+		{
+			Version:     "202608201100_identity_login_sessions",
+			Description: "add local wallet identity login sessions",
+			Up: func(tx *gorm.DB) error {
+				return tx.AutoMigrate(&IdentityLoginSession{})
 			},
 		},
 	}

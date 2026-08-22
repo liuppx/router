@@ -2,14 +2,12 @@ import {
   clearAccessToken as sdkClearAccessToken,
   focusPendingApproval,
   getAccessToken as sdkGetAccessToken,
-  getChainId,
   getProvider,
   isUserRejectedWalletAction,
   isWalletReconnectError,
+  loginWithWalletIdentity as sdkLoginWithWalletIdentity,
   logout as sdkLogout,
   refreshAccessToken as sdkRefreshAccessToken,
-  requestAccounts,
-  requestIdentityPresentation,
   signMessage,
   watchProvider,
 } from '@yeying-community/web3-bs';
@@ -109,112 +107,6 @@ export async function requireWalletProvider() {
   return provider;
 }
 
-export async function getWalletContext(preferredAddress = '') {
-  const provider = await requireWalletProvider();
-  const accounts = await requestAccounts({ provider });
-  const normalizedPreferredAddress = String(preferredAddress || '').trim().toLowerCase();
-  const matchedAddress = Array.isArray(accounts)
-    ? accounts.find(
-        (item) =>
-          String(item || '').trim().toLowerCase() === normalizedPreferredAddress,
-      )
-    : '';
-  const address = matchedAddress || accounts?.[0];
-  if (!address) {
-    throw new Error('未获取到钱包账户');
-  }
-  const chainId = normalizeChainId(await getChainId(provider));
-  return { provider, address, chainId };
-}
-
-async function loginWithWalletOnce(preferredAddress = '', identityBindAttempted = false) {
-  const { provider, address, chainId } = await getWalletContext(preferredAddress);
-  const challengeResponse = await fetch(`${WEB3_AUTH_OPTIONS.baseUrl}/identity/login/session`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', accept: 'application/json' },
-    credentials: WEB3_AUTH_OPTIONS.credentials,
-    body: JSON.stringify({ address }),
-  });
-  const challengePayload = await challengeResponse.json();
-  if (!challengeResponse.ok || challengePayload?.code || !challengePayload?.data?.nonce) {
-    throw new Error(challengePayload?.message || '无法创建钱包登录请求');
-  }
-  const loginRequest = challengePayload.data;
-  const presentation = await requestIdentityPresentation({
-    provider,
-    appId: loginRequest.app_id || loginRequest.appId,
-    audience: loginRequest.audience,
-    nonce: loginRequest.nonce,
-    scopes: loginRequest.scopes,
-    requestId: loginRequest.request_id || loginRequest.requestId,
-    account: { chainKey: 'eip155', address },
-  });
-  const verifyResponse = await fetch(`${WEB3_AUTH_OPTIONS.baseUrl}/identity/login/verify`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', accept: 'application/json' },
-    credentials: WEB3_AUTH_OPTIONS.credentials,
-    body: JSON.stringify({
-      session_id: loginRequest.session_id,
-      request_id: loginRequest.request_id,
-      address,
-      presentation,
-    }),
-  });
-  const verifyPayload = await verifyResponse.json();
-  if (!identityBindAttempted && verifyPayload?.code && verifyPayload?.reason === 'wallet_confirmation_required') {
-    await bindIdentityAccount({ provider, address, chainId: `eip155:${chainId}`, presentation });
-    return loginWithWalletOnce(preferredAddress, true);
-  }
-  if (!verifyResponse.ok || verifyPayload?.code || !verifyPayload?.data?.token) {
-    throw new Error(verifyPayload?.message || '钱包登录失败');
-  }
-  const token = verifyPayload.data.token;
-  if (token) {
-    localStorage.setItem(WEB3_TOKEN_STORAGE_KEY, token);
-  }
-  return { token, address, presentation, response: verifyPayload.data, provider };
-}
-
-async function bindIdentityAccount({ provider, address, chainId, presentation }) {
-  const identity = presentation?.holder;
-  const identityDocument = presentation?.identityDocument;
-  if (!identity || !identityDocument) throw new Error('夜莺身份缺少身份文档，无法绑定账户');
-  const challengeResponse = await fetch(`${WEB3_AUTH_OPTIONS.baseUrl}/identity/account/challenge`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', accept: 'application/json' },
-    credentials: WEB3_AUTH_OPTIONS.credentials,
-    body: JSON.stringify({ identity, chainKey: chainId, address }),
-  });
-  const challengePayload = await challengeResponse.json();
-  if (!challengeResponse.ok || challengePayload?.code || !challengePayload?.data?.message) {
-    throw new Error(challengePayload?.message || '无法创建身份绑定请求');
-  }
-  const challenge = challengePayload.data;
-  const accountSignature = await signMessage({ provider, address, message: challenge.message });
-  const verifyResponse = await fetch(`${WEB3_AUTH_OPTIONS.baseUrl}/identity/account/verify`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', accept: 'application/json' },
-    credentials: WEB3_AUTH_OPTIONS.credentials,
-    body: JSON.stringify({
-      identityDocument,
-      identity,
-      chainKey: chainId,
-      address,
-      nonce: challenge.nonce,
-      issuedAt: challenge.issuedAt,
-      expiresAt: challenge.expiresAt,
-      accountSignature,
-      walletIdentityId: identity.replace(/^did:yeying:/, ''),
-      did: identity,
-    }),
-  });
-  const verifyPayload = await verifyResponse.json();
-  if (!verifyResponse.ok || verifyPayload?.code) {
-    throw new Error(verifyPayload?.message || '身份账户绑定失败');
-  }
-  return verifyPayload.data;
-}
-
 export async function loginWithWallet(preferredAddress = '') {
   try {
     return await loginWithWalletOnce(preferredAddress);
@@ -227,6 +119,19 @@ export async function loginWithWallet(preferredAddress = '') {
   }
 }
 
+async function loginWithWalletOnce(preferredAddress = '') {
+  const result = await sdkLoginWithWalletIdentity({
+    ...WEB3_AUTH_OPTIONS,
+    address: preferredAddress || undefined,
+  });
+  return {
+    token: result.token,
+    address: result.address,
+    response: result.response,
+    provider: undefined,
+  };
+}
+
 export async function focusWalletPendingApproval(provider) {
   try {
     return await focusPendingApproval(provider);
@@ -237,6 +142,15 @@ export async function focusWalletPendingApproval(provider) {
 
 export function isWalletUserRejectedError(error) {
   return isUserRejectedWalletAction(error);
+}
+
+export function isWalletIdentityEmailRequiredError(error) {
+  const message = String(error?.message || error || '');
+  return (
+    message.includes('IDENTITY_SCOPE_NOT_GRANTED:identity.email') ||
+    message.includes('IDENTITY_CREDENTIAL_MISSING:EmailCredential') ||
+    message.includes('IDENTITY_EMAIL_NOT_VERIFIED')
+  );
 }
 
 export async function signWalletMessage(message, address, provider) {

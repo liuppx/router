@@ -24,21 +24,20 @@ const (
 )
 
 type UserNotificationEvent struct {
-	ID                string `gorm:"type:char(36);primaryKey"`
-	EventType         string `gorm:"type:varchar(64);not null;uniqueIndex:idx_user_notification_event_dedupe,priority:1"`
-	BusinessID        string `gorm:"type:varchar(128);not null;uniqueIndex:idx_user_notification_event_dedupe,priority:2"`
-	UserID            string `gorm:"type:char(36);not null;index"`
-	PassportSubjectID string `gorm:"type:varchar(128);not null;default:'';index"`
-	RecipientEmail    string `gorm:"type:varchar(320);not null;default:''"`
-	RecipientSource   string `gorm:"type:varchar(32);not null;default:'passport'"`
-	Status            string `gorm:"type:varchar(32);not null;index"`
-	Payload           string `gorm:"type:text;not null;default:''"`
-	LastError         string `gorm:"type:text;not null;default:''"`
-	AttemptCount      int    `gorm:"not null;default:0"`
-	NextAttemptAt     int64  `gorm:"bigint;not null;default:0;index"`
-	SentAt            int64  `gorm:"bigint;not null;default:0"`
-	CreatedAt         int64  `gorm:"bigint;not null;index"`
-	UpdatedAt         int64  `gorm:"bigint;not null;index"`
+	ID              string `gorm:"type:char(36);primaryKey"`
+	EventType       string `gorm:"type:varchar(64);not null;uniqueIndex:idx_user_notification_event_dedupe,priority:1"`
+	BusinessID      string `gorm:"type:varchar(128);not null;uniqueIndex:idx_user_notification_event_dedupe,priority:2"`
+	UserID          string `gorm:"type:char(36);not null;index"`
+	RecipientEmail  string `gorm:"type:varchar(320);not null;default:''"`
+	RecipientSource string `gorm:"type:varchar(32);not null;default:'user'"`
+	Status          string `gorm:"type:varchar(32);not null;index"`
+	Payload         string `gorm:"type:text;not null;default:''"`
+	LastError       string `gorm:"type:text;not null;default:''"`
+	AttemptCount    int    `gorm:"not null;default:0"`
+	NextAttemptAt   int64  `gorm:"bigint;not null;default:0;index"`
+	SentAt          int64  `gorm:"bigint;not null;default:0"`
+	CreatedAt       int64  `gorm:"bigint;not null;index"`
+	UpdatedAt       int64  `gorm:"bigint;not null;index"`
 }
 
 func (UserNotificationEvent) TableName() string { return "user_notification_events" }
@@ -109,17 +108,17 @@ func CreateUserOrderNotificationEventWithDB(db *gorm.DB, order TopupOrder) error
 	if err != nil {
 		return err
 	}
-	binding := PassportIdentityBinding{}
-	lookupErr := db.Where("user_id = ? AND email_status = ? AND COALESCE(TRIM(email), '') <> ''", order.UserID, "verified").First(&binding).Error
+	type userEmailRow struct{ Email string }
+	var emailRow userEmailRow
+	lookupErr := db.Model(&User{}).Select("email").Where("id = ?", order.UserID).Scan(&emailRow).Error
 	event := UserNotificationEvent{
 		ID: random.GetUUID(), EventType: eventType, BusinessID: order.Id, UserID: order.UserID,
 		Status: UserNotificationEventStatusPending, Payload: string(payload), NextAttemptAt: now,
-		RecipientSource: "passport", CreatedAt: now, UpdatedAt: now,
+		RecipientSource: "user", CreatedAt: now, UpdatedAt: now,
 	}
-	if lookupErr == nil {
-		event.PassportSubjectID = binding.SubjectID
-		event.RecipientEmail = strings.ToLower(strings.TrimSpace(binding.Email))
-	} else if lookupErr == gorm.ErrRecordNotFound {
+	if lookupErr == nil && strings.TrimSpace(emailRow.Email) != "" {
+		event.RecipientEmail = strings.ToLower(strings.TrimSpace(emailRow.Email))
+	} else if lookupErr == gorm.ErrRecordNotFound || (lookupErr == nil && strings.TrimSpace(emailRow.Email) == "") {
 		event.Status = UserNotificationEventStatusSkipped
 		event.LastError = "recipient_email_unavailable"
 	} else {
@@ -166,7 +165,6 @@ func FailUserNotificationEventWithDB(db *gorm.DB, id string, message string, nex
 
 type userVerifiedNotificationBalance struct {
 	UserID           string `gorm:"column:user_id"`
-	SubjectID        string `gorm:"column:subject_id"`
 	Email            string `gorm:"column:email"`
 	AvailableBalance int64  `gorm:"column:available_balance"`
 }
@@ -183,15 +181,15 @@ func RefreshUserBalanceLowNotificationEventsWithDB(db *gorm.DB, threshold int64,
 	}
 	rows := make([]userVerifiedNotificationBalance, 0)
 	err := db.Raw(`
-		SELECT b.user_id, b.subject_id, b.email,
+		SELECT u.id AS user_id, u.email,
 		       COALESCE(SUM(CASE
 		           WHEN l.status = ? AND l.remaining_amount > 0 AND (l.expires_at = 0 OR l.expires_at > ?)
 		           THEN l.remaining_amount ELSE 0 END), 0) AS available_balance
-		FROM passport_identity_bindings b
-		LEFT JOIN user_balance_lots l ON l.user_id = b.user_id
-		WHERE b.email_status = ? AND COALESCE(TRIM(b.email), '') <> ''
-		GROUP BY b.user_id, b.subject_id, b.email
-	`, UserBalanceLotStatusActive, now, "verified").Scan(&rows).Error
+		FROM users u
+		LEFT JOIN user_balance_lots l ON l.user_id = u.id
+		WHERE COALESCE(TRIM(u.email), '') <> ''
+		GROUP BY u.id, u.email
+	`, UserBalanceLotStatusActive, now).Scan(&rows).Error
 	if err != nil {
 		return err
 	}
@@ -213,8 +211,8 @@ func RefreshUserBalanceLowNotificationEventsWithDB(db *gorm.DB, threshold int64,
 				event := UserNotificationEvent{
 					ID: random.GetUUID(), EventType: UserNotificationEventTypeBalanceLow,
 					BusinessID: fmt.Sprintf("%s:%d", row.UserID, state.Cycle), UserID: row.UserID,
-					PassportSubjectID: row.SubjectID, RecipientEmail: strings.ToLower(strings.TrimSpace(row.Email)),
-					RecipientSource: "passport", Status: UserNotificationEventStatusPending,
+					RecipientEmail:  strings.ToLower(strings.TrimSpace(row.Email)),
+					RecipientSource: "user", Status: UserNotificationEventStatusPending,
 					Payload: string(payload), NextAttemptAt: now, CreatedAt: now, UpdatedAt: now,
 				}
 				if err := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "event_type"}, {Name: "business_id"}}, DoNothing: true}).Create(&event).Error; err != nil {

@@ -13,21 +13,6 @@ type walletNonceValue struct {
 	Nonce    string
 	Message  string
 	ExpireAt time.Time
-	Scopes   []string
-}
-
-// SetWalletNonceScopes records the server-selected Passport scopes for verification.
-func SetWalletNonceScopes(address string, scopes []string) bool {
-	walletNonceMutex.Lock()
-	defer walletNonceMutex.Unlock()
-	key := strings.ToLower(address)
-	entry, ok := walletNonceMap[key]
-	if !ok || time.Now().After(entry.ExpireAt) {
-		return false
-	}
-	entry.Scopes = append([]string(nil), scopes...)
-	walletNonceMap[key] = entry
-	return true
 }
 
 // simple in-memory nonce store, valid for 10 minutes
