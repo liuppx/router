@@ -156,7 +156,7 @@ func CreateIdentityPasskeyLoginSession(c *gin.Context) {
 	if err != nil || strings.TrimSpace(requestResult.Data.RequestID) == "" || strings.TrimSpace(requestResult.Data.VerifyURL) == "" {
 		logger.LoginErrorf(c.Request.Context(), "identity passkey authorize request failed err=%v message=%s", err, requestResult.Message)
 		var nErr *nodeError
-		if errors.As(err, &nErr) && nErr.Status == http.StatusForbidden && nErr.Message == "redirectUri is not allowed" {
+		if errors.As(err, &nErr) && isIdentityRedirectUnauthorized(nErr) {
 			identityPasskeyLoginError(c, "夜莺身份服务未授权当前 Router 回调地址，请检查 Node 应用的 redirectUris 配置")
 			return
 		}
@@ -179,6 +179,17 @@ func CreateIdentityPasskeyLoginSession(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "", "data": gin.H{"session_id": sessionID, "verify_url": normalizeIdentityVerifyURL(nodeURL, requestResult.Data.VerifyURL), "expires_at": expiresAt, "poll_interval": 2}})
+}
+
+func isIdentityRedirectUnauthorized(err *nodeError) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.TrimSpace(err.Message)
+	if message == "IDENTITY_REDIRECT_URI_UNAUTHORIZED" || message == "redirectUri is not allowed" {
+		return true
+	}
+	return (err.Status == http.StatusBadRequest || err.Status == http.StatusForbidden) && strings.Contains(message, "REDIRECT_URI")
 }
 
 func IdentityPasskeyLoginStatus(c *gin.Context) {
