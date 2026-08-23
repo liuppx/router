@@ -614,6 +614,7 @@ const UsersTable = () => {
       'username',
       'email',
       'display_name',
+      'wallet_identity_did',
       'wallet_address',
       'active_package_name',
       'balance_amount',
@@ -631,6 +632,7 @@ const UsersTable = () => {
           user?.username,
           user?.email,
           user?.display_name,
+          user?.wallet_identity_did,
           user?.wallet_address,
           user?.active_package_name,
           user?.balance_amount ?? 0,
@@ -837,6 +839,21 @@ const UsersTable = () => {
                 <span>{renderText(user.username, 15)}</span>
               </AppTooltip>
             ),
+          },
+          {
+            title: t('user.table.wallet_identity'),
+            dataIndex: 'wallet_identity_did',
+            key: 'wallet_identity_did',
+            width: USER_LIST_COLUMN_WIDTHS.identity,
+            ellipsis: true,
+            render: (value) =>
+              value ? (
+                <AppTooltip title={value}>
+                  <span>{renderText(value, 28)}</span>
+                </AppTooltip>
+              ) : (
+                '-'
+              ),
           },
           {
             title: t('user.table.wallet'),

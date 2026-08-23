@@ -2447,6 +2447,7 @@
     "table": {
       "id": "ID",
       "username": "用户名",
+      "wallet_identity": "钱包身份 DID",
       "wallet": "钱包",
       "group": "分组",
       "package": "套餐",

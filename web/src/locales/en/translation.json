@@ -2447,6 +2447,7 @@
     "table": {
       "id": "ID",
       "username": "Username",
+      "wallet_identity": "Wallet Identity DID",
       "wallet": "Wallet",
       "group": "Group",
       "package": "Package",

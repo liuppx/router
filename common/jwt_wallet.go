@@ -11,28 +11,35 @@ import (
 
 // WalletClaims defines JWT claims for wallet login.
 type WalletClaims struct {
-	UserID        string `json:"user_id"`
-	WalletAddress string `json:"wallet_address"`
-	TokenType     string `json:"token_type,omitempty"`
+	UserID            string `json:"user_id"`
+	WalletIdentityDID string `json:"wallet_identity_did,omitempty"`
+	WalletAddress     string `json:"wallet_address"`
+	TokenType         string `json:"token_type,omitempty"`
 	jwt.RegisteredClaims
 }
 
 // GenerateWalletJWT issues a JWT for the given user id and wallet address.
-func GenerateWalletJWT(userID string, walletAddress string) (token string, expiresAt time.Time, err error) {
+func GenerateWalletJWT(userID string, walletAddress string, walletIdentityDID ...string) (token string, expiresAt time.Time, err error) {
 	secret := []byte(config.JWTSecret)
 	if len(secret) == 0 {
 		return "", time.Time{}, errors.New("auth.jwt_secret not configured")
 	}
 	expiresAt = time.Now().Add(time.Duration(config.JWTExpireHours) * time.Hour)
+	did := firstWalletIdentityDID(walletIdentityDID)
+	subject := walletAddress
+	if did != "" {
+		subject = did
+	}
 	claims := WalletClaims{
-		UserID:        userID,
-		WalletAddress: walletAddress,
-		TokenType:     "access",
+		UserID:            userID,
+		WalletIdentityDID: did,
+		WalletAddress:     walletAddress,
+		TokenType:         "access",
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
-			Subject:   walletAddress,
+			Subject:   subject,
 		},
 	}
 	tokenObj := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -53,26 +60,41 @@ func VerifyWalletJWT(tokenString string) (*WalletClaims, error) {
 }
 
 // GenerateWalletRefreshJWT issues a refresh token for the given user id and wallet address.
-func GenerateWalletRefreshJWT(userID string, walletAddress string) (token string, expiresAt time.Time, err error) {
+func GenerateWalletRefreshJWT(userID string, walletAddress string, walletIdentityDID ...string) (token string, expiresAt time.Time, err error) {
 	secret := []byte(config.JWTSecret)
 	if len(secret) == 0 {
 		return "", time.Time{}, errors.New("auth.jwt_secret not configured")
 	}
 	expiresAt = time.Now().Add(time.Duration(config.RefreshTokenExpireHours) * time.Hour)
+	did := firstWalletIdentityDID(walletIdentityDID)
+	subject := walletAddress
+	if did != "" {
+		subject = did
+	}
 	claims := WalletClaims{
-		UserID:        userID,
-		WalletAddress: walletAddress,
-		TokenType:     "refresh",
+		UserID:            userID,
+		WalletIdentityDID: did,
+		WalletAddress:     walletAddress,
+		TokenType:         "refresh",
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
-			Subject:   walletAddress,
+			Subject:   subject,
 		},
 	}
 	tokenObj := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	token, err = tokenObj.SignedString(secret)
 	return
+}
+
+func firstWalletIdentityDID(values []string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 // VerifyWalletRefreshJWT validates refresh token and returns claims.

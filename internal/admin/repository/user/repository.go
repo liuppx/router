@@ -37,12 +37,14 @@ func init() {
 		FillUserByWeChatId:                       FillByWeChatID,
 		FillUserByUsername:                       FillByUsername,
 		FillUserByWalletAddress:                  FillByWalletAddress,
+		FillUserByWalletIdentityDID:              FillByWalletIdentityDID,
 		IsEmailAlreadyTaken:                      IsEmailAlreadyTaken,
 		IsWeChatIdAlreadyTaken:                   IsWeChatIdAlreadyTaken,
 		IsGitHubIdAlreadyTaken:                   IsGitHubIdAlreadyTaken,
 		IsLarkIdAlreadyTaken:                     IsLarkIdAlreadyTaken,
 		IsOidcIdAlreadyTaken:                     IsOidcIdAlreadyTaken,
 		IsWalletAddressAlreadyTaken:              IsWalletAddressAlreadyTaken,
+		IsWalletIdentityDIDAlreadyTaken:          IsWalletIdentityDIDAlreadyTaken,
 		IsUsernameAlreadyTaken:                   IsUsernameAlreadyTaken,
 		ResetUserPasswordByEmail:                 ResetUserPasswordByEmail,
 		IsAdmin:                                  IsAdmin,
@@ -98,8 +100,9 @@ func Search(keyword string) ([]*model.User, error) {
 	query := model.DB.Omit("password").Where("status != ?", model.UserStatusDeleted)
 
 	err := query.Where(
-		"(id = ? OR LOWER(username) LIKE ? OR LOWER(email) LIKE ? OR LOWER(display_name) LIKE ? OR LOWER(wallet_address) LIKE ?)",
+		"(id = ? OR LOWER(username) LIKE ? OR LOWER(email) LIKE ? OR LOWER(display_name) LIKE ? OR LOWER(wallet_address) LIKE ? OR LOWER(wallet_identity_did) LIKE ?)",
 		trimmedKeyword,
+		likeKeyword,
 		likeKeyword,
 		likeKeyword,
 		likeKeyword,
@@ -184,6 +187,14 @@ func Create(ctx context.Context, user *model.User, inviterId string) error {
 			user.WalletAddress = &lower
 		}
 	}
+	if user.WalletIdentityDID != nil {
+		normalized := model.NormalizeWalletIdentityDID(*user.WalletIdentityDID)
+		if normalized == "" {
+			user.WalletIdentityDID = nil
+		} else {
+			user.WalletIdentityDID = &normalized
+		}
+	}
 	if strings.TrimSpace(user.Id) == "" {
 		user.Id = random.GetUUID()
 	}
@@ -263,6 +274,14 @@ func Update(user *model.User, updatePassword bool) error {
 			user.WalletAddress = &lower
 		}
 	}
+	if user.WalletIdentityDID != nil {
+		normalized := model.NormalizeWalletIdentityDID(*user.WalletIdentityDID)
+		if normalized == "" {
+			user.WalletIdentityDID = nil
+		} else {
+			user.WalletIdentityDID = &normalized
+		}
+	}
 	if strings.TrimSpace(user.Group) != "" {
 		resolvedGroup, resolveErr := model.ResolveGroupCatalogByReference(user.Group)
 		if resolveErr != nil {
@@ -296,6 +315,9 @@ func Update(user *model.User, updatePassword bool) error {
 	if user.WalletAddress != nil {
 		updates["wallet_address"] = user.WalletAddress
 	}
+	if user.WalletIdentityDID != nil {
+		updates["wallet_identity_did"] = user.WalletIdentityDID
+	}
 	return model.DB.Model(&model.User{}).Where("id = ?", user.Id).Updates(updates).Error
 }
 
@@ -307,11 +329,13 @@ func Delete(user *model.User) error {
 	user.Username = fmt.Sprintf("deleted_%s", random.GetUUID())
 	user.Status = model.UserStatusDeleted
 	user.WalletAddress = nil
+	user.WalletIdentityDID = nil
 	err := model.DB.Model(user).Updates(map[string]interface{}{
-		"username":       user.Username,
-		"status":         user.Status,
-		"wallet_address": nil,
-		"updated_at":     helper.GetTimestamp(),
+		"username":            user.Username,
+		"status":              user.Status,
+		"wallet_address":      nil,
+		"wallet_identity_did": nil,
+		"updated_at":          helper.GetTimestamp(),
 	}).Error
 	model.DB.Where("user_id = ?", user.Id).Delete(&model.Token{})
 	return err
@@ -403,6 +427,17 @@ func FillByWalletAddress(user *model.User) error {
 	return model.DB.Where("LOWER(TRIM(wallet_address)) = ?", normalized).First(user).Error
 }
 
+func FillByWalletIdentityDID(user *model.User) error {
+	if user.WalletIdentityDID == nil || *user.WalletIdentityDID == "" {
+		return errors.New("wallet identity did 为空！")
+	}
+	normalized := model.NormalizeWalletIdentityDID(*user.WalletIdentityDID)
+	if normalized == "" {
+		return errors.New("wallet identity did 为空！")
+	}
+	return model.DB.Where("wallet_identity_did = ?", normalized).First(user).Error
+}
+
 func IsEmailAlreadyTaken(email string) bool {
 	return model.DB.Where("email = ?", email).Find(&model.User{}).RowsAffected == 1
 }
@@ -429,6 +464,14 @@ func IsWalletAddressAlreadyTaken(address string) bool {
 		return false
 	}
 	return model.DB.Where("LOWER(TRIM(wallet_address)) = ?", normalized).Find(&model.User{}).RowsAffected > 0
+}
+
+func IsWalletIdentityDIDAlreadyTaken(did string) bool {
+	normalized := model.NormalizeWalletIdentityDID(did)
+	if normalized == "" {
+		return false
+	}
+	return model.DB.Where("wallet_identity_did = ?", normalized).Find(&model.User{}).RowsAffected > 0
 }
 
 func IsUsernameAlreadyTaken(username string) bool {

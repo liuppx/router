@@ -52,11 +52,10 @@ type identityAuthorizeResult struct {
 }
 
 type identityExchangeResult struct {
-	WalletIdentityID string   `json:"walletIdentityId"`
-	DID              string   `json:"did"`
-	WalletAddress    string   `json:"walletAddress"`
-	Scopes           []string `json:"scopes"`
-	Credentials      []struct {
+	DID           string   `json:"did"`
+	WalletAddress string   `json:"walletAddress"`
+	Scopes        []string `json:"scopes"`
+	Credentials   []struct {
 		Type         string `json:"type"`
 		CredentialID string `json:"credentialId"`
 		Credential   string `json:"credential"`
@@ -267,7 +266,7 @@ func completeIdentityPasskeyLogin(c *gin.Context, row *model.IdentityPasskeyLogi
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"status": "failed", "message": "夜莺身份授权失败"}})
 		return
 	}
-	if exchange.Data.DID == "" || exchange.Data.WalletIdentityID == "" {
+	if exchange.Data.DID == "" {
 		failIdentityPasskeyLogin(row, "夜莺身份未返回身份信息")
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"status": "failed", "message": "夜莺身份未返回身份信息"}})
 		return
@@ -278,7 +277,7 @@ func completeIdentityPasskeyLogin(c *gin.Context, row *model.IdentityPasskeyLogi
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"status": "failed", "message": "夜莺身份未返回钱包地址"}})
 		return
 	}
-	user, resolveErr := resolveWalletIdentityUser(walletAddress, c.Request.Context())
+	user, resolveErr := resolveWalletIdentityUser(exchange.Data.DID, walletAddress, c.Request.Context())
 	if resolveErr != nil {
 		failIdentityPasskeyLogin(row, resolveErr.Error())
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"status": "unbound", "message": resolveErr.Error()}})
@@ -353,12 +352,16 @@ func completeIdentityPasskeyUserResponse(c *gin.Context, user *model.User) {
 	if user.WalletAddress != nil {
 		addr = model.NormalizeWalletAddress(*user.WalletAddress)
 	}
-	token, exp, tokenErr := common.GenerateWalletJWT(user.Id, addr)
+	userDID := ""
+	if user.WalletIdentityDID != nil {
+		userDID = model.NormalizeWalletIdentityDID(*user.WalletIdentityDID)
+	}
+	token, exp, tokenErr := common.GenerateWalletJWT(user.Id, addr, userDID)
 	if tokenErr != nil {
 		identityPasskeyLoginError(c, "生成 token 失败")
 		return
 	}
-	refreshToken, refreshExp, refreshErr := common.GenerateWalletRefreshJWT(user.Id, addr)
+	refreshToken, refreshExp, refreshErr := common.GenerateWalletRefreshJWT(user.Id, addr, userDID)
 	if refreshErr == nil {
 		setWalletRefreshCookie(c, refreshToken, refreshExp)
 	}
@@ -372,16 +375,19 @@ func completeIdentityPasskeyUserResponse(c *gin.Context, user *model.User) {
 				"refreshToken":     refreshToken,
 				"expiresAt":        exp.UnixMilli(),
 				"refreshExpiresAt": refreshExp.UnixMilli(),
+				"did":              userDID,
+				"walletAddress":    addr,
 			},
 			"user": gin.H{
-				"id":               user.Id,
-				"username":         user.Username,
-				"display_name":     user.DisplayName,
-				"role":             model.ExposedRole(user),
-				"status":           user.Status,
-				"wallet_address":   user.WalletAddress,
-				"has_password":     user.HasPassword,
-				"can_manage_users": model.CanManageUsers(user),
+				"id":                  user.Id,
+				"username":            user.Username,
+				"display_name":        user.DisplayName,
+				"role":                model.ExposedRole(user),
+				"status":              user.Status,
+				"wallet_identity_did": user.WalletIdentityDID,
+				"wallet_address":      user.WalletAddress,
+				"has_password":        user.HasPassword,
+				"can_manage_users":    model.CanManageUsers(user),
 			},
 		},
 	})

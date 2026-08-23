@@ -2012,6 +2012,13 @@ func runMainVersionedMigrations(db *gorm.DB) error {
 				return tx.AutoMigrate(&IdentityLoginSession{})
 			},
 		},
+		{
+			Version:     "202608231700_user_wallet_identity_did",
+			Description: "add wallet identity DID to users",
+			Up: func(tx *gorm.DB) error {
+				return tx.AutoMigrate(&User{})
+			},
+		},
 	}
 	return runVersionedMigrations(db, migrationScopeMain, migrations)
 }

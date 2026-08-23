@@ -21,12 +21,14 @@ type UserRepository struct {
 	FillUserByWeChatId                       func(user *User) error
 	FillUserByUsername                       func(user *User) error
 	FillUserByWalletAddress                  func(user *User) error
+	FillUserByWalletIdentityDID              func(user *User) error
 	IsEmailAlreadyTaken                      func(email string) bool
 	IsWeChatIdAlreadyTaken                   func(wechatId string) bool
 	IsGitHubIdAlreadyTaken                   func(githubId string) bool
 	IsLarkIdAlreadyTaken                     func(larkId string) bool
 	IsOidcIdAlreadyTaken                     func(oidcId string) bool
 	IsWalletAddressAlreadyTaken              func(address string) bool
+	IsWalletIdentityDIDAlreadyTaken          func(did string) bool
 	IsUsernameAlreadyTaken                   func(username string) bool
 	ResetUserPasswordByEmail                 func(email string, password string) error
 	IsAdmin                                  func(userId string) bool

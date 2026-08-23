@@ -1298,7 +1298,7 @@ func buildUsageRankingWithKeyword(startAt int64, endAt int64, totalConsumeQuota 
 		Where("u.status != ?", model.UserStatusDeleted)
 	if keyword != "" {
 		like := "%" + keyword + "%"
-		userQuery = userQuery.Where("(u.id = ? OR u.username ILIKE ? OR u.display_name ILIKE ? OR u.email ILIKE ? OR u.wallet_address ILIKE ?)", keyword, like, like, like, like)
+		userQuery = userQuery.Where("(u.id = ? OR u.username ILIKE ? OR u.display_name ILIKE ? OR u.email ILIKE ? OR u.wallet_address ILIKE ? OR u.wallet_identity_did ILIKE ?)", keyword, like, like, like, like, like)
 	}
 	if err := userQuery.Scan(&userRows).Error; err != nil {
 		return nil, err

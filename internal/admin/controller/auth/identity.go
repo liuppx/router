@@ -15,6 +15,7 @@ import (
 	"github.com/yeying-community/router/common"
 	"github.com/yeying-community/router/common/config"
 	"github.com/yeying-community/router/common/logger"
+	"github.com/yeying-community/router/common/random"
 	usercontroller "github.com/yeying-community/router/internal/admin/controller/user"
 	"github.com/yeying-community/router/internal/admin/model"
 )
@@ -118,8 +119,9 @@ func VerifyIdentityWalletLogin(c *gin.Context) {
 		return
 	}
 
-	// Resolve or create user by wallet address
-	user, err := resolveWalletIdentityUser(addr, c.Request.Context())
+	// Resolve or create the local Router user by wallet identity DID. Wallet
+	// address is only the verified account associated with this identity.
+	user, err := resolveWalletIdentityUser(pres.Holder, addr, c.Request.Context())
 	if err != nil {
 		identityError(c, err.Error())
 		return
@@ -151,14 +153,18 @@ func VerifyIdentityWalletLogin(c *gin.Context) {
 	if user.WalletAddress != nil {
 		userAddr = model.NormalizeWalletAddress(*user.WalletAddress)
 	}
-	token, exp, tokenErr := common.GenerateWalletJWT(user.Id, userAddr)
+	userDID := ""
+	if user.WalletIdentityDID != nil {
+		userDID = model.NormalizeWalletIdentityDID(*user.WalletIdentityDID)
+	}
+	token, exp, tokenErr := common.GenerateWalletJWT(user.Id, userAddr, userDID)
 	if tokenErr != nil {
 		identityError(c, "生成 token 失败")
 		return
 	}
 
 	// Also generate refresh token
-	refreshToken, refreshExp, refreshErr := common.GenerateWalletRefreshJWT(user.Id, userAddr)
+	refreshToken, refreshExp, refreshErr := common.GenerateWalletRefreshJWT(user.Id, userAddr, userDID)
 	if refreshErr == nil {
 		setWalletRefreshCookie(c, refreshToken, refreshExp)
 	}
@@ -170,8 +176,8 @@ func VerifyIdentityWalletLogin(c *gin.Context) {
 			"token":              token,
 			"expires_at":         exp.UnixMilli(),
 			"refresh_expires_at": refreshExp.UnixMilli(),
-			"wallet_identity_id": pres.Holder,
 			"did":                pres.Holder,
+			"walletAddress":      userAddr,
 			"user":               user,
 		},
 	})
@@ -272,16 +278,99 @@ func identityPresentationEmail(credentials []string) string {
 	return ""
 }
 
-func resolveWalletIdentityUser(walletAddress string, ctx context.Context) (*model.User, error) {
+func resolveWalletIdentityUser(did string, walletAddress string, ctx context.Context) (*model.User, error) {
+	identityDID := model.NormalizeWalletIdentityDID(did)
+	if identityDID == "" {
+		return nil, errors.New("钱包身份 DID 无效")
+	}
 	addr := model.NormalizeWalletAddress(walletAddress)
 	if addr == "" {
 		return nil, errors.New("钱包地址无效")
 	}
-	user, err := findOrCreateWalletUser(addr, ctx)
+	user, err := findOrCreateWalletIdentityUser(identityDID, addr, ctx)
 	if err != nil || user.Status != model.UserStatusEnabled {
 		return nil, errors.New("此钱包尚未关联 Router 账户")
 	}
 	return user, nil
+}
+
+func findOrCreateWalletIdentityUser(did string, addr string, ctx context.Context) (*model.User, error) {
+	identityDID := model.NormalizeWalletIdentityDID(did)
+	if identityDID == "" {
+		return nil, errors.New("钱包身份 DID 无效")
+	}
+	normalizedAddress := model.NormalizeWalletAddress(addr)
+	if normalizedAddress == "" {
+		return nil, errors.New("钱包地址无效")
+	}
+	user := model.User{WalletIdentityDID: &identityDID}
+	if err := user.FillUserByWalletIdentityDID(); err == nil {
+		if user.Status == model.UserStatusDeleted {
+			_ = model.DB.Model(&user).Updates(map[string]any{"wallet_identity_did": nil, "wallet_address": nil})
+			return findOrCreateWalletIdentityUser(identityDID, normalizedAddress, ctx)
+		}
+		syncWalletIdentityAddress(&user, normalizedAddress)
+		return &user, nil
+	}
+
+	legacy := model.User{WalletAddress: &normalizedAddress}
+	if err := legacy.FillUserByWalletAddress(); err == nil {
+		if legacy.Status == model.UserStatusDeleted {
+			_ = model.DB.Model(&legacy).Update("wallet_address", nil)
+			return findOrCreateWalletIdentityUser(identityDID, normalizedAddress, ctx)
+		}
+		if legacy.WalletIdentityDID == nil || model.NormalizeWalletIdentityDID(*legacy.WalletIdentityDID) == "" {
+			_ = model.DB.Model(&legacy).Update("wallet_identity_did", identityDID)
+			legacy.WalletIdentityDID = &identityDID
+		}
+		return &legacy, nil
+	}
+
+	if !config.AutoRegisterEnabled {
+		return nil, errors.New("未找到钱包身份关联的账户，请先绑定或由管理员开启自动注册")
+	}
+	return autoCreateWalletIdentityUser(identityDID, normalizedAddress, ctx)
+}
+
+func syncWalletIdentityAddress(user *model.User, addr string) {
+	if user == nil {
+		return
+	}
+	normalized := model.NormalizeWalletAddress(addr)
+	if normalized == "" {
+		return
+	}
+	if user.WalletAddress != nil && model.NormalizeWalletAddress(*user.WalletAddress) == normalized {
+		return
+	}
+	if model.IsWalletAddressAlreadyTaken(normalized) {
+		return
+	}
+	_ = model.DB.Model(user).Update("wallet_address", normalized)
+	user.WalletAddress = &normalized
+}
+
+func autoCreateWalletIdentityUser(did string, addr string, ctx context.Context) (*model.User, error) {
+	username := "wallet_" + random.GetRandomString(6)
+	for model.IsUsernameAlreadyTaken(username) {
+		username = "wallet_" + random.GetRandomString(6)
+	}
+	identityDID := model.NormalizeWalletIdentityDID(did)
+	walletAddress := model.NormalizeWalletAddress(addr)
+	user := model.User{
+		Username:          username,
+		Password:          random.GetRandomString(16),
+		DisplayName:       username,
+		Role:              model.RoleCommonUser,
+		Status:            model.UserStatusEnabled,
+		WalletIdentityDID: &identityDID,
+		WalletAddress:     &walletAddress,
+		HasPassword:       false,
+	}
+	if err := user.Insert(ctx, ""); err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func identityError(c *gin.Context, message string) {
