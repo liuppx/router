@@ -32,6 +32,8 @@ type identityPresentationRequest struct {
 
 var routerIdentityScopes = []string{"identity.basic", "identity.wallet", "identity.email"}
 
+const routerIdentityAppID = "router-admin"
+
 func identityRandomURLValue(size int) (string, error) {
 	buf := make([]byte, size)
 	if _, err := rand.Read(buf); err != nil {
@@ -44,16 +46,7 @@ func identityServerAudience() string {
 	return strings.TrimRight(strings.TrimSpace(config.ServerAddress), "/")
 }
 
-func identityAppID() string {
-	return strings.TrimSpace(config.IdentityAppID)
-}
-
 func CreateIdentityLoginSession(c *gin.Context) {
-	appID := identityAppID()
-	if appID == "" {
-		identityError(c, "Router 钱包身份登录尚未配置，请配置 identity.app_id")
-		return
-	}
 	nonce, err := identityRandomURLValue(32)
 	if err != nil {
 		identityError(c, "无法创建登录会话")
@@ -70,7 +63,7 @@ func CreateIdentityLoginSession(c *gin.Context) {
 		SessionID: sessionID,
 		Nonce:     nonce,
 		Audience:  audience,
-		AppID:     appID,
+		AppID:     routerIdentityAppID,
 		Scopes:    strings.Join(routerIdentityScopes, " "),
 		Status:    model.IdentityLoginSessionStatusPending,
 		ExpiresAt: expiresAt,
@@ -85,7 +78,7 @@ func CreateIdentityLoginSession(c *gin.Context) {
 		"message": "ok",
 		"data": gin.H{
 			"session_id": sessionID,
-			"app_id":     appID,
+			"app_id":     routerIdentityAppID,
 			"nonce":      nonce,
 			"audience":   audience,
 			"scopes":     routerIdentityScopes,
