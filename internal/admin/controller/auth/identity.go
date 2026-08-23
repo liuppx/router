@@ -32,8 +32,6 @@ type identityPresentationRequest struct {
 
 var routerIdentityScopes = []string{"identity.basic", "identity.wallet", "identity.email"}
 
-const routerIdentityAppID = "router-admin"
-
 func identityRandomURLValue(size int) (string, error) {
 	buf := make([]byte, size)
 	if _, err := rand.Read(buf); err != nil {
@@ -63,7 +61,7 @@ func CreateIdentityLoginSession(c *gin.Context) {
 		SessionID: sessionID,
 		Nonce:     nonce,
 		Audience:  audience,
-		AppID:     routerIdentityAppID,
+		AppID:     "",
 		Scopes:    strings.Join(routerIdentityScopes, " "),
 		Status:    model.IdentityLoginSessionStatusPending,
 		ExpiresAt: expiresAt,
@@ -78,7 +76,6 @@ func CreateIdentityLoginSession(c *gin.Context) {
 		"message": "ok",
 		"data": gin.H{
 			"session_id": sessionID,
-			"app_id":     routerIdentityAppID,
 			"nonce":      nonce,
 			"audience":   audience,
 			"scopes":     routerIdentityScopes,
