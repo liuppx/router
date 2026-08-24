@@ -17,6 +17,18 @@ const (
 	UserEntitlementSourceRedemption = "redemption"
 )
 
+// EntitlementUnavailableError means the user cannot currently obtain a
+// group-backed entitlement for the requested model. The underlying source may
+// be an expired package or an exhausted balance lot, so callers must not claim
+// that the model is unconfigured.
+type EntitlementUnavailableError struct {
+	Model string
+}
+
+func (e *EntitlementUnavailableError) Error() string {
+	return fmt.Sprintf("当前账号对模型 %s 没有有效权益，可能是套餐已过期或额度已用尽，请充值或购买对应套餐后重试", e.Model)
+}
+
 type UserEntitlementSource struct {
 	SourceType string   `json:"source_type"`
 	SourceID   string   `json:"source_id,omitempty"`
@@ -460,7 +472,7 @@ func ResolveUserEntitlementGroupForModelWithDB(ctx context.Context, db *gorm.DB,
 	}
 	sources := payload.ByModel[normalizedModel]
 	if len(sources) == 0 {
-		return "", nil, fmt.Errorf("当前权益下对于模型 %s 无可用分组", normalizedModel)
+		return "", nil, &EntitlementUnavailableError{Model: normalizedModel}
 	}
 	source := sources[0]
 	return source.GroupID, &source, nil

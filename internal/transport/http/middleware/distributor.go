@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -239,8 +240,17 @@ func Distribute() func(c *gin.Context) {
 		requestModel := c.GetString(ctxkey.RequestModel)
 		userGroup, entitlementSource, groupErr := model.ResolveUserEntitlementGroupForModel(ctx, userId, requestModel)
 		if groupErr != nil {
-			logger.RelayWarnf(ctx, "DISTRIBUTE decision=abort reason=entitlement_group_missing user_id=%s model=%s endpoint=%s error=%q", userId, requestModel, c.Request.URL.Path, groupErr.Error())
-			abortWithMessage(c, http.StatusServiceUnavailable, groupErr.Error())
+			statusCode := http.StatusServiceUnavailable
+			errorCode := "request_aborted"
+			reason := "entitlement_resolution_failed"
+			if errors.As(groupErr, new(*model.EntitlementUnavailableError)) {
+				statusCode = http.StatusForbidden
+				errorCode = "entitlement_unavailable"
+				reason = "entitlement_unavailable"
+			}
+			c.Set(ctxkey.RelayErrorCode, errorCode)
+			logger.RelayWarnf(ctx, "DISTRIBUTE decision=abort reason=%s user_id=%s model=%s endpoint=%s status=%d error=%q", reason, userId, requestModel, c.Request.URL.Path, statusCode, groupErr.Error())
+			abortWithMessage(c, statusCode, groupErr.Error())
 			return
 		}
 		c.Set(ctxkey.Group, userGroup)
