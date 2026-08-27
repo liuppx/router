@@ -1,15 +1,19 @@
 package middleware
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/yeying-community/router/common"
 	"github.com/yeying-community/router/common/ctxkey"
 	"github.com/yeying-community/router/common/logger"
 	"github.com/yeying-community/router/internal/admin/model"
@@ -108,7 +112,9 @@ func selectPinnedResponsesChannel(c *gin.Context, userGroup string, requestModel
 	channelID, ok, conflict := responsestate.LookupRoutes(lookupIDs)
 	if conflict {
 		logger.RelayWarnf(c.Request.Context(), "DISTRIBUTE decision=state_conflict reason=responses_route_multiple_channels user_id=%s group=%s response_id=%s item_ids=%s endpoint=%s", c.GetString(ctxkey.Id), userGroup, previousResponseID, strings.Join(itemIDs, ","), requestPath)
-		return nil, true
+		// The pinned state is no longer trustworthy. Let automatic routing pick
+		// a currently healthy channel and replay the request without old IDs.
+		return nil, false
 	}
 	if !ok {
 		logger.RelayInfof(c.Request.Context(), "DISTRIBUTE decision=miss reason=responses_route_missing user_id=%s group=%s response_id=%s endpoint=%s", c.GetString(ctxkey.Id), userGroup, previousResponseID, requestPath)
@@ -154,7 +160,10 @@ func responseItemIDsFromContext(c *gin.Context) []string {
 func selectEntitlementChannelForRequest(ctx context.Context, c *gin.Context, userID string, initialGroup string, initialSource *model.UserEntitlementSource, requestModel string) (*model.Channel, string, *model.UserEntitlementSource, error) {
 	requestPath := c.Request.URL.Path
 	if responseStateConflict(c) {
-		return nil, initialGroup, initialSource, fmt.Errorf("state_incompatible: 当前 Responses 会话同时绑定了多个上游渠道，请新建会话后重试")
+		logger.RelayWarnf(ctx, "DISTRIBUTE decision=state_recovery reason=responses_route_multiple_channels user_id=%s group=%s model=%s endpoint=%s", userID, initialGroup, requestModel, requestPath)
+		if err := resetConflictingResponsesState(c); err != nil {
+			return nil, initialGroup, initialSource, fmt.Errorf("responses state recovery failed: %w", err)
+		}
 	}
 	if pinnedChannel, ok := selectPinnedResponsesChannel(c, initialGroup, requestModel, requestPath); ok {
 		return pinnedChannel, initialGroup, initialSource, nil
@@ -216,6 +225,47 @@ func selectEntitlementChannelForRequest(ctx context.Context, c *gin.Context, use
 		logger.RelayErrorf(ctx, "DISTRIBUTE decision=abort reason=no_entitlement_channel user_id=%s group=%s model=%s endpoint=%s message=%q", userID, initialGroup, requestModel, requestPath, message)
 	}
 	return nil, "", nil, fmt.Errorf("%s", message)
+}
+
+// resetConflictingResponsesState removes identifiers owned by another upstream
+// provider while preserving replayable content and tool arguments.
+func resetConflictingResponsesState(c *gin.Context) error {
+	raw, err := common.GetRequestBody(c)
+	if err != nil || len(raw) == 0 {
+		return err
+	}
+	payload := map[string]any{}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return err
+	}
+	delete(payload, "previous_response_id")
+	stripResponseItemIDs(payload)
+	updated, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	c.Set(ctxkey.KeyRequestBody, updated)
+	c.Request.Body = io.NopCloser(bytes.NewReader(updated))
+	c.Set(ctxkey.ResponsesPreviousResponseID, "")
+	c.Set(ctxkey.ResponsesItemIDs, nil)
+	c.Set(ctxkey.ResponsesStatefulRequest, false)
+	return nil
+}
+
+func stripResponseItemIDs(value any) {
+	switch typed := value.(type) {
+	case map[string]any:
+		if itemType, ok := typed["type"].(string); ok && strings.TrimSpace(itemType) != "response" {
+			delete(typed, "id")
+		}
+		for _, child := range typed {
+			stripResponseItemIDs(child)
+		}
+	case []any:
+		for _, child := range typed {
+			stripResponseItemIDs(child)
+		}
+	}
 }
 
 func responseStateConflict(c *gin.Context) bool {

@@ -203,6 +203,40 @@ type responsesUsage struct {
 	InputTokensDetails *promptTokensDetail `json:"input_tokens_details,omitempty"`
 }
 
+// UnmarshalJSON accepts the official Responses usage shape first, while also
+// handling provider compatibility fields returned by some OpenAI-compatible
+// upstreams. Compatibility fields must never override an official value.
+func (u *responsesUsage) UnmarshalJSON(data []byte) error {
+	type plain responsesUsage
+	var value struct {
+		plain
+		PromptTokensDetails *promptTokensDetail `json:"prompt_tokens_details,omitempty"`
+		CachedTokens        int                 `json:"cached_tokens,omitempty"`
+		CacheReadTokens     int                 `json:"cache_read_input_tokens,omitempty"`
+	}
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*u = responsesUsage(value.plain)
+	detail := u.InputTokensDetails
+	if detail == nil {
+		detail = value.PromptTokensDetails
+	}
+	if detail == nil && (value.CachedTokens > 0 || value.CacheReadTokens > 0) {
+		detail = &promptTokensDetail{}
+	}
+	if detail != nil {
+		if detail.CachedTokens == 0 {
+			detail.CachedTokens = value.CachedTokens
+		}
+		if detail.CacheReadTokens == 0 {
+			detail.CacheReadTokens = value.CacheReadTokens
+		}
+	}
+	u.InputTokensDetails = detail
+	return nil
+}
+
 type messagesUsage struct {
 	InputTokens         int                 `json:"input_tokens"`
 	OutputTokens        int                 `json:"output_tokens"`
@@ -217,6 +251,23 @@ type promptTokensDetail struct {
 	CachedTokens        int `json:"cached_tokens,omitempty"`
 	CacheReadTokens     int `json:"cache_read_input_tokens,omitempty"`
 	CacheCreationTokens int `json:"cache_creation_input_tokens,omitempty"`
+}
+
+func (d *promptTokensDetail) UnmarshalJSON(data []byte) error {
+	var value struct {
+		CachedTokens        int `json:"cached_tokens,omitempty"`
+		CacheReadTokens     int `json:"cache_read_input_tokens,omitempty"`
+		CacheCreationTokens int `json:"cache_creation_input_tokens,omitempty"`
+	}
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*d = promptTokensDetail{
+		CachedTokens:        value.CachedTokens,
+		CacheReadTokens:     value.CacheReadTokens,
+		CacheCreationTokens: value.CacheCreationTokens,
+	}
+	return nil
 }
 
 type messagesEnvelope struct {
