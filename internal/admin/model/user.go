@@ -30,6 +30,7 @@ type User struct {
 	Role              int     `json:"role" gorm:"type:int;default:1"`   // admin, util
 	Status            int     `json:"status" gorm:"type:int;default:1"` // enabled, disabled
 	Email             string  `json:"email" gorm:"index" validate:"max=50"`
+	AvatarURL         string  `json:"avatar_url" gorm:"column:avatar_url;type:varchar(2048);not null;default:''" validate:"omitempty,max=2048"`
 	GitHubId          string  `json:"github_id" gorm:"column:github_id;index"`
 	WeChatId          string  `json:"wechat_id" gorm:"column:wechat_id;index"`
 	LarkId            string  `json:"lark_id" gorm:"column:lark_id;index"`

@@ -106,49 +106,8 @@
 }
 
 .router-wallet-login-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px;
-  gap: 10px;
-  align-items: stretch;
+  display: block;
   width: 100%;
-}
-
-.router-wallet-address-select {
-  width: 100%;
-}
-
-.router-wallet-address-select .ant-select-selector {
-  min-height: 36px !important;
-  border-radius: 10px !important;
-  border: 2px solid #a9c3f6 !important;
-  padding: 0 10px !important;
-  box-shadow: none !important;
-}
-
-.router-wallet-address-select.ant-select-focused .ant-select-selector,
-.router-wallet-address-select .ant-select-selector:hover {
-  border-color: #8ab1f3 !important;
-}
-
-.router-wallet-address-select .ant-select-selection-wrap {
-  min-height: 32px;
-}
-
-.router-wallet-address-select .ant-select-selection-item,
-.router-wallet-address-select .ant-select-selection-placeholder {
-  align-self: center;
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.router-wallet-address-select .ant-select-selection-item {
-  color: #5c6575;
-}
-
-.router-wallet-address-select .ant-select-arrow {
-  color: #98a2b3;
-  font-size: 12px;
-  inset-inline-end: 10px;
 }
 
 .router-login-main-btn {
@@ -348,23 +307,12 @@
     margin-top: -8px;
   }
 
-  .router-wallet-login-row {
-    grid-template-columns: 1fr;
-  }
-
-  .router-wallet-address-select .ant-select-selector,
   .router-login-main-btn,
   .router-password-toggle {
     min-height: 34px !important;
     border-radius: 8px !important;
   }
 
-  .router-wallet-address-select .ant-select-selection-wrap {
-    min-height: 30px;
-  }
-
-  .router-wallet-address-select .ant-select-selection-item,
-  .router-wallet-address-select .ant-select-selection-placeholder,
   .router-login-main-btn,
   .router-password-toggle {
     font-size: 13px !important;
@@ -404,8 +352,7 @@
 .router-login-links span a { margin-left: 4px; }
 .router-login-divider-wrap { width: 100%; margin: 28px 0 18px; }
 .router-login-section { width: 100%; }
-.router-wallet-address-select .ant-select-selector, .router-login-main-btn { border-radius: 5px !important; }
-.router-wallet-address-select .ant-select-selector { border-width: 1px !important; }
+.router-login-main-btn { border-radius: 5px !important; }
 .router-wallet-button { background: #315d8e !important; }
 @media (max-width: 760px) { .router-login-page { padding: 0; } .router-login-layout { min-height: 100vh; grid-template-columns: 1fr; border: 0; border-radius: 0; } .router-login-intro { min-height: 210px; padding: 26px 24px; } .router-login-intro-copy { margin: auto 0 0; } .router-login-intro h1 { font-size: 28px; } .router-login-intro-copy > p:last-child { display: none; } .router-login-auth { padding: 36px 24px 48px; align-items: flex-start; } }
 

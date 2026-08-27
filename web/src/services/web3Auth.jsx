@@ -123,6 +123,22 @@ async function loginWithWalletOnce(preferredAddress = '') {
   const result = await sdkLoginWithWalletIdentity({
     ...WEB3_AUTH_OPTIONS,
     address: preferredAddress || undefined,
+    scopes: ['identity.basic', 'identity.wallet', 'identity.email', 'identity.avatar'],
+  });
+  return {
+    token: result.token,
+    address: result.address,
+    response: result.response,
+    provider: undefined,
+  };
+}
+
+export async function loginWithWalletWithoutAvatar(preferredAddress = '') {
+  const result = await sdkLoginWithWalletIdentity({
+    ...WEB3_AUTH_OPTIONS,
+    address: preferredAddress || undefined,
+    scopes: ['identity.basic', 'identity.wallet', 'identity.email'],
+    sessionPath: 'identity/login/session?avatar=0',
   });
   return {
     token: result.token,
@@ -150,6 +166,15 @@ export function isWalletIdentityEmailRequiredError(error) {
     message.includes('IDENTITY_SCOPE_NOT_GRANTED:identity.email') ||
     message.includes('IDENTITY_CREDENTIAL_MISSING:EmailCredential') ||
     message.includes('IDENTITY_EMAIL_NOT_VERIFIED')
+  );
+}
+
+export function isWalletIdentityAvatarUnavailableError(error) {
+  const message = String(error?.message || error || '');
+  return (
+    message.includes('IDENTITY_SCOPE_NOT_GRANTED:identity.avatar') ||
+    message.includes('IDENTITY_CREDENTIAL_MISSING:AvatarCredential') ||
+    message.includes('IDENTITY_AVATAR_REQUIRED')
   );
 }
 

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"net/url"
 	"strings"
 
 	"gorm.io/gorm"
@@ -56,4 +57,41 @@ func SyncIdentityEmailWithDB(db *gorm.DB, userID string, email string) error {
 
 func SyncIdentityEmail(userID string, email string) error {
 	return SyncIdentityEmailWithDB(DB, userID, email)
+}
+
+// SyncIdentityAvatarURL updates the user's avatar from a verified identity credential.
+func SyncIdentityAvatarURLWithDB(db *gorm.DB, userID string, avatarURL string) error {
+	if db == nil {
+		return gorm.ErrInvalidDB
+	}
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return gorm.ErrInvalidData
+	}
+	normalizedAvatarURL := NormalizeIdentityAvatarURL(avatarURL)
+	if normalizedAvatarURL == "" {
+		return nil
+	}
+	return db.Model(&User{}).Where("id = ?", userID).
+		Update("avatar_url", normalizedAvatarURL).Error
+}
+
+func SyncIdentityAvatarURL(userID string, avatarURL string) error {
+	return SyncIdentityAvatarURLWithDB(DB, userID, avatarURL)
+}
+
+func NormalizeIdentityAvatarURL(avatarURL string) string {
+	value := strings.TrimSpace(avatarURL)
+	if value == "" || len(value) > 2048 {
+		return ""
+	}
+	if strings.HasPrefix(value, "ipfs://") {
+		return value
+	}
+	parsed, err := url.Parse(value)
+	if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || parsed.Host == "" {
+		return ""
+	}
+	parsed.Fragment = ""
+	return parsed.String()
 }

@@ -31,7 +31,8 @@ type identityPresentationRequest struct {
 	Presentation json.RawMessage `json:"presentation"`
 }
 
-var routerIdentityScopes = []string{"identity.basic", "identity.wallet", "identity.email"}
+var routerIdentityRequiredScopes = []string{"identity.basic", "identity.wallet", "identity.email"}
+var routerIdentityAvatarScopes = []string{"identity.basic", "identity.wallet", "identity.email", "identity.avatar"}
 
 func identityRandomURLValue(size int) (string, error) {
 	buf := make([]byte, size)
@@ -58,12 +59,13 @@ func CreateIdentityLoginSession(c *gin.Context) {
 	}
 	expiresAt := time.Now().Add(5 * time.Minute).Unix()
 	audience := identityServerAudience()
+	scopes := routerIdentityScopes(c.Query("avatar") != "0")
 	row := &model.IdentityLoginSession{
 		SessionID: sessionID,
 		Nonce:     nonce,
 		Audience:  audience,
 		AppID:     "",
-		Scopes:    strings.Join(routerIdentityScopes, " "),
+		Scopes:    strings.Join(scopes, " "),
 		Status:    model.IdentityLoginSessionStatusPending,
 		ExpiresAt: expiresAt,
 	}
@@ -79,7 +81,7 @@ func CreateIdentityLoginSession(c *gin.Context) {
 			"session_id": sessionID,
 			"nonce":      nonce,
 			"audience":   audience,
-			"scopes":     routerIdentityScopes,
+			"scopes":     scopes,
 			"expires_at": expiresAt,
 		},
 	})
@@ -131,6 +133,13 @@ func VerifyIdentityWalletLogin(c *gin.Context) {
 			logger.SysError("sync wallet identity email failed: " + err.Error())
 			identityError(c, "无法同步钱包身份邮箱")
 			return
+		}
+	}
+	if avatarURL := model.NormalizeIdentityAvatarURL(identityPresentationAvatarURL(pres.Credentials)); avatarURL != "" {
+		if err := model.SyncIdentityAvatarURL(user.Id, avatarURL); err != nil {
+			logger.SysError("sync wallet identity avatar failed: " + err.Error())
+		} else {
+			user.AvatarURL = avatarURL
 		}
 	}
 
@@ -216,66 +225,72 @@ func identityPresentationHasCredential(credentials []string, credentialType stri
 }
 
 func identityCredentialType(token string) string {
+	credentialType, _ := identityCredentialTypeAndSubject(token)
+	return credentialType
+}
+
+func identityCredentialTypeAndSubject(token string) (string, map[string]any) {
 	parts := strings.Split(strings.TrimSpace(token), ".")
 	if len(parts) != 3 {
-		return ""
+		return "", nil
 	}
 	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		return ""
+		return "", nil
 	}
 	var claims map[string]any
 	if err := json.Unmarshal(payload, &claims); err != nil {
-		return ""
+		return "", nil
 	}
 	vc, ok := claims["vc"].(map[string]any)
 	if !ok {
-		return ""
+		return "", nil
 	}
 	rawTypes, ok := vc["type"].([]any)
 	if !ok {
-		return ""
+		return "", nil
 	}
+	subject, _ := vc["credentialSubject"].(map[string]any)
+	credentialType := ""
 	for _, item := range rawTypes {
 		if value, ok := item.(string); ok && value != "VerifiableCredential" {
-			return value
+			credentialType = value
+			break
+		}
+	}
+	return credentialType, subject
+}
+
+func identityCredentialSubjectString(credentials []string, credentialType string, keys ...string) string {
+	for _, token := range credentials {
+		actualType, subject := identityCredentialTypeAndSubject(token)
+		if actualType != credentialType || subject == nil {
+			continue
+		}
+		for _, key := range keys {
+			value, _ := subject[key].(string)
+			value = strings.TrimSpace(value)
+			if value != "" {
+				return value
+			}
 		}
 	}
 	return ""
 }
 
 func identityPresentationEmail(credentials []string) string {
-	for _, token := range credentials {
-		if identityCredentialType(token) != "EmailCredential" {
-			continue
-		}
-		parts := strings.Split(strings.TrimSpace(token), ".")
-		if len(parts) != 3 {
-			continue
-		}
-		payload, err := base64.RawURLEncoding.DecodeString(parts[1])
-		if err != nil {
-			continue
-		}
-		var claims map[string]any
-		if err := json.Unmarshal(payload, &claims); err != nil {
-			continue
-		}
-		vc, ok := claims["vc"].(map[string]any)
-		if !ok {
-			continue
-		}
-		subject, ok := vc["credentialSubject"].(map[string]any)
-		if !ok {
-			continue
-		}
-		email, _ := subject["email"].(string)
-		email = strings.ToLower(strings.TrimSpace(email))
-		if email != "" {
-			return email
-		}
+	return strings.ToLower(identityCredentialSubjectString(credentials, "EmailCredential", "email"))
+}
+
+func identityPresentationAvatarURL(credentials []string) string {
+	return identityCredentialSubjectString(credentials, "AvatarCredential", "avatarUri", "avatarUrl", "avatar")
+}
+
+func routerIdentityScopes(includeAvatar bool) []string {
+	if includeAvatar {
+		return routerIdentityAvatarScopes
 	}
-	return ""
+	return routerIdentityRequiredScopes
 }
 
 func resolveWalletIdentityUser(did string, walletAddress string, ctx context.Context) (*model.User, error) {

@@ -3898,7 +3898,6 @@
       "wallet_action": "钱包登陆",
       "wallet_pending": "请在钱包中确认签名",
       "wallet_pending_retry": "请在钱包中完成签名，或重新发起登录",
-      "wallet_address_placeholder": "选择钱包地址",
       "wallet_rejected": "用户拒绝了请求",
       "wallet_failed": "钱包登录失败",
       "wallet_identity_email_required": "Router 需要已验证邮箱。请先在夜莺钱包插件中完成钱包身份验证和邮箱验证，再重新登录。",

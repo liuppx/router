@@ -25,6 +25,7 @@ const normalizeUser = (user) => {
   return {
     ...user,
     display_name: user.display_name ?? user.displayName ?? '',
+    avatar_url: user.avatar_url ?? user.avatarUrl ?? '',
   };
 };
 
@@ -65,6 +66,7 @@ const PersonalSetting = () => {
   }, [currentUser]);
 
   const walletAddress = currentUser?.wallet_address || '-';
+  const avatarURL = currentUser?.avatar_url || '';
   const hasPassword = currentUser?.has_password === true;
 
   const syncCurrentUser = async () => {
@@ -222,6 +224,28 @@ const PersonalSetting = () => {
               value={walletAddress}
               readOnly
             />
+          </AppField>
+          <AppField label='头像'>
+            <div className='router-setting-inline-row'>
+              {avatarURL ? (
+                <img
+                  src={avatarURL}
+                  alt='用户头像'
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 6,
+                    objectFit: 'cover',
+                    border: '1px solid var(--router-border-color, #e5e7eb)',
+                  }}
+                />
+              ) : null}
+              <AppInput
+                className='router-section-input'
+                value={avatarURL || '未设置'}
+                readOnly
+              />
+            </div>
           </AppField>
           <AppField label={t('user.edit.username')}>
             <div className='router-setting-inline-row'>

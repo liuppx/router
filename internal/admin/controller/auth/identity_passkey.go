@@ -127,9 +127,18 @@ func nodePost[T any](ctx context.Context, nodeURL, path string, payload any, res
 	return nil
 }
 
-var identityPasskeyScopes = []string{"identity.basic", "identity.wallet", "identity.email"}
+var identityPasskeyRequiredScopes = []string{"identity.basic", "identity.wallet", "identity.email"}
+var identityPasskeyAvatarScopes = []string{"identity.basic", "identity.wallet", "identity.email", "identity.avatar"}
+
+type identityPasskeyLoginSessionRequest struct {
+	Avatar *bool `json:"avatar"`
+}
 
 func CreateIdentityPasskeyLoginSession(c *gin.Context) {
+	var req identityPasskeyLoginSessionRequest
+	if c.Request.Body != nil {
+		_ = c.ShouldBindJSON(&req)
+	}
 	nodeURL, appID, callbackURL, err := identityPasskeyConfiguration()
 	if err != nil {
 		identityPasskeyLoginError(c, err.Error())
@@ -146,10 +155,11 @@ func CreateIdentityPasskeyLoginSession(c *gin.Context) {
 		return
 	}
 	requestResult := nodeResponse[identityAuthorizeResult]{}
+	scopes := identityPasskeyScopes(req.Avatar == nil || *req.Avatar)
 	err = nodePost(c.Request.Context(), nodeURL, "/api/v1/public/identity/authorize/request", gin.H{
 		"appId": appID, "redirectUri": callbackURL, "state": state,
 		"codeChallenge": identityPasskeyPKCEChallenge(verifier), "codeChallengeMethod": "S256",
-		"scopes":       identityPasskeyScopes,
+		"scopes":       scopes,
 		"requestTtlMs": identityPasskeyLoginTTL.Milliseconds(),
 	}, &requestResult)
 	if err != nil || strings.TrimSpace(requestResult.Data.RequestID) == "" || strings.TrimSpace(requestResult.Data.VerifyURL) == "" {
@@ -157,6 +167,10 @@ func CreateIdentityPasskeyLoginSession(c *gin.Context) {
 		var nErr *nodeError
 		if errors.As(err, &nErr) && isIdentityRedirectUnauthorized(nErr) {
 			identityPasskeyLoginError(c, "夜莺身份服务未授权当前 Router 回调地址，请检查 Node 应用的 redirectUris 配置")
+			return
+		}
+		if errors.As(err, &nErr) && strings.Contains(nErr.Message, "IDENTITY_AVATAR_REQUIRED") {
+			identityPasskeyLoginError(c, "IDENTITY_AVATAR_REQUIRED")
 			return
 		}
 		identityPasskeyLoginError(c, "无法连接夜莺身份服务，请稍后重试")
@@ -290,6 +304,11 @@ func completeIdentityPasskeyLogin(c *gin.Context, row *model.IdentityPasskeyLogi
 			logger.SysError("sync identity email failed: " + err.Error())
 		}
 	}
+	if avatarURL := model.NormalizeIdentityAvatarURL(extractAvatarURLFromCredentials(exchange.Data.Credentials)); avatarURL != "" {
+		if err := model.SyncIdentityAvatarURL(user.Id, avatarURL); err != nil {
+			logger.SysError("sync identity avatar failed: " + err.Error())
+		}
+	}
 	if err := model.DB.Model(row).Updates(map[string]any{"status": model.IdentityPasskeyLoginSessionStatusComplete, "user_id": user.Id, "code": "", "code_verifier": ""}).Error; err != nil {
 		identityPasskeyLoginError(c, "无法完成登录")
 		return
@@ -302,36 +321,46 @@ func extractEmailFromCredentials(credentials []struct {
 	CredentialID string `json:"credentialId"`
 	Credential   string `json:"credential"`
 }) string {
+	return strings.ToLower(extractCredentialSubjectString(credentials, "EmailCredential", "email"))
+}
+
+func extractAvatarURLFromCredentials(credentials []struct {
+	Type         string `json:"type"`
+	CredentialID string `json:"credentialId"`
+	Credential   string `json:"credential"`
+}) string {
+	return extractCredentialSubjectString(credentials, "AvatarCredential", "avatarUri", "avatarUrl", "avatar")
+}
+
+func extractCredentialSubjectString(credentials []struct {
+	Type         string `json:"type"`
+	CredentialID string `json:"credentialId"`
+	Credential   string `json:"credential"`
+}, credentialType string, keys ...string) string {
 	for _, cred := range credentials {
-		if cred.Type == "EmailCredential" && cred.Credential != "" {
-			// Parse JWT-VC to extract email claim
-			parts := strings.Split(cred.Credential, ".")
-			if len(parts) != 3 {
-				continue
-			}
-			payload, err := base64.RawURLEncoding.DecodeString(parts[1])
-			if err != nil {
-				continue
-			}
-			var claims map[string]any
-			if err := json.Unmarshal(payload, &claims); err != nil {
-				continue
-			}
-			vc, ok := claims["vc"].(map[string]any)
-			if !ok {
-				continue
-			}
-			subject, ok := vc["credentialSubject"].(map[string]any)
-			if !ok {
-				continue
-			}
-			email, _ := subject["email"].(string)
-			if email != "" {
-				return email
+		if cred.Type != credentialType || cred.Credential == "" {
+			continue
+		}
+		_, subject := identityCredentialTypeAndSubject(cred.Credential)
+		if subject == nil {
+			continue
+		}
+		for _, key := range keys {
+			value, _ := subject[key].(string)
+			value = strings.TrimSpace(value)
+			if value != "" {
+				return value
 			}
 		}
 	}
 	return ""
+}
+
+func identityPasskeyScopes(includeAvatar bool) []string {
+	if includeAvatar {
+		return identityPasskeyAvatarScopes
+	}
+	return identityPasskeyRequiredScopes
 }
 
 func completeIdentityPasskeySessionResponse(c *gin.Context, row *model.IdentityPasskeyLoginSession) {
@@ -382,6 +411,7 @@ func completeIdentityPasskeyUserResponse(c *gin.Context, user *model.User) {
 				"id":                  user.Id,
 				"username":            user.Username,
 				"display_name":        user.DisplayName,
+				"avatar_url":          user.AvatarURL,
 				"role":                model.ExposedRole(user),
 				"status":              user.Status,
 				"wallet_identity_did": user.WalletIdentityDID,

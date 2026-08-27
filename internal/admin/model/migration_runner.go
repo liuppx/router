@@ -2019,6 +2019,13 @@ func runMainVersionedMigrations(db *gorm.DB) error {
 				return tx.AutoMigrate(&User{})
 			},
 		},
+		{
+			Version:     "202608261030_user_identity_avatar_url",
+			Description: "add wallet identity avatar URL to users",
+			Up: func(tx *gorm.DB) error {
+				return tx.AutoMigrate(&User{})
+			},
+		},
 	}
 	return runVersionedMigrations(db, migrationScopeMain, migrations)
 }

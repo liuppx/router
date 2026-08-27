@@ -100,8 +100,9 @@ func Search(keyword string) ([]*model.User, error) {
 	query := model.DB.Omit("password").Where("status != ?", model.UserStatusDeleted)
 
 	err := query.Where(
-		"(id = ? OR LOWER(username) LIKE ? OR LOWER(email) LIKE ? OR LOWER(display_name) LIKE ? OR LOWER(wallet_address) LIKE ? OR LOWER(wallet_identity_did) LIKE ?)",
+		"(id = ? OR LOWER(username) LIKE ? OR LOWER(email) LIKE ? OR LOWER(display_name) LIKE ? OR LOWER(avatar_url) LIKE ? OR LOWER(wallet_address) LIKE ? OR LOWER(wallet_identity_did) LIKE ?)",
 		trimmedKeyword,
+		likeKeyword,
 		likeKeyword,
 		likeKeyword,
 		likeKeyword,
@@ -301,6 +302,7 @@ func Update(user *model.User, updatePassword bool) error {
 	updates := map[string]any{
 		"username":             user.Username,
 		"display_name":         user.DisplayName,
+		"avatar_url":           strings.TrimSpace(user.AvatarURL),
 		"role":                 user.Role,
 		"status":               user.Status,
 		"email":                user.Email,
@@ -335,6 +337,7 @@ func Delete(user *model.User) error {
 		"status":              user.Status,
 		"wallet_address":      nil,
 		"wallet_identity_did": nil,
+		"avatar_url":          "",
 		"updated_at":          helper.GetTimestamp(),
 	}).Error
 	model.DB.Where("user_id = ?", user.Id).Delete(&model.Token{})

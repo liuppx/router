@@ -7,9 +7,11 @@ import { API, showError } from '../helpers';
 import { toastConstants } from '../constants';
 import {
   focusWalletPendingApproval,
+  isWalletIdentityAvatarUnavailableError,
   isWalletIdentityEmailRequiredError,
   isWalletUserRejectedError,
   loginWithWallet,
+  loginWithWalletWithoutAvatar,
 } from '../services/web3Auth';
 import { useWalletProviderStatus } from '../hooks/useWalletProviderStatus';
 import {
@@ -19,7 +21,6 @@ import {
   AppIcon,
   AppInput,
   AppQRCode,
-  AppSelect,
   AppTooltip,
 } from '../router-ui';
 import {
@@ -28,87 +29,12 @@ import {
 } from '../helpers/authRedirect';
 import './LoginForm.css';
 
-const WALLET_LOGIN_HISTORY_STORAGE_KEY = 'wallet_login_history';
-const LAST_WALLET_LOGIN_ADDRESS_STORAGE_KEY = 'last_wallet_login_address';
-
-const maskWalletAddress = (value) => {
-  const normalized = String(value || '').trim();
-  if (normalized.length <= 15) {
-    return normalized;
-  }
-  return `${normalized.slice(0, 6)}...${normalized.slice(-6)}`;
-};
-
-const normalizeWalletAddressList = (items) => {
-  if (!Array.isArray(items)) {
-    return [];
-  }
-  const result = [];
-  const seen = new Set();
-  items.forEach((item) => {
-    const normalized = String(item || '').trim();
-    if (normalized === '' || seen.has(normalized.toLowerCase())) {
-      return;
-    }
-    seen.add(normalized.toLowerCase());
-    result.push(normalized);
-  });
-  return result;
-};
-
-const getStoredWalletLoginHistory = () => {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-  try {
-    const raw = window.localStorage.getItem(WALLET_LOGIN_HISTORY_STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-    return normalizeWalletAddressList(JSON.parse(raw));
-  } catch (error) {
-    return [];
-  }
-};
-
-const getStoredLastWalletAddress = () => {
-  if (typeof window === 'undefined') {
-    return '';
-  }
-  return String(
-    window.localStorage.getItem(LAST_WALLET_LOGIN_ADDRESS_STORAGE_KEY) || ''
-  ).trim();
-};
-
-const persistWalletLoginHistory = (address) => {
-  const normalizedAddress = String(address || '').trim();
-  if (normalizedAddress === '' || typeof window === 'undefined') {
-    return;
-  }
-  const nextHistory = normalizeWalletAddressList([
-    normalizedAddress,
-    ...getStoredWalletLoginHistory(),
-  ]).slice(0, 8);
-  window.localStorage.setItem(
-    WALLET_LOGIN_HISTORY_STORAGE_KEY,
-    JSON.stringify(nextHistory)
-  );
-  window.localStorage.setItem(
-    LAST_WALLET_LOGIN_ADDRESS_STORAGE_KEY,
-    normalizedAddress
-  );
-};
-
 const LoginForm = () => {
   const { t } = useTranslation();
   const [inputs, setInputs] = useState({
     username: '',
     password: '',
   });
-  const [walletAddressOptions, setWalletAddressOptions] = useState([]);
-  const [selectedWalletAddress, setSelectedWalletAddress] = useState(
-    getStoredLastWalletAddress()
-  );
   const [searchParams] = useSearchParams();
   const { username, password } = inputs;
   const [, userDispatch] = useContext(UserContext);
@@ -152,41 +78,6 @@ const LoginForm = () => {
   useEffect(() => {
     rememberAuthRedirectPath(searchParams.get('redirect'));
   }, [searchParams]);
-
-  useEffect(() => {
-    const mergedAddresses = normalizeWalletAddressList([
-      ...walletProviderStatus.accounts,
-      ...getStoredWalletLoginHistory(),
-    ]);
-    setWalletAddressOptions(
-      mergedAddresses.map((address) => ({
-        key: address,
-        value: address,
-        label: maskWalletAddress(address),
-      }))
-    );
-    setSelectedWalletAddress((current) => {
-      const normalizedCurrent = String(current || '').trim();
-      if (
-        normalizedCurrent !== '' &&
-        mergedAddresses.some(
-          (address) => address.toLowerCase() === normalizedCurrent.toLowerCase()
-        )
-      ) {
-        return normalizedCurrent;
-      }
-      const storedAddress = getStoredLastWalletAddress();
-      if (
-        storedAddress !== '' &&
-        mergedAddresses.some(
-          (address) => address.toLowerCase() === storedAddress.toLowerCase()
-        )
-      ) {
-        return storedAddress;
-      }
-      return mergedAddresses[0] || '';
-    });
-  }, [walletProviderStatus.accounts]);
 
   useEffect(() => {
     const expiredMarker = searchParams.get('expired');
@@ -284,27 +175,49 @@ const LoginForm = () => {
     if (identityLogin.loading) return;
     setIdentityLogin({ loading: true, verifyUrl: '', message: '' });
     try {
-      const response = await API.post(
-        '/api/v1/public/auth/identity/passkey/login/session'
-      );
+      let response;
+      try {
+        response = await API.post(
+          '/api/v1/public/auth/identity/passkey/login/session',
+          { avatar: true }
+        );
+      } catch (error) {
+        if (!isWalletIdentityAvatarUnavailableError(error)) {
+          throw error;
+        }
+        response = await API.post(
+          '/api/v1/public/auth/identity/passkey/login/session',
+          { avatar: false }
+        );
+      }
       const payload = response?.data || {};
       if (
-        !payload.success ||
-        !payload.data?.session_id ||
-        !payload.data?.verify_url
+        !payload.success &&
+        isWalletIdentityAvatarUnavailableError(payload.message)
       ) {
-        throw new Error(payload.message || t('auth.login.identity_failed'));
+        response = await API.post(
+          '/api/v1/public/auth/identity/passkey/login/session',
+          { avatar: false }
+        );
       }
-      identitySessionRef.current = payload.data.session_id;
+      const finalPayload = response?.data || {};
+      if (
+        !finalPayload.success ||
+        !finalPayload.data?.session_id ||
+        !finalPayload.data?.verify_url
+      ) {
+        throw new Error(finalPayload.message || t('auth.login.identity_failed'));
+      }
+      identitySessionRef.current = finalPayload.data.session_id;
       setIdentityLogin({
         loading: false,
-        verifyUrl: payload.data.verify_url,
+        verifyUrl: finalPayload.data.verify_url,
         message: '',
       });
       await pollIdentityLogin();
       identityPollTimerRef.current = window.setInterval(
         pollIdentityLogin,
-        (Number(payload.data.poll_interval) || 2) * 1000
+        (Number(finalPayload.data.poll_interval) || 2) * 1000
       );
     } catch (error) {
       setIdentityLogin({
@@ -373,12 +286,21 @@ const LoginForm = () => {
       }
       await walletProviderStatus.refresh();
       setWalletLoginAwaitingApproval(true);
-      const loginTask = loginWithWallet(selectedWalletAddress);
+      const loginTask = loginWithWallet();
       walletLoginPromiseRef.current = loginTask;
       setWalletLoginSubmitting(false);
-      const loginResult = await loginTask;
+      let loginResult;
+      try {
+        loginResult = await loginTask;
+      } catch (error) {
+        if (!isWalletIdentityAvatarUnavailableError(error)) {
+          throw error;
+        }
+        const fallbackTask = loginWithWalletWithoutAvatar();
+        walletLoginPromiseRef.current = fallbackTask;
+        loginResult = await fallbackTask;
+      }
       setWalletLoginAwaitingApproval(false);
-      persistWalletLoginHistory(loginResult?.address || selectedWalletAddress);
       const payload = loginResult?.response?.data || loginResult?.response;
       if (payload?.expiresAt) {
         localStorage.setItem(
@@ -468,22 +390,6 @@ const LoginForm = () => {
               <>
                 <div className='router-login-section'>
                   <div className='router-wallet-login-row'>
-                    <AppSelect
-                      className='router-wallet-address-select'
-                      fluid
-                      search
-                      clearable={false}
-                      options={walletAddressOptions}
-                      value={selectedWalletAddress || undefined}
-                      placeholder={t(
-                        'auth.login.wallet_address_placeholder',
-                        '选择钱包地址'
-                      )}
-                      disabled={walletLoginSubmitting}
-                      onChange={(_, { value }) =>
-                        setSelectedWalletAddress(String(value || '').trim())
-                      }
-                    />
                     <AppButton
                       className='router-login-main-btn router-auth-button router-wallet-button'
                       onClick={onWalletLoginClicked}

@@ -367,6 +367,7 @@ const UserDetail = () => {
   const [inputs, setInputs] = useState({
     username: '',
     email: '',
+    avatar_url: '',
     balance_amount: 0,
     group: '',
     reset_timezone: 'Asia/Shanghai',
@@ -413,6 +414,7 @@ const UserDetail = () => {
       const nextInputs = {
         username: data?.username || '',
         email: data?.email || '',
+        avatar_url: data?.avatar_url || '',
         balance_amount: Number(data?.balance_amount ?? 0),
         group: data?.group || '',
         reset_timezone: data?.quota_reset_timezone || 'Asia/Shanghai',
@@ -1312,6 +1314,10 @@ const UserDetail = () => {
                       />
                     </AppField>
                   )}
+                  {renderReadonlyMetaField({
+                    label: '头像',
+                    value: readOnlyValue(inputs.avatar_url),
+                  })}
                   {renderReadonlyMetaField({
                     label: t('user.table.wallet_identity'),
                     value: readOnlyValue(inputs.wallet_identity_did),
