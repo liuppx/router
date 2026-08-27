@@ -141,6 +141,29 @@ func TestRelayResponsesResponseCapturesPromptTokenDetails(t *testing.T) {
 	}
 }
 
+func TestRelayResponsesResponseCapturesProviderCompatibleCacheFields(t *testing.T) {
+	ctx, _ := newOpenAITestContext()
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{},
+		Body: io.NopCloser(strings.NewReader(`{
+			"usage":{
+				"input_tokens":100,
+				"output_tokens":20,
+				"total_tokens":120,
+				"prompt_tokens_details":{"cached_tokens":30}
+			}
+		}`)),
+	}
+	usage, relayErr := relayResponsesResponse(ctx, resp)
+	if relayErr != nil {
+		t.Fatalf("relayResponsesResponse returned error: %+v", relayErr)
+	}
+	if usage == nil || usage.PromptTokensDetails == nil || usage.PromptTokensDetails.CachedTokens != 30 {
+		t.Fatalf("unexpected compatible cache usage: %#v", usage)
+	}
+}
+
 func TestRelayMessagesResponseSkipsUpstreamCORSHeaders(t *testing.T) {
 	ctx, recorder := newOpenAITestContext()
 	recorder.Header().Set("Access-Control-Allow-Origin", "http://localhost:3020")
