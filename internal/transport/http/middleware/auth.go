@@ -152,7 +152,7 @@ func authHelper(c *gin.Context, minRole int) {
 		// Try wallet JWT first
 		if bearer != "" {
 			if claims, err := verifyWalletJWTFunc(bearer); err == nil {
-				logger.Loginf(c.Request.Context(), "auth wallet jwt verified uid=%s addr=%s", claims.UserID, claims.WalletAddress)
+				logger.Loginf(c.Request.Context(), "auth wallet jwt verified uid=%s did=%s addr=%s", claims.UserID, claims.WalletIdentityDID, claims.WalletAddress)
 				user := model.User{Id: claims.UserID}
 				foundById := false
 				if strings.TrimSpace(claims.UserID) != "" {
@@ -160,6 +160,17 @@ func authHelper(c *gin.Context, minRole int) {
 						foundById = true
 					} else {
 						logger.Loginf(c.Request.Context(), "auth wallet jwt FillUserById fail uid=%s err=%v", claims.UserID, err)
+					}
+				}
+
+				if !foundById && claims.WalletIdentityDID != "" {
+					did := model.NormalizeWalletIdentityDID(claims.WalletIdentityDID)
+					user = model.User{WalletIdentityDID: &did}
+					if err := user.FillUserByWalletIdentityDID(); err == nil {
+						logger.Loginf(c.Request.Context(), "auth wallet jwt fallback by did success did=%s uid=%s", claims.WalletIdentityDID, user.Id)
+						foundById = true
+					} else {
+						logger.Loginf(c.Request.Context(), "auth wallet jwt fallback by did fail did=%s err=%v", claims.WalletIdentityDID, err)
 					}
 				}
 
@@ -175,7 +186,12 @@ func authHelper(c *gin.Context, minRole int) {
 				}
 
 				if foundById {
-					matched := user.WalletAddress != nil && model.NormalizeWalletAddress(*user.WalletAddress) == model.NormalizeWalletAddress(claims.WalletAddress)
+					matched := false
+					if claims.WalletIdentityDID != "" {
+						matched = user.WalletIdentityDID != nil && model.NormalizeWalletIdentityDID(*user.WalletIdentityDID) == model.NormalizeWalletIdentityDID(claims.WalletIdentityDID)
+					} else {
+						matched = user.WalletAddress != nil && model.NormalizeWalletAddress(*user.WalletAddress) == model.NormalizeWalletAddress(claims.WalletAddress)
+					}
 					enabled := user.Status == model.UserStatusEnabled
 					notBanned := !blacklist.IsUserBanned(user.Id)
 					if matched && enabled && notBanned {
@@ -184,9 +200,9 @@ func authHelper(c *gin.Context, minRole int) {
 						role = effectiveRole
 						id = user.Id
 						status = user.Status
-						logger.Loginf(c.Request.Context(), "auth via wallet jwt success user=%s addr=%s", user.Id, claims.WalletAddress)
+						logger.Loginf(c.Request.Context(), "auth via wallet jwt success user=%s did=%s addr=%s", user.Id, claims.WalletIdentityDID, claims.WalletAddress)
 					} else {
-						logger.Loginf(c.Request.Context(), "auth wallet jwt reject uid=%s matched=%t enabled=%t notBanned=%t db_addr=%v token_addr=%s status=%d", user.Id, matched, enabled, notBanned, user.WalletAddress, claims.WalletAddress, user.Status)
+						logger.Loginf(c.Request.Context(), "auth wallet jwt reject uid=%s matched=%t enabled=%t notBanned=%t db_did=%v token_did=%s db_addr=%v token_addr=%s status=%d", user.Id, matched, enabled, notBanned, user.WalletIdentityDID, claims.WalletIdentityDID, user.WalletAddress, claims.WalletAddress, user.Status)
 					}
 				}
 			} else {

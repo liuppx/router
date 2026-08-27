@@ -23,23 +23,25 @@ const (
 // User if you add sensitive fields, don't forget to clean them in setupLogin function.
 // Otherwise, the sensitive information will be saved on local storage in plain text!
 type User struct {
-	Id               string  `json:"id" gorm:"type:char(36);primaryKey"`
-	Username         string  `json:"username" gorm:"unique;index" validate:"max=20"`
-	Password         string  `json:"password" gorm:"not null;" validate:"min=8,max=20"`
-	DisplayName      string  `json:"display_name" gorm:"index" validate:"max=20"`
-	Role             int     `json:"role" gorm:"type:int;default:1"`   // admin, util
-	Status           int     `json:"status" gorm:"type:int;default:1"` // enabled, disabled
-	Email            string  `json:"email" gorm:"index" validate:"max=50"`
-	GitHubId         string  `json:"github_id" gorm:"column:github_id;index"`
-	WeChatId         string  `json:"wechat_id" gorm:"column:wechat_id;index"`
-	LarkId           string  `json:"lark_id" gorm:"column:lark_id;index"`
-	OidcId           string  `json:"oidc_id" gorm:"column:oidc_id;index"`
-	WalletAddress    *string `json:"wallet_address" gorm:"column:wallet_address;uniqueIndex" validate:"omitempty"`
-	VerificationCode string  `json:"verification_code" gorm:"-:all"`
-	AccessToken      string  `json:"access_token" gorm:"type:char(32);column:access_token;uniqueIndex"`
-	UsedQuota        int64   `json:"used_quota" gorm:"bigint;default:0;column:used_quota"`
-	RequestCount     int     `json:"request_count" gorm:"type:int;default:0;"`
-	Group            string  `json:"group" gorm:"type:varchar(32);default:''"`
+	Id                string  `json:"id" gorm:"type:char(36);primaryKey"`
+	Username          string  `json:"username" gorm:"unique;index" validate:"max=20"`
+	Password          string  `json:"password" gorm:"not null;" validate:"min=8,max=20"`
+	DisplayName       string  `json:"display_name" gorm:"index" validate:"max=20"`
+	Role              int     `json:"role" gorm:"type:int;default:1"`   // admin, util
+	Status            int     `json:"status" gorm:"type:int;default:1"` // enabled, disabled
+	Email             string  `json:"email" gorm:"index" validate:"max=50"`
+	AvatarURL         string  `json:"avatar_url" gorm:"column:avatar_url;type:varchar(2048);not null;default:''" validate:"omitempty,max=2048"`
+	GitHubId          string  `json:"github_id" gorm:"column:github_id;index"`
+	WeChatId          string  `json:"wechat_id" gorm:"column:wechat_id;index"`
+	LarkId            string  `json:"lark_id" gorm:"column:lark_id;index"`
+	OidcId            string  `json:"oidc_id" gorm:"column:oidc_id;index"`
+	WalletIdentityDID *string `json:"wallet_identity_did" gorm:"column:wallet_identity_did;type:varchar(128);uniqueIndex" validate:"omitempty"`
+	WalletAddress     *string `json:"wallet_address" gorm:"column:wallet_address;uniqueIndex" validate:"omitempty"`
+	VerificationCode  string  `json:"verification_code" gorm:"-:all"`
+	AccessToken       string  `json:"access_token" gorm:"type:char(32);column:access_token;uniqueIndex"`
+	UsedQuota         int64   `json:"used_quota" gorm:"bigint;default:0;column:used_quota"`
+	RequestCount      int     `json:"request_count" gorm:"type:int;default:0;"`
+	Group             string  `json:"group" gorm:"type:varchar(32);default:''"`
 	// Compatibility-only API fields. Runtime policy is derived from active package;
 	// these fields are intentionally not persisted in users table.
 	DailyQuotaLimit            int64  `json:"-" gorm:"-"`
@@ -69,6 +71,14 @@ func (WalletAddressCleanupAuditLog) TableName() string {
 
 func NormalizeWalletAddress(address string) string {
 	return strings.ToLower(strings.TrimSpace(address))
+}
+
+func NormalizeWalletIdentityDID(did string) string {
+	normalized := strings.TrimSpace(did)
+	if !strings.HasPrefix(normalized, "did:yeying:wid_") {
+		return ""
+	}
+	return normalized
 }
 
 func IsRootWalletAddress(address string) bool {
@@ -189,6 +199,10 @@ func (user *User) FillUserByWalletAddress() error {
 	return mustUserRepo().FillUserByWalletAddress(user)
 }
 
+func (user *User) FillUserByWalletIdentityDID() error {
+	return mustUserRepo().FillUserByWalletIdentityDID(user)
+}
+
 func IsEmailAlreadyTaken(email string) bool {
 	return mustUserRepo().IsEmailAlreadyTaken(email)
 }
@@ -211,6 +225,10 @@ func IsOidcIdAlreadyTaken(oidcId string) bool {
 
 func IsWalletAddressAlreadyTaken(address string) bool {
 	return mustUserRepo().IsWalletAddressAlreadyTaken(address)
+}
+
+func IsWalletIdentityDIDAlreadyTaken(did string) bool {
+	return mustUserRepo().IsWalletIdentityDIDAlreadyTaken(did)
 }
 
 func IsUsernameAlreadyTaken(username string) bool {

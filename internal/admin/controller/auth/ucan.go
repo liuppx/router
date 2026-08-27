@@ -30,18 +30,25 @@ func PublicProfile(c *gin.Context) {
 
 	if claims, err := common.VerifyWalletJWT(bearer); err == nil {
 		addr := model.NormalizeWalletAddress(claims.WalletAddress)
-		if addr == "" && strings.TrimSpace(claims.UserID) != "" {
+		did := model.NormalizeWalletIdentityDID(claims.WalletIdentityDID)
+		if (addr == "" || did == "") && strings.TrimSpace(claims.UserID) != "" {
 			user := model.User{Id: claims.UserID}
-			if err := user.FillUserById(); err == nil && user.WalletAddress != nil {
-				addr = model.NormalizeWalletAddress(*user.WalletAddress)
+			if err := user.FillUserById(); err == nil {
+				if user.WalletAddress != nil {
+					addr = model.NormalizeWalletAddress(*user.WalletAddress)
+				}
+				if user.WalletIdentityDID != nil {
+					did = model.NormalizeWalletIdentityDID(*user.WalletIdentityDID)
+				}
 			}
 		}
-		if addr == "" {
+		if addr == "" && did == "" {
 			writeWeb3ErrorStatus(c, http.StatusUnauthorized, 401, "Invalid access token")
 			return
 		}
 		writeWeb3OK(c, gin.H{
 			"address":  addr,
+			"did":      did,
 			"issuedAt": time.Now().UnixMilli(),
 		})
 		return

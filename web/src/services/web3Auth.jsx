@@ -2,14 +2,12 @@ import {
   clearAccessToken as sdkClearAccessToken,
   focusPendingApproval,
   getAccessToken as sdkGetAccessToken,
-  getChainId,
   getProvider,
   isUserRejectedWalletAction,
   isWalletReconnectError,
-  loginWithChallenge,
+  loginWithWalletIdentity as sdkLoginWithWalletIdentity,
   logout as sdkLogout,
   refreshAccessToken as sdkRefreshAccessToken,
-  requestAccounts,
   signMessage,
   watchProvider,
 } from '@yeying-community/web3-bs';
@@ -109,34 +107,6 @@ export async function requireWalletProvider() {
   return provider;
 }
 
-export async function getWalletContext(preferredAddress = '') {
-  const provider = await requireWalletProvider();
-  const accounts = await requestAccounts({ provider });
-  const normalizedPreferredAddress = String(preferredAddress || '').trim().toLowerCase();
-  const matchedAddress = Array.isArray(accounts)
-    ? accounts.find(
-        (item) =>
-          String(item || '').trim().toLowerCase() === normalizedPreferredAddress,
-      )
-    : '';
-  const address = matchedAddress || accounts?.[0];
-  if (!address) {
-    throw new Error('未获取到钱包账户');
-  }
-  const chainId = normalizeChainId(await getChainId(provider));
-  return { provider, address, chainId };
-}
-
-async function loginWithWalletOnce(preferredAddress = '') {
-  const { provider, address } = await getWalletContext(preferredAddress);
-  const loginResult = await loginWithChallenge({
-    provider,
-    address,
-    ...WEB3_AUTH_OPTIONS,
-  });
-  return { ...loginResult, provider, address };
-}
-
 export async function loginWithWallet(preferredAddress = '') {
   try {
     return await loginWithWalletOnce(preferredAddress);
@@ -149,6 +119,35 @@ export async function loginWithWallet(preferredAddress = '') {
   }
 }
 
+async function loginWithWalletOnce(preferredAddress = '') {
+  const result = await sdkLoginWithWalletIdentity({
+    ...WEB3_AUTH_OPTIONS,
+    address: preferredAddress || undefined,
+    scopes: ['identity.basic', 'identity.wallet', 'identity.email', 'identity.avatar'],
+  });
+  return {
+    token: result.token,
+    address: result.address,
+    response: result.response,
+    provider: undefined,
+  };
+}
+
+export async function loginWithWalletWithoutAvatar(preferredAddress = '') {
+  const result = await sdkLoginWithWalletIdentity({
+    ...WEB3_AUTH_OPTIONS,
+    address: preferredAddress || undefined,
+    scopes: ['identity.basic', 'identity.wallet', 'identity.email'],
+    sessionPath: 'identity/login/session?avatar=0',
+  });
+  return {
+    token: result.token,
+    address: result.address,
+    response: result.response,
+    provider: undefined,
+  };
+}
+
 export async function focusWalletPendingApproval(provider) {
   try {
     return await focusPendingApproval(provider);
@@ -159,6 +158,24 @@ export async function focusWalletPendingApproval(provider) {
 
 export function isWalletUserRejectedError(error) {
   return isUserRejectedWalletAction(error);
+}
+
+export function isWalletIdentityEmailRequiredError(error) {
+  const message = String(error?.message || error || '');
+  return (
+    message.includes('IDENTITY_SCOPE_NOT_GRANTED:identity.email') ||
+    message.includes('IDENTITY_CREDENTIAL_MISSING:EmailCredential') ||
+    message.includes('IDENTITY_EMAIL_NOT_VERIFIED')
+  );
+}
+
+export function isWalletIdentityAvatarUnavailableError(error) {
+  const message = String(error?.message || error || '');
+  return (
+    message.includes('IDENTITY_SCOPE_NOT_GRANTED:identity.avatar') ||
+    message.includes('IDENTITY_CREDENTIAL_MISSING:AvatarCredential') ||
+    message.includes('IDENTITY_AVATAR_REQUIRED')
+  );
 }
 
 export async function signWalletMessage(message, address, provider) {

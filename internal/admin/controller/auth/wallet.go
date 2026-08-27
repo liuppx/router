@@ -123,70 +123,6 @@ func WalletLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// WalletBind binds a wallet to logged-in user
-func WalletBind(c *gin.Context) {
-	var req walletLoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "参数错误",
-		})
-		return
-	}
-	if err := verifyWalletRequest(req); err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
-		return
-	}
-	addr := model.NormalizeWalletAddress(req.Address)
-	session := sessions.Default(c)
-	id, idErr := sessionIDToString(session.Get("id"))
-	if idErr != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"message": "未登录",
-		})
-		return
-	}
-	user := model.User{Id: id}
-	if err := user.FillUserById(); err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
-		return
-	}
-	if model.IsWalletAddressAlreadyTaken(addr) {
-		exist := model.User{WalletAddress: &addr}
-		if err := exist.FillUserByWalletAddress(); err == nil {
-			if exist.Status == model.UserStatusDeleted {
-				_ = model.DB.Model(&exist).Update("wallet_address", nil)
-			} else if exist.Id != user.Id && (user.WalletAddress == nil || model.NormalizeWalletAddress(*user.WalletAddress) != addr) {
-				c.JSON(http.StatusOK, gin.H{
-					"success": false,
-					"message": "该钱包已绑定其他账户",
-				})
-				return
-			}
-		}
-	}
-	user.WalletAddress = &addr
-	if err := user.Update(false); err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
-		return
-	}
-	common.ConsumeWalletNonce(addr)
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "绑定成功",
-	})
-}
-
 func verifyWalletRequest(req walletLoginRequest) error {
 	if !common.IsValidEthAddress(req.Address) {
 		err := errors.New("无效的钱包地址")
@@ -442,7 +378,17 @@ func WalletRefreshToken(c *gin.Context) {
 	if user.WalletAddress != nil {
 		userAddr = model.NormalizeWalletAddress(*user.WalletAddress)
 	}
-	if user.WalletAddress == nil || userAddr != model.NormalizeWalletAddress(claims.WalletAddress) {
+	userDID := ""
+	if user.WalletIdentityDID != nil {
+		userDID = model.NormalizeWalletIdentityDID(*user.WalletIdentityDID)
+	}
+	if claims.WalletIdentityDID != "" {
+		if userDID == "" || userDID != model.NormalizeWalletIdentityDID(claims.WalletIdentityDID) {
+			logger.Loginf(c.Request.Context(), "wallet refresh did mismatch token=%s user=%s", claims.WalletIdentityDID, userDID)
+			writeProtoError(c, 3, "钱包身份不匹配")
+			return
+		}
+	} else if user.WalletAddress == nil || userAddr != model.NormalizeWalletAddress(claims.WalletAddress) {
 		logger.Loginf(c.Request.Context(), "wallet refresh addr mismatch token=%s user=%s", claims.WalletAddress, userAddr)
 		writeProtoError(c, 3, "钱包地址不匹配")
 		return
@@ -458,7 +404,7 @@ func WalletRefreshToken(c *gin.Context) {
 		return
 	}
 	addr := model.NormalizeWalletAddress(*user.WalletAddress)
-	token, exp, tokenErr := common.GenerateWalletJWT(user.Id, addr)
+	token, exp, tokenErr := common.GenerateWalletJWT(user.Id, addr, userDID)
 	if tokenErr != nil {
 		logger.LoginErrorf(c.Request.Context(), "wallet refresh generate token failed user=%s err=%v", user.Id, tokenErr)
 		writeProtoError(c, 8, "生成 token 失败")
@@ -482,80 +428,6 @@ func writeProtoError(c *gin.Context, code int, message string) {
 		"success": false,
 		"message": message,
 		"data":    nil,
-	})
-}
-
-// --- web3 README-aligned handlers ---
-
-// WalletChallengeWeb3 implements /api/v1/public/auth/challenge
-func WalletChallengeWeb3(c *gin.Context) {
-	var req walletNonceRequest
-	if err := c.ShouldBindJSON(&req); err != nil || !common.IsValidEthAddress(req.Address) {
-		logger.Loginf(c.Request.Context(), "wallet web3 challenge bind fail addr=%s err=%v", req.Address, err)
-		writeWeb3Error(c, 2, "参数错误，缺少 address")
-		return
-	}
-	addr := model.NormalizeWalletAddress(req.Address)
-	if !model.IsWalletAddressAlreadyTaken(addr) && !config.AutoRegisterEnabled {
-		logger.Loginf(c.Request.Context(), "wallet web3 challenge reject addr=%s not bound and auto-register disabled", addr)
-		writeWeb3Error(c, 5, "钱包未绑定账户，请先绑定或由管理员开启自动注册")
-		return
-	}
-	now := time.Now()
-	nonce, message := common.GenerateWalletNonce(addr, "Login to "+config.SystemName, req.ChainId)
-	expiresAt := now.Add(time.Duration(config.NonceTTLMinutes) * time.Minute)
-	logger.Loginf(c.Request.Context(), "wallet web3 challenge success addr=%s nonce=%s chain=%s", addr, nonce, req.ChainId)
-	writeWeb3OK(c, gin.H{
-		"address":   addr,
-		"challenge": message,
-		"nonce":     nonce,
-		"issuedAt":  now.UnixMilli(),
-		"expiresAt": expiresAt.UnixMilli(),
-	})
-}
-
-// WalletVerifyWeb3 implements /api/v1/public/auth/verify
-func WalletVerifyWeb3(c *gin.Context) {
-	var req walletLoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		logger.Loginf(c.Request.Context(), "wallet web3 verify bind fail err=%v", err)
-		writeWeb3Error(c, 2, "参数错误")
-		return
-	}
-	user, err := walletAuthenticate(c, req)
-	if err != nil {
-		logger.Loginf(c.Request.Context(), "wallet web3 verify auth fail addr=%s err=%v", req.Address, err)
-		writeWeb3Error(c, 3, err.Error())
-		return
-	}
-	if err := usercontroller.SetupSession(user, c); err != nil {
-		logger.LoginErrorf(c.Request.Context(), "wallet web3 verify setup session failed user=%s err=%v", user.Id, err)
-		writeWeb3Error(c, 8, "无法保存会话信息，请重试")
-		return
-	}
-	addr := ""
-	if user.WalletAddress != nil {
-		addr = model.NormalizeWalletAddress(*user.WalletAddress)
-	}
-	accessToken, accessExp, tokenErr := common.GenerateWalletJWT(user.Id, addr)
-	if tokenErr != nil {
-		logger.SysError("wallet web3 access token generate failed: " + tokenErr.Error())
-		writeWeb3Error(c, 8, "生成 token 失败")
-		return
-	}
-	refreshToken, refreshExp, refreshErr := common.GenerateWalletRefreshJWT(user.Id, addr)
-	if refreshErr != nil {
-		logger.SysError("wallet web3 refresh token generate failed: " + refreshErr.Error())
-		writeWeb3Error(c, 8, "生成 refresh token 失败")
-		return
-	}
-	setWalletRefreshCookie(c, refreshToken, refreshExp)
-	logger.Loginf(c.Request.Context(), "wallet web3 verify success user=%s addr=%s exp=%s refresh_exp=%s", user.Id, addr, accessExp.UTC().Format(time.RFC3339), refreshExp.UTC().Format(time.RFC3339))
-	writeWeb3OK(c, gin.H{
-		"address":          addr,
-		"token":            accessToken,
-		"expiresAt":        accessExp.UnixMilli(),
-		"refreshExpiresAt": refreshExp.UnixMilli(),
 	})
 }
 
@@ -583,7 +455,17 @@ func WalletRefreshWeb3(c *gin.Context) {
 	if user.WalletAddress != nil {
 		userAddr = model.NormalizeWalletAddress(*user.WalletAddress)
 	}
-	if user.WalletAddress == nil || userAddr != model.NormalizeWalletAddress(claims.WalletAddress) {
+	userDID := ""
+	if user.WalletIdentityDID != nil {
+		userDID = model.NormalizeWalletIdentityDID(*user.WalletIdentityDID)
+	}
+	if claims.WalletIdentityDID != "" {
+		if userDID == "" || userDID != model.NormalizeWalletIdentityDID(claims.WalletIdentityDID) {
+			logger.Loginf(c.Request.Context(), "wallet web3 refresh did mismatch token=%s user=%s", claims.WalletIdentityDID, userDID)
+			writeWeb3Error(c, 3, "钱包身份不匹配")
+			return
+		}
+	} else if user.WalletAddress == nil || userAddr != model.NormalizeWalletAddress(claims.WalletAddress) {
 		logger.Loginf(c.Request.Context(), "wallet web3 refresh addr mismatch token=%s user=%s", claims.WalletAddress, userAddr)
 		writeWeb3Error(c, 3, "钱包地址不匹配")
 		return
@@ -599,7 +481,7 @@ func WalletRefreshWeb3(c *gin.Context) {
 		return
 	}
 	addr := model.NormalizeWalletAddress(*user.WalletAddress)
-	accessToken, accessExp, tokenErr := common.GenerateWalletJWT(user.Id, addr)
+	accessToken, accessExp, tokenErr := common.GenerateWalletJWT(user.Id, addr, userDID)
 	if tokenErr != nil {
 		logger.LoginErrorf(c.Request.Context(), "wallet web3 refresh generate token failed user=%s err=%v", user.Id, tokenErr)
 		writeWeb3Error(c, 8, "生成 token 失败")
