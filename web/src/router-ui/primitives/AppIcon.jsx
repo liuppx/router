@@ -35,6 +35,7 @@ import {
   TeamOutlined,
   UserOutlined,
   UsergroupAddOutlined,
+  WalletOutlined,
   CloseOutlined,
   CopyOutlined,
   DashboardOutlined,
@@ -52,6 +53,7 @@ const ICON_MAP = {
   'clipboard list': ReconciliationOutlined,
   close: CloseOutlined,
   check: CheckOutlined,
+  'check circle': CheckCircleOutlined,
   'copy outline': CopyOutlined,
   'credit card': CreditCardOutlined,
   cube: AppstoreOutlined,
@@ -85,6 +87,7 @@ const ICON_MAP = {
   user: UserOutlined,
   users: UsergroupAddOutlined,
   'user circle': UserOutlined,
+  wallet: WalletOutlined,
   'right chevron': RightOutlined,
 };
 

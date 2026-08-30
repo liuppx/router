@@ -74,6 +74,26 @@ http://localhost:5181
 curl http://127.0.0.1:3011/api/v1/public/status
 ```
 
+## 本地登录调试
+
+钱包插件登录由 Router 本地校验钱包身份 presentation，不依赖 `identity.app_id`。
+
+本地调试钱包插件登录时，需要确认：
+
+1. 浏览器已加载本地 Wallet 插件。
+2. Wallet 已完成钱包身份验证和邮箱验证。
+3. Router 登录页可以检测到 Wallet 插件。
+4. Router 前端请求 `identity.basic`、`identity.wallet`、`identity.email`，可选请求 `identity.avatar`。
+
+通行证登录依赖 Node 身份服务。本地调试时，需要确认：
+
+1. Node 服务已启动。
+2. Router 配置了 `identity.node_url`。
+3. Router 配置了 Node 应用中心中的 `identity.app_id`。
+4. Router 回调地址已加入 Node 应用的 `redirectUris`。
+
+本地 IP 或 localhost 不一致时，优先检查回调地址和 WebAuthn origin。
+
 ## 关键配置
 
 1. `database.sql_dsn`：必填，只支持 PostgreSQL DSN。
@@ -91,13 +111,13 @@ curl http://127.0.0.1:3011/api/v1/public/status
 ## 文档入口
 
 1. [文档索引](./docs/README.md)
-2. [部署手册](./docs/部署手册.md)
-3. [OpenAPI](./docs/openapi/router.openapi.yaml)
-4. [路由架构 V1](./docs/路由架构V1.md)
-5. [路由架构 V2](./docs/路由架构V2.md)
-6. [路由架构 V3](./docs/路由架构V3.md)
-7. [问题排查](./docs/问题排查.md)
-8. [钱包身份登录](./docs/钱包身份登录.md)
+2. [系统概览](./docs/系统总览/系统概览.md)
+3. [部署手册](./docs/部署运维/部署手册.md)
+4. [钱包身份登录方案](./docs/身份登录/钱包身份登录方案.md)
+5. [模型路由架构](./docs/模型路由/模型路由架构.md)
+6. [计费架构](./docs/商业计费/计费架构.md)
+7. [问题排查](./docs/部署运维/问题排查.md)
+8. [OpenAPI](./docs/接口契约/router.openapi.yaml)
 
 ## 验证
 

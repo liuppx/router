@@ -31,8 +31,8 @@ type identityPresentationRequest struct {
 	Presentation json.RawMessage `json:"presentation"`
 }
 
-var routerIdentityRequiredScopes = []string{"identity.basic", "identity.wallet", "identity.email"}
-var routerIdentityAvatarScopes = []string{"identity.basic", "identity.wallet", "identity.email", "identity.avatar"}
+var routerIdentityRequiredScopes = []string{"identity.basic", "identity.wallet", "identity.username", "identity.email"}
+var routerIdentityAvatarScopes = []string{"identity.basic", "identity.wallet", "identity.username", "identity.email", "identity.avatar"}
 
 func identityRandomURLValue(size int) (string, error) {
 	buf := make([]byte, size)
@@ -109,21 +109,28 @@ func VerifyIdentityWalletLogin(c *gin.Context) {
 		identityError(c, "Router 需要已验证邮箱，请先在夜莺钱包插件中完成钱包身份验证和邮箱验证")
 		return
 	}
+	username := identityPresentationUsername(pres.Credentials)
+	if !identityPresentationHasScope(pres.Scopes, "identity.username") || username == "" {
+		identityError(c, "Router 需要已验证用户名，请先在夜莺钱包插件中完成身份用户名验证")
+		return
+	}
 
 	// Verify wallet address from the presentation matches the request
-	walletProofAddr := extractWalletProofAddress(req.Presentation)
-	if walletProofAddr == "" {
-		walletProofAddr = req.Address
-	}
+	walletProofAddr, walletProofChain := extractWalletProof(req.Presentation)
 	addr := model.NormalizeWalletAddress(walletProofAddr)
 	if addr == "" {
 		identityError(c, "钱包地址无效")
 		return
 	}
+	accountCredentialAddr, accountCredentialChain := identityPresentationWalletAccount(pres.Credentials)
+	if accountCredentialAddr == "" || !strings.EqualFold(model.NormalizeWalletAddress(accountCredentialAddr), addr) || accountCredentialChain == "" || !strings.EqualFold(accountCredentialChain, walletProofChain) {
+		identityError(c, "钱包身份账户凭证无效")
+		return
+	}
 
 	// Resolve or create the local Router user by wallet identity DID. Wallet
 	// address is only the verified account associated with this identity.
-	user, err := resolveWalletIdentityUser(pres.Holder, addr, c.Request.Context())
+	user, err := resolveWalletIdentityUser(pres.Holder, addr, username, c.Request.Context())
 	if err != nil {
 		identityError(c, err.Error())
 		return
@@ -193,17 +200,18 @@ func VerifyIdentityWalletLogin(c *gin.Context) {
 }
 
 // extractWalletProofAddress reads the walletProof.address from the presentation JSON.
-func extractWalletProofAddress(presentation json.RawMessage) string {
+func extractWalletProof(presentation json.RawMessage) (string, string) {
 	var raw map[string]any
 	if err := json.Unmarshal(presentation, &raw); err != nil {
-		return ""
+		return "", ""
 	}
 	proof, ok := raw["walletProof"].(map[string]any)
 	if !ok {
-		return ""
+		return "", ""
 	}
 	addr, _ := proof["address"].(string)
-	return addr
+	chain, _ := proof["chainKey"].(string)
+	return addr, chain
 }
 
 func identityPresentationHasScope(scopes []string, target string) bool {
@@ -282,8 +290,25 @@ func identityPresentationEmail(credentials []string) string {
 	return strings.ToLower(identityCredentialSubjectString(credentials, "EmailCredential", "email"))
 }
 
+func identityPresentationUsername(credentials []string) string {
+	return identityCredentialSubjectString(credentials, "UsernameCredential", "username")
+}
+
 func identityPresentationAvatarURL(credentials []string) string {
 	return identityCredentialSubjectString(credentials, "AvatarCredential", "avatarUri", "avatarUrl", "avatar")
+}
+
+func identityPresentationWalletAccount(credentials []string) (string, string) {
+	for _, token := range credentials {
+		actualType, subject := identityCredentialTypeAndSubject(token)
+		if actualType != "WalletAccountCredential" || subject == nil {
+			continue
+		}
+		address, _ := subject["address"].(string)
+		chainKey, _ := subject["chainKey"].(string)
+		return strings.TrimSpace(address), strings.TrimSpace(chainKey)
+	}
+	return "", ""
 }
 
 func routerIdentityScopes(includeAvatar bool) []string {
@@ -293,7 +318,7 @@ func routerIdentityScopes(includeAvatar bool) []string {
 	return routerIdentityRequiredScopes
 }
 
-func resolveWalletIdentityUser(did string, walletAddress string, ctx context.Context) (*model.User, error) {
+func resolveWalletIdentityUser(did string, walletAddress string, identityUsername string, ctx context.Context) (*model.User, error) {
 	identityDID := model.NormalizeWalletIdentityDID(did)
 	if identityDID == "" {
 		return nil, errors.New("钱包身份 DID 无效")
@@ -302,14 +327,14 @@ func resolveWalletIdentityUser(did string, walletAddress string, ctx context.Con
 	if addr == "" {
 		return nil, errors.New("钱包地址无效")
 	}
-	user, err := findOrCreateWalletIdentityUser(identityDID, addr, ctx)
+	user, err := findOrCreateWalletIdentityUser(identityDID, addr, identityUsername, ctx)
 	if err != nil || user.Status != model.UserStatusEnabled {
 		return nil, errors.New("此钱包尚未关联 Router 账户")
 	}
 	return user, nil
 }
 
-func findOrCreateWalletIdentityUser(did string, addr string, ctx context.Context) (*model.User, error) {
+func findOrCreateWalletIdentityUser(did string, addr string, identityUsername string, ctx context.Context) (*model.User, error) {
 	identityDID := model.NormalizeWalletIdentityDID(did)
 	if identityDID == "" {
 		return nil, errors.New("钱包身份 DID 无效")
@@ -322,7 +347,7 @@ func findOrCreateWalletIdentityUser(did string, addr string, ctx context.Context
 	if err := user.FillUserByWalletIdentityDID(); err == nil {
 		if user.Status == model.UserStatusDeleted {
 			_ = model.DB.Model(&user).Updates(map[string]any{"wallet_identity_did": nil, "wallet_address": nil})
-			return findOrCreateWalletIdentityUser(identityDID, normalizedAddress, ctx)
+			return findOrCreateWalletIdentityUser(identityDID, normalizedAddress, identityUsername, ctx)
 		}
 		syncWalletIdentityAddress(&user, normalizedAddress)
 		return &user, nil
@@ -332,7 +357,7 @@ func findOrCreateWalletIdentityUser(did string, addr string, ctx context.Context
 	if err := legacy.FillUserByWalletAddress(); err == nil {
 		if legacy.Status == model.UserStatusDeleted {
 			_ = model.DB.Model(&legacy).Update("wallet_address", nil)
-			return findOrCreateWalletIdentityUser(identityDID, normalizedAddress, ctx)
+			return findOrCreateWalletIdentityUser(identityDID, normalizedAddress, identityUsername, ctx)
 		}
 		if legacy.WalletIdentityDID == nil || model.NormalizeWalletIdentityDID(*legacy.WalletIdentityDID) == "" {
 			_ = model.DB.Model(&legacy).Update("wallet_identity_did", identityDID)
@@ -344,7 +369,7 @@ func findOrCreateWalletIdentityUser(did string, addr string, ctx context.Context
 	if !config.AutoRegisterEnabled {
 		return nil, errors.New("未找到钱包身份关联的账户，请先绑定或由管理员开启自动注册")
 	}
-	return autoCreateWalletIdentityUser(identityDID, normalizedAddress, ctx)
+	return autoCreateWalletIdentityUser(identityDID, normalizedAddress, identityUsername, ctx)
 }
 
 func syncWalletIdentityAddress(user *model.User, addr string) {
@@ -365,10 +390,13 @@ func syncWalletIdentityAddress(user *model.User, addr string) {
 	user.WalletAddress = &normalized
 }
 
-func autoCreateWalletIdentityUser(did string, addr string, ctx context.Context) (*model.User, error) {
-	username := "wallet_" + random.GetRandomString(6)
-	for model.IsUsernameAlreadyTaken(username) {
-		username = "wallet_" + random.GetRandomString(6)
+func autoCreateWalletIdentityUser(did string, addr string, identityUsername string, ctx context.Context) (*model.User, error) {
+	username := strings.TrimSpace(identityUsername)
+	if username == "" || len(username) > 20 {
+		return nil, errors.New("钱包身份用户名无效")
+	}
+	if model.IsUsernameAlreadyTaken(username) {
+		return nil, errors.New("钱包身份用户名已被占用")
 	}
 	identityDID := model.NormalizeWalletIdentityDID(did)
 	walletAddress := model.NormalizeWalletAddress(addr)

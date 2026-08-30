@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UserContext } from '../context/User';
 import { StatusContext } from '../context/Status';
@@ -17,10 +17,9 @@ import { useWalletProviderStatus } from '../hooks/useWalletProviderStatus';
 import {
   AppAlert,
   AppButton,
-  AppDivider,
   AppIcon,
-  AppInput,
   AppQRCode,
+  AppSpin,
   AppTooltip,
 } from '../router-ui';
 import {
@@ -31,12 +30,7 @@ import './LoginForm.css';
 
 const LoginForm = () => {
   const { t } = useTranslation();
-  const [inputs, setInputs] = useState({
-    username: '',
-    password: '',
-  });
   const [searchParams] = useSearchParams();
-  const { username, password } = inputs;
   const [, userDispatch] = useContext(UserContext);
   const [statusState] = useContext(StatusContext);
   const navigate = useNavigate();
@@ -53,23 +47,20 @@ const LoginForm = () => {
   })();
   const status = statusState?.status || storedStatus || {};
   const walletLoginDisabled = status?.wallet_login === false;
-  const passwordLoginDisabled = status?.password_login_enabled === false;
   const walletLoginEnabled = !walletLoginDisabled;
-  const passwordRegisterEnabled =
-    status?.register_enabled !== false &&
-    status?.password_register_enabled !== false;
   const [walletLoginSubmitting, setWalletLoginSubmitting] = useState(false);
   const [authMode, setAuthMode] = useState('wallet');
-  const [showEmailLogin, setShowEmailLogin] = useState(false);
   const [walletLoginAwaitingApproval, setWalletLoginAwaitingApproval] =
     useState(false);
   const walletLoginPromiseRef = useRef(null);
   const identityPollTimerRef = useRef(null);
+  const identitySuccessTimerRef = useRef(null);
   const identitySessionRef = useRef('');
   const [identityLogin, setIdentityLogin] = useState({
     loading: false,
     verifyUrl: '',
     message: '',
+    success: false,
   });
   const walletProviderStatus = useWalletProviderStatus();
   const resolveLandingPath = (role) =>
@@ -104,6 +95,9 @@ const LoginForm = () => {
       if (identityPollTimerRef.current) {
         window.clearInterval(identityPollTimerRef.current);
       }
+      if (identitySuccessTimerRef.current) {
+        window.clearTimeout(identitySuccessTimerRef.current);
+      }
     },
     []
   );
@@ -121,13 +115,17 @@ const LoginForm = () => {
       loading: false,
       verifyUrl: '',
       message: '',
+      success: true,
     });
-    userDispatch({ type: 'login', payload: user });
-    localStorage.setItem('user', JSON.stringify(user));
-    navigate(
-      resolvePostLoginPath(searchParams, resolveLandingPath(user.role)),
-      { replace: true }
-    );
+    identitySuccessTimerRef.current = window.setTimeout(() => {
+      identitySuccessTimerRef.current = null;
+      userDispatch({ type: 'login', payload: user });
+      localStorage.setItem('user', JSON.stringify(user));
+      navigate(
+        resolvePostLoginPath(searchParams, resolveLandingPath(user.role)),
+        { replace: true }
+      );
+    }, 900);
   };
 
   const pollIdentityLogin = async () => {
@@ -173,7 +171,16 @@ const LoginForm = () => {
 
   const startIdentityLogin = async () => {
     if (identityLogin.loading) return;
-    setIdentityLogin({ loading: true, verifyUrl: '', message: '' });
+    if (identitySuccessTimerRef.current) {
+      window.clearTimeout(identitySuccessTimerRef.current);
+      identitySuccessTimerRef.current = null;
+    }
+    setIdentityLogin({
+      loading: true,
+      verifyUrl: '',
+      message: '',
+      success: false,
+    });
     try {
       let response;
       try {
@@ -213,6 +220,7 @@ const LoginForm = () => {
         loading: false,
         verifyUrl: finalPayload.data.verify_url,
         message: '',
+        success: false,
       });
       await pollIdentityLogin();
       identityPollTimerRef.current = window.setInterval(
@@ -224,6 +232,7 @@ const LoginForm = () => {
         loading: false,
         verifyUrl: '',
         message: error.message || t('auth.login.identity_failed'),
+        success: false,
       });
     }
   };
@@ -232,11 +241,16 @@ const LoginForm = () => {
     if (identityPollTimerRef.current)
       window.clearInterval(identityPollTimerRef.current);
     identityPollTimerRef.current = null;
+    if (identitySuccessTimerRef.current) {
+      window.clearTimeout(identitySuccessTimerRef.current);
+      identitySuccessTimerRef.current = null;
+    }
     identitySessionRef.current = '';
     setIdentityLogin({
       loading: false,
       verifyUrl: '',
       message: '',
+      success: false,
     });
   };
 
@@ -336,39 +350,6 @@ const LoginForm = () => {
     }
   };
 
-  function handleChange(e) {
-    const { name, value } = e.target;
-    setInputs((previousInputs) => ({ ...previousInputs, [name]: value }));
-  }
-
-  async function handleSubmit() {
-    if (passwordLoginDisabled) {
-      showError(
-        t('auth.login.password_disabled', '用户名密码登录未开启，请联系管理员')
-      );
-      return;
-    }
-    if (username && password) {
-      const res = await API.post(`/api/v1/public/user/login`, {
-        username,
-        password,
-      });
-      const { success, message, data } = res.data;
-      if (success) {
-        userDispatch({ type: 'login', payload: data });
-        localStorage.setItem('user', JSON.stringify(data));
-        navigate(
-          resolvePostLoginPath(searchParams, resolveLandingPath(data.role)),
-          {
-            replace: true,
-          }
-        );
-      } else {
-        showError(message);
-      }
-    }
-  }
-
   return (
     <div className='router-login-page'>
       <main className='router-login-layout'>
@@ -423,13 +404,24 @@ const LoginForm = () => {
             ) : null}
             {authMode === 'identity' ? (
               <div className='router-identity-login-panel'>
-                {identityLogin.verifyUrl ? (
+                {identityLogin.success ? (
+                  <div className='router-identity-success'>
+                    <AppIcon
+                      name='check circle'
+                      className='router-identity-success-icon'
+                    />
+                    <h3>{t('auth.login.identity_success_title')}</h3>
+                    <p>{t('auth.login.identity_success_hint')}</p>
+                    <AppSpin />
+                  </div>
+                ) : null}
+                {!identityLogin.success && identityLogin.verifyUrl ? (
                   <AppQRCode value={identityLogin.verifyUrl} size={220} />
                 ) : null}
-                {identityLogin.loading ? (
+                {!identityLogin.success && identityLogin.loading ? (
                   <p>{t('auth.login.identity_loading')}</p>
                 ) : null}
-                {identityLogin.verifyUrl ? (
+                {!identityLogin.success && identityLogin.verifyUrl ? (
                   <a
                     className='router-identity-local-link'
                     href={identityLogin.verifyUrl}
@@ -439,7 +431,7 @@ const LoginForm = () => {
                     {t('auth.login.identity_open')}
                   </a>
                 ) : null}
-                {identityLogin.message ? (
+                {!identityLogin.success && identityLogin.message ? (
                   <>
                     <AppAlert
                       type='warning'
@@ -451,74 +443,6 @@ const LoginForm = () => {
                     </AppButton>
                   </>
                 ) : null}
-              </div>
-            ) : null}
-            {authMode === 'wallet' ? (
-              <div className='router-login-divider-wrap'>
-                <AppDivider className='router-login-divider' horizontal>
-                  <AppButton
-                    className='router-email-login-toggle'
-                    onClick={() => setShowEmailLogin((current) => !current)}
-                  >
-                    {t('auth.login.email_login_divider')}
-                  </AppButton>
-                </AppDivider>
-              </div>
-            ) : null}
-            {authMode === 'wallet' && showEmailLogin ? (
-              <div className='router-login-email-block'>
-                {passwordLoginDisabled ? (
-                  <AppAlert
-                    type='warning'
-                    showIcon
-                    className='router-auth-message'
-                    title={t(
-                      'auth.login.password_disabled',
-                      '用户名密码登录未开启，请联系管理员'
-                    )}
-                  />
-                ) : (
-                  <div className='router-login-form router-auth-form'>
-                    <AppInput
-                      className='router-auth-input'
-                      fluid
-                      icon='mail'
-                      iconPosition='left'
-                      placeholder={t('auth.login.email')}
-                      name='username'
-                      value={username}
-                      onChange={handleChange}
-                    />
-                    <AppInput
-                      className='router-auth-input'
-                      fluid
-                      icon='lock'
-                      iconPosition='left'
-                      placeholder={t('auth.login.password')}
-                      name='password'
-                      type='password'
-                      value={password}
-                      onChange={handleChange}
-                      onPressEnter={handleSubmit}
-                    />
-                    <AppButton
-                      fluid
-                      className='router-auth-button router-password-submit'
-                      onClick={handleSubmit}
-                    >
-                      {t('auth.login.start_work')}
-                    </AppButton>
-                  </div>
-                )}
-                <div className='router-login-links'>
-                  <Link to='/reset'>{t('auth.login.reset_password')}</Link>
-                  {passwordRegisterEnabled ? (
-                    <span>
-                      {t('auth.login.no_account')}
-                      <Link to='/register'>{t('auth.login.register')}</Link>
-                    </span>
-                  ) : null}
-                </div>
               </div>
             ) : null}
           </div>
@@ -537,7 +461,9 @@ const LoginForm = () => {
                 ? t('auth.login.switch_to_wallet')
                 : t('auth.login.switch_to_identity')
             }
-            icon={<AppIcon name={authMode === 'identity' ? 'key' : 'qrcode'} />}
+            icon={
+              <AppIcon name={authMode === 'identity' ? 'wallet' : 'qrcode'} />
+            }
             onClick={toggleAuthMode}
           />
         </AppTooltip>
