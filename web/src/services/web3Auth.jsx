@@ -123,7 +123,6 @@ async function loginWithWalletOnce(preferredAddress = '') {
   const result = await sdkLoginWithWalletIdentity({
     ...WEB3_AUTH_OPTIONS,
     address: preferredAddress || undefined,
-    scopes: ['identity.basic', 'identity.wallet', 'identity.email', 'identity.avatar'],
   });
   return {
     token: result.token,
@@ -137,7 +136,6 @@ export async function loginWithWalletWithoutAvatar(preferredAddress = '') {
   const result = await sdkLoginWithWalletIdentity({
     ...WEB3_AUTH_OPTIONS,
     address: preferredAddress || undefined,
-    scopes: ['identity.basic', 'identity.wallet', 'identity.email'],
     sessionPath: 'identity/login/session?avatar=0',
   });
   return {

@@ -127,8 +127,8 @@ func nodePost[T any](ctx context.Context, nodeURL, path string, payload any, res
 	return nil
 }
 
-var identityPasskeyRequiredScopes = []string{"identity.basic", "identity.wallet", "identity.email"}
-var identityPasskeyAvatarScopes = []string{"identity.basic", "identity.wallet", "identity.email", "identity.avatar"}
+var identityPasskeyRequiredScopes = []string{"identity.basic", "identity.wallet", "identity.username", "identity.email"}
+var identityPasskeyAvatarScopes = []string{"identity.basic", "identity.wallet", "identity.username", "identity.email", "identity.avatar"}
 
 type identityPasskeyLoginSessionRequest struct {
 	Avatar *bool `json:"avatar"`
@@ -291,7 +291,20 @@ func completeIdentityPasskeyLogin(c *gin.Context, row *model.IdentityPasskeyLogi
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"status": "failed", "message": "夜莺身份未返回钱包地址"}})
 		return
 	}
-	user, resolveErr := resolveWalletIdentityUser(exchange.Data.DID, walletAddress, c.Request.Context())
+	accountAddress := model.NormalizeWalletAddress(extractCredentialSubjectString(exchange.Data.Credentials, "WalletAccountCredential", "address"))
+	accountChain := strings.TrimSpace(extractCredentialSubjectString(exchange.Data.Credentials, "WalletAccountCredential", "chainKey"))
+	if accountAddress == "" || !strings.EqualFold(accountAddress, walletAddress) || accountChain == "" {
+		failIdentityPasskeyLogin(row, "夜莺身份账户凭证无效")
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"status": "failed", "message": "夜莺身份账户凭证无效"}})
+		return
+	}
+	username := extractUsernameFromCredentials(exchange.Data.Credentials)
+	if username == "" {
+		failIdentityPasskeyLogin(row, "夜莺身份未返回用户名")
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"status": "failed", "message": "夜莺身份未返回用户名"}})
+		return
+	}
+	user, resolveErr := resolveWalletIdentityUser(exchange.Data.DID, walletAddress, username, c.Request.Context())
 	if resolveErr != nil {
 		failIdentityPasskeyLogin(row, resolveErr.Error())
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"status": "unbound", "message": resolveErr.Error()}})
@@ -322,6 +335,14 @@ func extractEmailFromCredentials(credentials []struct {
 	Credential   string `json:"credential"`
 }) string {
 	return strings.ToLower(extractCredentialSubjectString(credentials, "EmailCredential", "email"))
+}
+
+func extractUsernameFromCredentials(credentials []struct {
+	Type         string `json:"type"`
+	CredentialID string `json:"credentialId"`
+	Credential   string `json:"credential"`
+}) string {
+	return extractCredentialSubjectString(credentials, "UsernameCredential", "username")
 }
 
 func extractAvatarURLFromCredentials(credentials []struct {

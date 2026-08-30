@@ -175,9 +175,32 @@
   text-decoration: underline;
 }
 
-.router-login-divider-wrap {
-  width: min(420px, 100%);
-  margin: 2px auto;
+.router-identity-success {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #51606d;
+}
+
+.router-identity-success-icon {
+  color: #5db85b;
+  font-size: 42px;
+}
+
+.router-identity-success h3 {
+  margin: 2px 0 0;
+  color: #17212b;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.router-identity-success p {
+  margin: 0;
+  color: #6a7781;
+  font-size: 14px;
 }
 
 .router-login-heading-row {
@@ -194,77 +217,6 @@
   padding: 0 !important;
   color: #315d8e !important;
   border-color: #bfd0e0 !important;
-}
-
-.router-email-login-toggle {
-  min-height: 28px;
-  padding: 0 8px !important;
-  color: #087d70 !important;
-  border: 0 !important;
-  background: transparent !important;
-  font-size: 13px !important;
-  box-shadow: none !important;
-}
-
-.router-login-divider.ant-divider,
-.router-login-divider.ant-divider-horizontal,
-.router-login-divider.ant-divider-with-text {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 2px auto !important;
-}
-
-.router-login-card .router-login-divider.ant-divider-horizontal {
-  color: #a6afbf !important;
-  font-size: 12px !important;
-}
-
-.router-login-card .router-login-divider.ant-divider-horizontal::before,
-.router-login-card .router-login-divider.ant-divider-horizontal::after,
-.router-login-card .router-login-divider.ant-divider-with-text::before,
-.router-login-card .router-login-divider.ant-divider-with-text::after {
-  flex: 1 1 0 !important;
-}
-
-.router-login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-}
-
-.router-password-submit {
-  width: 100%;
-  margin-top: 6px !important;
-  background: #2f73ff !important;
-  color: #fff !important;
-  border-radius: 10px !important;
-  font-weight: 600 !important;
-}
-
-.router-password-submit:hover {
-  background: #2462db !important;
-}
-
-.router-login-links {
-  margin-top: 2px;
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  color: #667085;
-  font-size: 12px;
-  line-height: 1.5;
-  width: 100%;
-}
-
-.router-login-links a {
-  margin-left: 4px;
-  color: #2f73ff;
-  text-decoration: none;
-}
-
-.router-login-links a:hover {
-  text-decoration: underline;
 }
 
 @media (max-width: 980px) {
@@ -318,11 +270,6 @@
     font-size: 13px !important;
   }
 
-  .router-login-links {
-    flex-direction: column;
-    gap: 6px;
-    font-size: 12px;
-  }
 }
 
 /* Workspace sign-in is intentionally a two-column shell, not a marketing hero. */
@@ -341,16 +288,6 @@
 .router-login-form-shell { width: min(360px, 100%); margin: 0 auto; }
 .router-login-heading h2 { margin: 0; font-size: 24px; line-height: 1.3; color: #17212b; }
 .router-login-heading p { margin: 8px 0 28px; color: #6a7781; font-size: 14px; }
-.router-login-email-heading h3 { margin: 0; color: #27333d; font-size: 15px; }
-.router-login-email-heading p { margin: 5px 0 14px; color: #6a7781; font-size: 13px; }
-.router-login-form { gap: 12px; }
-.router-auth-input { min-height: 42px; border-radius: 5px !important; }
-.router-password-submit { min-height: 42px; margin-top: 4px !important; border-radius: 5px !important; background: #087d70 !important; }
-.router-password-submit:hover { background: #056b60 !important; }
-.router-login-links { align-items: center; margin-top: 14px; font-size: 13px; }
-.router-login-links a { color: #087d70; margin-left: 0; }
-.router-login-links span a { margin-left: 4px; }
-.router-login-divider-wrap { width: 100%; margin: 28px 0 18px; }
 .router-login-section { width: 100%; }
 .router-login-main-btn { border-radius: 5px !important; }
 .router-wallet-button { background: #315d8e !important; }
@@ -366,6 +303,7 @@
 .router-identity-login-panel { min-height: 300px; }
 @media (max-width: 760px) { .router-login-layout { min-height: 0; } .router-login-auth { padding: 42px 28px; } }
 
-.router-login-mode-corner { position: absolute !important; top: 0; right: 0; width: 72px; min-width: 72px !important; height: 72px; padding: 10px 8px 32px 34px !important; color: #fff !important; border: 0 !important; border-radius: 0 !important; background: #9dcc86 !important; clip-path: polygon(100% 0, 100% 100%, 0 0); box-shadow: none !important; }
+.router-login-mode-corner { position: absolute !important; top: 0; right: 0; width: 84px; min-width: 84px !important; height: 84px; padding: 9px 7px 38px 35px !important; color: #fff !important; border: 0 !important; border-radius: 0 !important; background: #9dcc86 !important; clip-path: polygon(100% 0, 100% 100%, 0 0); box-shadow: none !important; }
 .router-login-mode-corner:hover { color: #fff !important; background: #8cc474 !important; }
-.router-login-mode-corner .anticon { font-size: 21px; }
+.router-login-mode-corner .anticon { font-size: 34px; }
+.router-login-mode-corner .anticon svg { width: 34px; height: 34px; }
