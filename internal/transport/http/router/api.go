@@ -437,6 +437,7 @@ func SetApiRouter(engine *gin.Engine) {
 			adminProviderRoute.GET("/", channel.GetProviders)
 			adminProviderRoute.POST("/", channel.CreateProvider)
 			adminProviderRoute.POST("/:id/model", channel.AppendProviderModel)
+			adminProviderRoute.PATCH("/:provider/models/:model/billing/policy", channel.UpdateProviderModelBillingPolicy)
 			adminProviderRoute.GET("/:id", channel.GetProvider)
 			adminProviderRoute.PUT("/:id", channel.UpdateProvider)
 			adminProviderRoute.DELETE("/:id", channel.DeleteProvider)

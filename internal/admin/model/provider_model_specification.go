@@ -9,6 +9,17 @@ import (
 type ProviderModelSpecification struct {
 	Version   int                                           `json:"version,omitempty"`
 	Endpoints map[string]ProviderModelEndpointSpecification `json:"endpoints,omitempty"`
+	Billing   *ProviderModelBillingSpecification            `json:"billing,omitempty"`
+}
+
+// ProviderModelBillingSpecification controls request-time reservation only.
+// Final settlement still uses provider usage whenever it is available.
+type ProviderModelBillingSpecification struct {
+	Version             int     `json:"version,omitempty"`
+	PrechargePolicy     string  `json:"precharge_policy,omitempty"`
+	MinimumReserve      int64   `json:"minimum_reserve,omitempty"`
+	InputSafetyFactor   float64 `json:"input_safety_factor,omitempty"`
+	OutputReserveTokens int     `json:"output_reserve_tokens,omitempty"`
 }
 
 type ProviderModelEndpointSpecification struct {
@@ -51,6 +62,19 @@ func NormalizeProviderModelSpecification(spec *ProviderModelSpecification) *Prov
 	}
 	normalized := &ProviderModelSpecification{
 		Version: spec.Version,
+	}
+	if spec.Billing != nil {
+		billing := *spec.Billing
+		if billing.MinimumReserve < 0 {
+			billing.MinimumReserve = 0
+		}
+		if billing.InputSafetyFactor < 0 {
+			billing.InputSafetyFactor = 0
+		}
+		if billing.OutputReserveTokens < 0 {
+			billing.OutputReserveTokens = 0
+		}
+		normalized.Billing = &billing
 	}
 	if normalized.Version < 0 {
 		normalized.Version = 0
@@ -170,7 +194,7 @@ func NormalizeProviderModelSpecification(spec *ProviderModelSpecification) *Prov
 			normalized.Endpoints[endpoint] = normalizedEndpoint
 		}
 	}
-	if normalized.Version == 0 && len(normalized.Endpoints) == 0 {
+	if normalized.Version == 0 && len(normalized.Endpoints) == 0 && normalized.Billing == nil {
 		return nil
 	}
 	return normalized

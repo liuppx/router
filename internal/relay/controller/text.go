@@ -116,6 +116,19 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 		}
 	}
 	pricing = adminmodel.ResolveTextRequestPricing(pricing, upstreamPath)
+	// Resolve the published model policy once per request. The resulting
+	// version is copied into the billing snapshot so in-flight requests remain
+	// explainable after an administrator changes the model policy.
+	policyResolution := billing.PrechargePolicyResolution{Source: "global_fallback", Version: "global-v1"}
+	if providerMap, providerErr := adminmodel.LoadUniqueProviderMapByModelsWithDB(adminmodel.DB, []string{meta.ActualModelName}); providerErr == nil {
+		if specs, specErr := adminmodel.LoadProviderModelSpecificationMapByModelsWithDB(adminmodel.DB, providerMap, []string{meta.ActualModelName}); specErr == nil {
+			policyResolution = billing.ResolvePrechargePolicy(specs[meta.ActualModelName], config.PreConsumedQuota)
+		} else {
+			logger.Warnf(ctx, "resolve model precharge policy failed; using global fallback model=%s provider=%s err=%s", strings.TrimSpace(meta.ActualModelName), relaychannel.ProtocolByType(meta.ChannelProtocol), specErr.Error())
+		}
+	} else {
+		logger.Warnf(ctx, "resolve model provider for precharge policy failed; using global fallback model=%s provider=%s err=%s", strings.TrimSpace(meta.ActualModelName), relaychannel.ProtocolByType(meta.ChannelProtocol), providerErr.Error())
+	}
 	// pre-consume quota
 	rawRequestBody, err := prepareTextBillingRequestBody(c, meta, validatedRawBody)
 	if err != nil {
@@ -163,12 +176,17 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	}
 	maxOutputTokens := resolveTextMaxOutputTokens(textRequest)
 	preConsumedPricing := adminmodel.ResolveTextUsagePricing(pricing, upstreamPath, promptTokens, maxOutputTokens)
-	preConsumedSnapshot, err := billing.ComputeTextPreConsumedBillingSnapshot(promptTokens, maxOutputTokens, preConsumedPricing, groupRatio)
+	reservedTokens := policyResolution.Policy.ReserveTokens(promptTokens, maxOutputTokens)
+	preConsumedSnapshot, err := billing.ComputeTextPreConsumedBillingSnapshotWithReservedTokens(promptTokens, maxOutputTokens, reservedTokens, preConsumedPricing, groupRatio)
 	if err != nil {
 		logger.Errorf(ctx, "ComputeTextPreConsumedQuota failed: %s", err.Error())
 		return openai.ErrorWrapper(err, "calculate_text_quota_failed", http.StatusInternalServerError)
 	}
 	preConsumedSnapshot.SetBillingRatioBreakdown(billingRatio)
+	preConsumedSnapshot.PrechargePolicy = policyResolution.Policy.Type
+	preConsumedSnapshot.PrechargePolicySource = policyResolution.Source
+	preConsumedSnapshot.PrechargePolicyVersion = policyResolution.Version
+	preConsumedSnapshot.PrechargeReservedTokens = reservedTokens
 	if err := billing.ApplyEstimatedProcurementCostFloor(&preConsumedSnapshot, meta.ChannelId, meta.ActualModelName); err != nil {
 		logger.Errorf(ctx, "estimate procurement cost for text pre-consume failed: %s", err.Error())
 		return openai.ErrorWrapper(err, "calculate_text_quota_failed", http.StatusInternalServerError)

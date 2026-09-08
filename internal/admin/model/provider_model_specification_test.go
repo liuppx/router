@@ -18,3 +18,17 @@ func TestProviderModelSpecificationSupportsFileInputRequiresTransportAndTypes(t 
 		t.Fatal("file types without upload or URL transport must not qualify")
 	}
 }
+
+func TestProviderModelSpecificationRoundTripsBillingPolicy(t *testing.T) {
+	spec := &ProviderModelSpecification{Version: 1, Billing: &ProviderModelBillingSpecification{
+		PrechargePolicy: "tokenizer_estimate", MinimumReserve: 500, InputSafetyFactor: 1.1, OutputReserveTokens: 4096,
+	}}
+	raw := MarshalProviderModelSpecification(spec)
+	got, err := ParseProviderModelSpecification(raw)
+	if err != nil || got == nil || got.Billing == nil {
+		t.Fatalf("billing specification lost: got=%+v err=%v", got, err)
+	}
+	if got.Billing.PrechargePolicy != "tokenizer_estimate" || got.Billing.MinimumReserve != 500 || got.Billing.OutputReserveTokens != 4096 {
+		t.Fatalf("billing specification = %+v", got.Billing)
+	}
+}

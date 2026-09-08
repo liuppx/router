@@ -12,48 +12,56 @@ import (
 )
 
 type BillingSnapshot struct {
-	PriceUnit             string           `json:"price_unit,omitempty"`
-	Currency              string           `json:"currency,omitempty"`
-	PricingSource         string           `json:"pricing_source,omitempty"`
-	UsageSource           string           `json:"usage_source,omitempty"`
-	EstimateSource        string           `json:"estimate_source,omitempty"`
-	SettlementMode        string           `json:"settlement_mode,omitempty"`
-	EffectiveRatio        float64          `json:"effective_ratio,omitempty"`
-	GroupChannelRatio     float64          `json:"group_channel_ratio,omitempty"`
-	ModelChannelRatio     float64          `json:"model_channel_ratio,omitempty"`
-	ChargeRate            float64          `json:"charge_rate,omitempty"`
-	InputQuantity         float64          `json:"input_quantity,omitempty"`
-	OutputQuantity        float64          `json:"output_quantity,omitempty"`
-	CacheReadQuantity     float64          `json:"cache_read_quantity,omitempty"`
-	CacheWriteQuantity    float64          `json:"cache_write_quantity,omitempty"`
-	InputAmount           float64          `json:"input_amount,omitempty"`
-	OutputAmount          float64          `json:"output_amount,omitempty"`
-	CacheReadAmount       float64          `json:"cache_read_amount,omitempty"`
-	CacheWriteAmount      float64          `json:"cache_write_amount,omitempty"`
-	Amount                float64          `json:"amount,omitempty"`
-	ChargeAmount          int64            `json:"charge_amount,omitempty"`
-	PricingDecision       *PricingDecision `json:"pricing_decision,omitempty"`
-	ImageToolCalls        int              `json:"image_tool_calls,omitempty"`
-	ImageToolOutputTokens int              `json:"image_tool_output_tokens,omitempty"`
-	ImageToolAmount       float64          `json:"image_tool_amount,omitempty"`
-	ImageToolChargeAmount int64            `json:"image_tool_charge_amount,omitempty"`
+	PrechargePolicy         string           `json:"precharge_policy,omitempty"`
+	PrechargePolicySource   string           `json:"precharge_policy_source,omitempty"`
+	PrechargePolicyVersion  string           `json:"precharge_policy_version,omitempty"`
+	PrechargeReservedTokens int64            `json:"precharge_reserved_tokens,omitempty"`
+	PriceUnit               string           `json:"price_unit,omitempty"`
+	Currency                string           `json:"currency,omitempty"`
+	PricingSource           string           `json:"pricing_source,omitempty"`
+	UsageSource             string           `json:"usage_source,omitempty"`
+	EstimateSource          string           `json:"estimate_source,omitempty"`
+	SettlementMode          string           `json:"settlement_mode,omitempty"`
+	EffectiveRatio          float64          `json:"effective_ratio,omitempty"`
+	GroupChannelRatio       float64          `json:"group_channel_ratio,omitempty"`
+	ModelChannelRatio       float64          `json:"model_channel_ratio,omitempty"`
+	ChargeRate              float64          `json:"charge_rate,omitempty"`
+	InputQuantity           float64          `json:"input_quantity,omitempty"`
+	OutputQuantity          float64          `json:"output_quantity,omitempty"`
+	CacheReadQuantity       float64          `json:"cache_read_quantity,omitempty"`
+	CacheWriteQuantity      float64          `json:"cache_write_quantity,omitempty"`
+	InputAmount             float64          `json:"input_amount,omitempty"`
+	OutputAmount            float64          `json:"output_amount,omitempty"`
+	CacheReadAmount         float64          `json:"cache_read_amount,omitempty"`
+	CacheWriteAmount        float64          `json:"cache_write_amount,omitempty"`
+	Amount                  float64          `json:"amount,omitempty"`
+	ChargeAmount            int64            `json:"charge_amount,omitempty"`
+	PricingDecision         *PricingDecision `json:"pricing_decision,omitempty"`
+	ImageToolCalls          int              `json:"image_tool_calls,omitempty"`
+	ImageToolOutputTokens   int              `json:"image_tool_output_tokens,omitempty"`
+	ImageToolAmount         float64          `json:"image_tool_amount,omitempty"`
+	ImageToolChargeAmount   int64            `json:"image_tool_charge_amount,omitempty"`
 }
 
 // BillingDecision is the stable, request-level explanation of billing inputs
 // and the selected charge. Detailed token quantities remain in the log fields.
 type BillingDecision struct {
-	Version         string           `json:"version"`
-	Stage           string           `json:"stage"`
-	PriceUnit       string           `json:"price_unit,omitempty"`
-	Currency        string           `json:"currency,omitempty"`
-	PricingSource   string           `json:"pricing_source,omitempty"`
-	UsageSource     string           `json:"usage_source,omitempty"`
-	SettlementMode  string           `json:"settlement_mode,omitempty"`
-	EffectiveRatio  float64          `json:"effective_ratio,omitempty"`
-	ChargeRate      float64          `json:"charge_rate,omitempty"`
-	Amount          float64          `json:"amount,omitempty"`
-	ChargeAmount    int64            `json:"charge_amount,omitempty"`
-	PricingDecision *PricingDecision `json:"pricing_decision,omitempty"`
+	Version                 string           `json:"version"`
+	Stage                   string           `json:"stage"`
+	PriceUnit               string           `json:"price_unit,omitempty"`
+	Currency                string           `json:"currency,omitempty"`
+	PricingSource           string           `json:"pricing_source,omitempty"`
+	UsageSource             string           `json:"usage_source,omitempty"`
+	SettlementMode          string           `json:"settlement_mode,omitempty"`
+	EffectiveRatio          float64          `json:"effective_ratio,omitempty"`
+	ChargeRate              float64          `json:"charge_rate,omitempty"`
+	Amount                  float64          `json:"amount,omitempty"`
+	ChargeAmount            int64            `json:"charge_amount,omitempty"`
+	PrechargePolicy         string           `json:"precharge_policy,omitempty"`
+	PrechargePolicySource   string           `json:"precharge_policy_source,omitempty"`
+	PrechargePolicyVersion  string           `json:"precharge_policy_version,omitempty"`
+	PrechargeReservedTokens int64            `json:"precharge_reserved_tokens,omitempty"`
+	PricingDecision         *PricingDecision `json:"pricing_decision,omitempty"`
 }
 
 type ImageBillingMode string
@@ -104,18 +112,22 @@ func (snapshot BillingSnapshot) ApplyToLog(log *model.Log) {
 	log.BillingImageToolAmount = snapshot.ImageToolAmount
 	log.BillingImageToolChargeAmount = snapshot.ImageToolChargeAmount
 	decision := BillingDecision{
-		Version:         "v1",
-		Stage:           "settlement_pending",
-		PriceUnit:       snapshot.PriceUnit,
-		Currency:        snapshot.Currency,
-		PricingSource:   snapshot.PricingSource,
-		UsageSource:     snapshot.UsageSource,
-		SettlementMode:  snapshot.SettlementMode,
-		EffectiveRatio:  snapshot.EffectiveRatio,
-		ChargeRate:      snapshot.ChargeRate,
-		Amount:          snapshot.Amount,
-		ChargeAmount:    snapshot.ChargeAmount,
-		PricingDecision: snapshot.PricingDecision,
+		Version:                 "v1",
+		Stage:                   "settlement_pending",
+		PriceUnit:               snapshot.PriceUnit,
+		Currency:                snapshot.Currency,
+		PricingSource:           snapshot.PricingSource,
+		UsageSource:             snapshot.UsageSource,
+		SettlementMode:          snapshot.SettlementMode,
+		EffectiveRatio:          snapshot.EffectiveRatio,
+		ChargeRate:              snapshot.ChargeRate,
+		Amount:                  snapshot.Amount,
+		ChargeAmount:            snapshot.ChargeAmount,
+		PrechargePolicy:         snapshot.PrechargePolicy,
+		PrechargePolicySource:   snapshot.PrechargePolicySource,
+		PrechargePolicyVersion:  snapshot.PrechargePolicyVersion,
+		PrechargeReservedTokens: snapshot.PrechargeReservedTokens,
+		PricingDecision:         snapshot.PricingDecision,
 	}
 	if payload, err := json.Marshal(decision); err == nil {
 		log.BillingDecision = string(payload)
@@ -148,7 +160,16 @@ func ComputeTextPreConsumedQuota(promptTokens int, maxCompletionTokens int, pric
 }
 
 func ComputeTextPreConsumedBillingSnapshot(promptTokens int, maxCompletionTokens int, pricing model.ResolvedModelPricing, groupRatio float64) (BillingSnapshot, error) {
-	completionBudget := float64(config.PreConsumedQuota)
+	return ComputeTextPreConsumedBillingSnapshotWithReservedTokens(promptTokens, maxCompletionTokens, config.PreConsumedQuota, pricing, groupRatio)
+}
+
+// ComputeTextPreConsumedBillingSnapshotWithReservedTokens uses an explicit
+// request-time reserve instead of the legacy global reserve.
+func ComputeTextPreConsumedBillingSnapshotWithReservedTokens(promptTokens int, maxCompletionTokens int, reservedTokens int64, pricing model.ResolvedModelPricing, groupRatio float64) (BillingSnapshot, error) {
+	if reservedTokens < 0 {
+		reservedTokens = 0
+	}
+	completionBudget := float64(reservedTokens)
 	if maxCompletionTokens > 0 {
 		completionBudget += float64(maxCompletionTokens)
 	}

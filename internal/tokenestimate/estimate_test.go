@@ -61,6 +61,14 @@ func TestEstimateAnthropicMessages(t *testing.T) {
 	}
 }
 
+func TestDetectFamilyFutureClaudeModels(t *testing.T) {
+	for _, model := range []string{"claude-4.7", "claude-4.9", "claude-opus-4-7"} {
+		if got := detectFamily(model); got != familyAnthropic {
+			t.Fatalf("detectFamily(%q) = %q, want %q", model, got, familyAnthropic)
+		}
+	}
+}
+
 func TestEstimateResponsesWithTools(t *testing.T) {
 	openaiadaptor.InitTokenEncoders()
 	req := EstimateRequest{
