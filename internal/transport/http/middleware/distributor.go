@@ -20,6 +20,7 @@ import (
 	relaychannel "github.com/yeying-community/router/internal/relay/channel"
 	"github.com/yeying-community/router/internal/relay/responsestate"
 	"github.com/yeying-community/router/internal/relay/routeobs"
+	"github.com/yeying-community/router/internal/relay/routing"
 )
 
 type ModelRequest struct {
@@ -286,6 +287,16 @@ func responseStateConflict(c *gin.Context) bool {
 func Distribute() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
+		if rawBody, bodyErr := common.GetRequestBody(c); bodyErr != nil {
+			abortWithMessage(c, http.StatusBadRequest, "读取请求体失败")
+			return
+		} else if policy, policyErr := routing.ParseRequestPolicy(rawBody); policyErr != nil {
+			c.Set(ctxkey.RelayErrorCode, "invalid_provider_routing_policy")
+			abortWithMessage(c, http.StatusBadRequest, policyErr.Error())
+			return
+		} else {
+			c.Set(ctxkey.ProviderRoutingPolicy, policy)
+		}
 		userId := c.GetString(ctxkey.Id)
 		requestModel := c.GetString(ctxkey.RequestModel)
 		userGroup, entitlementSource, groupErr := model.ResolveUserEntitlementGroupForModel(ctx, userId, requestModel)

@@ -37,4 +37,5 @@ const (
 	RelayErrorType              = "relay_error_type"
 	RelayErrorCode              = "relay_error_code"
 	RelayTermination            = "relay_termination"
+	ProviderRoutingPolicy       = "provider_routing_policy"
 )
