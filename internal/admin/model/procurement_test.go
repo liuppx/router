@@ -14,8 +14,14 @@ func newProcurementTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	if err := db.AutoMigrate(&ChannelBillingSnapshot{}, &ChannelBillingSnapshotItem{}, &ChannelProcurementBatch{}, &RequestProcurementConsumption{}, &Log{}); err != nil {
+	if err := db.AutoMigrate(&ChannelBillingSnapshot{}, &ChannelBillingSnapshotItem{}, &ChannelProcurementBatch{}, &RequestProcurementConsumption{}, &Log{}, &BillingSettlement{}, &ProcurementAttribution{}); err != nil {
 		t.Fatalf("auto migrate: %v", err)
+	}
+	if err := db.Exec(`CREATE TRIGGER sync_test_finance AFTER INSERT ON event_logs WHEN NEW.type = 2 BEGIN
+		INSERT OR REPLACE INTO billing_settlements (request_log_id, input_quantity, output_quantity, cache_read_quantity, cache_write_quantity, charge_amount, sell_base_amount, cost_floor_triggered, cost_floor_base_amount) VALUES (NEW.id, NEW.billing_input_quantity, NEW.billing_output_quantity, NEW.billing_cache_read_quantity, NEW.billing_cache_write_quantity, NEW.billing_charge_amount, NEW.billing_sell_base_amount, NEW.billing_cost_floor_triggered, NEW.billing_cost_floor_base_amount);
+		INSERT OR REPLACE INTO procurement_attributions (request_log_id, status, cost_base_amount, gross_profit_base_amount) VALUES (NEW.id, NEW.billing_procurement_cost_status, NEW.billing_procurement_cost_base_amount, NEW.billing_gross_profit_base_amount);
+	END`).Error; err != nil {
+		t.Fatalf("create finance test trigger: %v", err)
 	}
 	return db
 }
