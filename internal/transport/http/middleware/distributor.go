@@ -52,6 +52,46 @@ func pickChannelByPriority(channels []*model.Channel, ignoreFirstPriority bool) 
 	return targets[rand.Intn(len(targets))]
 }
 
+func pickChannelByPolicy(channels []*model.Channel, policy routing.ProviderRoutingPolicy) *model.Channel {
+	if policy.SelectionMethod != routing.SelectionWeightedRandom {
+		return pickChannelByPriority(channels, false)
+	}
+	if len(channels) == 0 {
+		return nil
+	}
+	firstPriority := channels[0].GetPriority()
+	tier := make([]*model.Channel, 0, len(channels))
+	for _, channel := range channels {
+		if channel.GetPriority() != firstPriority {
+			break
+		}
+		tier = append(tier, channel)
+	}
+	if len(tier) == 0 {
+		return nil
+	}
+	var total uint64
+	for _, channel := range tier {
+		weight := channel.GetWeight()
+		if weight == 0 {
+			weight = 1
+		}
+		total += uint64(weight)
+	}
+	target := uint64(rand.Int63n(int64(total)))
+	for _, channel := range tier {
+		weight := channel.GetWeight()
+		if weight == 0 {
+			weight = 1
+		}
+		if target < uint64(weight) {
+			return channel
+		}
+		target -= uint64(weight)
+	}
+	return tier[len(tier)-1]
+}
+
 func channelIDInList(channels []*model.Channel, channelID string) bool {
 	normalizedChannelID := strings.TrimSpace(channelID)
 	if normalizedChannelID == "" {
@@ -269,7 +309,7 @@ func selectEntitlementChannelForRequest(ctx context.Context, c *gin.Context, use
 			candidates, policyFiltered = applyProviderRoutingPolicy(candidates, requestModel, policy)
 			stats.FilteredCandidates = append(stats.FilteredCandidates, policyFiltered...)
 		}
-		channel := pickChannelByPriority(candidates, false)
+		channel := pickChannelByPolicy(candidates, policy)
 		if channel == nil {
 			logger.RelayWarnf(ctx, "DISTRIBUTE decision=skip reason=no_available_channel user_id=%s group=%s model=%s endpoint=%s listed_candidates=%d endpoint_filtered_candidates=%d", userID, groupID, requestModel, requestPath, stats.ListedCount, stats.EndpointFilteredCount)
 			continue

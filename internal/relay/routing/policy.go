@@ -97,9 +97,9 @@ func Validate(policy ProviderRoutingPolicy) error {
 		return fmt.Errorf("invalid retry_scope %q", policy.RetryScope)
 	}
 	switch policy.SelectionMethod {
-	case "", SelectionPriority, SelectionWeightedRandom, SelectionLatency, SelectionPrice, SelectionSuccessRate:
+	case "", SelectionPriority, SelectionWeightedRandom:
 	default:
-		return fmt.Errorf("invalid selection_method %q", policy.SelectionMethod)
+		return fmt.Errorf("unsupported selection_method %q", policy.SelectionMethod)
 	}
 	return nil
 }
