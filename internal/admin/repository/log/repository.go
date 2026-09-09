@@ -129,6 +129,9 @@ func recordLogHelper(ctx context.Context, log *model.Log) {
 		logger.Error(ctx, "failed to record log: "+err.Error())
 		return
 	}
+	if err := model.RecordFinanceRecordsForLog(model.LOG_DB, log); err != nil {
+		logger.Error(ctx, "failed to record normalized finance records: "+err.Error())
+	}
 	logger.Infof(ctx, "record log: %+v", log)
 }
 

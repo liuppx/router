@@ -21,6 +21,16 @@ func TestFinanceRecordsBackfillFromConsumeLogs(t *testing.T) {
 	if err := migrateRequestFinanceRecordsWithDB(db); err != nil {
 		t.Fatalf("backfill records: %v", err)
 	}
+	log2 := &Log{Id: "log-2", Type: LogTypeConsume, UserId: "user-2", BillingChargeAmount: 77, PromptTokens: 3, CompletionTokens: 4}
+	if err := db.Create(log2).Error; err != nil {
+		t.Fatalf("create second log: %v", err)
+	}
+	if err := RecordFinanceRecordsForLog(db, log2); err != nil {
+		t.Fatalf("record normalized records: %v", err)
+	}
+	if err := CheckFinanceRecordConsistency(db, "log-2"); err != nil {
+		t.Fatalf("consistency check: %v", err)
+	}
 	var settlement BillingSettlement
 	if err := db.First(&settlement, "request_log_id = ?", "log-1").Error; err != nil {
 		t.Fatalf("load settlement: %v", err)

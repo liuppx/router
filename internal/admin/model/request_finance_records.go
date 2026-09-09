@@ -218,3 +218,43 @@ func MarkProcurementRetryFailure(logID, message string, retriedAt int64) error {
 func ClearProcurementRetryFailure(logID string) error {
 	return updateProcurementAttribution(LOG_DB, logID, map[string]any{"last_error": ""})
 }
+
+// RecordFinanceRecordsForLog writes the normalized records for newly created
+// consume logs. It is intentionally best-effort during the compatibility
+// window; event_logs remains the rollback source until the final cleanup.
+func RecordFinanceRecordsForLog(db *gorm.DB, row *Log) error {
+	if db == nil || row == nil || strings.TrimSpace(row.Id) == "" || row.Type != LogTypeConsume {
+		return nil
+	}
+	if !db.Migrator().HasTable(&BillingSettlement{}) || !db.Migrator().HasTable(&ProcurementAttribution{}) {
+		return nil
+	}
+	settlement := billingSettlementFromLog(row)
+	if err := db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&settlement).Error; err != nil {
+		return err
+	}
+	attribution := procurementAttributionFromLog(row)
+	return db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&attribution).Error
+}
+
+func CheckFinanceRecordConsistency(db *gorm.DB, logID string) error {
+	if db == nil {
+		return fmt.Errorf("database handle is nil")
+	}
+	id := strings.TrimSpace(logID)
+	if id == "" {
+		return fmt.Errorf("log id is required")
+	}
+	var logRow Log
+	if err := db.First(&logRow, "id = ?", id).Error; err != nil {
+		return err
+	}
+	var settlement BillingSettlement
+	if err := db.First(&settlement, "request_log_id = ?", id).Error; err != nil {
+		return err
+	}
+	if settlement.ChargeAmount != logRow.BillingChargeAmount || settlement.PromptTokens != logRow.PromptTokens || settlement.CompletionTokens != logRow.CompletionTokens {
+		return fmt.Errorf("billing settlement mismatch for log %s", id)
+	}
+	return nil
+}
