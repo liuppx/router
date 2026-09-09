@@ -9,6 +9,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -76,6 +77,59 @@ func channelIDs(channels []*model.Channel) []string {
 		result = append(result, channel.Id)
 	}
 	return result
+}
+
+func channelProvider(channel *model.Channel, requestModel string) string {
+	if channel == nil {
+		return ""
+	}
+	for _, row := range channel.GetSelectedChannelModels() {
+		if requestModel == row.Model || requestModel == row.UpstreamModel {
+			return model.NormalizeGroupModelProviderValue(row.Provider)
+		}
+	}
+	return ""
+}
+
+func applyProviderRoutingPolicy(channels []*model.Channel, requestModel string, policy routing.ProviderRoutingPolicy) ([]*model.Channel, []model.ChannelCandidateFilter) {
+	if len(channels) == 0 || policy.ProviderScope.Mode == routing.ProviderScopeAny && len(policy.ProviderOrder) == 0 {
+		return channels, nil
+	}
+	allowed := make(map[string]struct{}, len(policy.ProviderScope.Providers))
+	for _, provider := range policy.ProviderScope.Providers {
+		allowed[provider] = struct{}{}
+	}
+	ordered := make(map[string]int, len(policy.ProviderOrder))
+	for index, provider := range policy.ProviderOrder {
+		ordered[provider] = index
+	}
+	result := make([]*model.Channel, 0, len(channels))
+	filtered := make([]model.ChannelCandidateFilter, 0)
+	for _, channel := range channels {
+		provider := channelProvider(channel, requestModel)
+		_, listed := allowed[provider]
+		excluded := (policy.ProviderScope.Mode == routing.ProviderScopeAllowList && !listed) ||
+			(policy.ProviderScope.Mode == routing.ProviderScopeDenyList && listed)
+		if excluded {
+			filtered = append(filtered, model.ChannelCandidateFilter{ChannelID: channel.Id, Reason: "provider_scope"})
+			continue
+		}
+		result = append(result, channel)
+	}
+	if len(ordered) > 0 {
+		sort.SliceStable(result, func(i, j int) bool {
+			left, leftOK := ordered[channelProvider(result[i], requestModel)]
+			right, rightOK := ordered[channelProvider(result[j], requestModel)]
+			if leftOK != rightOK {
+				return leftOK
+			}
+			if leftOK && left != right {
+				return left < right
+			}
+			return result[i].GetPriority() > result[j].GetPriority()
+		})
+	}
+	return result, filtered
 }
 
 func recordRouteDecision(c *gin.Context, source string, groupID string, requestModel string, requestPath string, candidates []*model.Channel, filteredCandidates []model.ChannelCandidateFilter, selected *model.Channel, selectionMode string) {
@@ -207,6 +261,13 @@ func selectEntitlementChannelForRequest(ctx context.Context, c *gin.Context, use
 			lastErr = err
 			logger.RelayWarnf(ctx, "DISTRIBUTE decision=skip reason=list_candidates_failed user_id=%s group=%s model=%s endpoint=%s listed_candidates=%d endpoint_filtered_candidates=%d error=%q", userID, groupID, requestModel, requestPath, stats.ListedCount, stats.EndpointFilteredCount, err.Error())
 			continue
+		}
+		policyValue, _ := c.Get(ctxkey.ProviderRoutingPolicy)
+		policy, policyOK := policyValue.(routing.ProviderRoutingPolicy)
+		policyFiltered := []model.ChannelCandidateFilter(nil)
+		if policyOK {
+			candidates, policyFiltered = applyProviderRoutingPolicy(candidates, requestModel, policy)
+			stats.FilteredCandidates = append(stats.FilteredCandidates, policyFiltered...)
 		}
 		channel := pickChannelByPriority(candidates, false)
 		if channel == nil {
