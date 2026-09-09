@@ -94,6 +94,97 @@ func hydrateLogsWithChannelNames(logs []*model.Log) error {
 	return nil
 }
 
+func hydrateLogsWithFinanceRecords(logs []*model.Log) error {
+	if len(logs) == 0 || model.LOG_DB == nil || !model.LOG_DB.Migrator().HasTable(&model.BillingSettlement{}) {
+		return nil
+	}
+	ids := make([]string, 0, len(logs))
+	byID := make(map[string]*model.Log, len(logs))
+	for _, row := range logs {
+		if row == nil || strings.TrimSpace(row.Id) == "" {
+			continue
+		}
+		id := strings.TrimSpace(row.Id)
+		ids = append(ids, id)
+		byID[id] = row
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	settlements := make([]model.BillingSettlement, 0, len(ids))
+	if err := model.LOG_DB.Where("request_log_id IN ?", ids).Find(&settlements).Error; err != nil {
+		return err
+	}
+	for _, settlement := range settlements {
+		row := byID[settlement.RequestLogID]
+		if row == nil {
+			continue
+		}
+		row.BillingPriceUnit = settlement.PriceUnit
+		row.BillingCurrency = settlement.Currency
+		row.BillingPricingSource = settlement.PricingSource
+		row.BillingUsageSource = settlement.UsageSource
+		row.BillingEstimateSource = settlement.EstimateSource
+		row.BillingEstimateEstimator = settlement.EstimateEstimator
+		row.BillingEstimatePrecision = settlement.EstimatePrecision
+		row.BillingSettlementMode = settlement.SettlementMode
+		row.BillingSettlementTruthMode = settlement.SettlementTruthMode
+		row.BillingEffectiveRatio = settlement.EffectiveRatio
+		row.BillingGroupChannelRatio = settlement.GroupChannelRatio
+		row.BillingModelChannelRatio = settlement.ModelChannelRatio
+		row.BillingChargeRate = settlement.ChargeRate
+		row.BillingInputQuantity = settlement.InputQuantity
+		row.BillingOutputQuantity = settlement.OutputQuantity
+		row.BillingCacheReadQuantity = settlement.CacheReadQuantity
+		row.BillingCacheWriteQuantity = settlement.CacheWriteQuantity
+		row.BillingInputAmount = settlement.InputAmount
+		row.BillingOutputAmount = settlement.OutputAmount
+		row.BillingCacheReadAmount = settlement.CacheReadAmount
+		row.BillingCacheWriteAmount = settlement.CacheWriteAmount
+		row.BillingAmount = settlement.Amount
+		row.BillingChargeAmount = settlement.ChargeAmount
+		row.BillingOfficialAnchorAmount = settlement.OfficialAnchorAmount
+		row.BillingOfficialAnchorCurrency = settlement.OfficialAnchorCurrency
+		row.BillingOfficialAnchorBaseAmount = settlement.OfficialAnchorBaseAmount
+		row.BillingSellBaseAmount = settlement.SellBaseAmount
+		row.BillingCostFloorBaseAmount = settlement.CostFloorBaseAmount
+		row.BillingSelectedSellBaseAmount = settlement.SelectedSellBaseAmount
+		row.BillingPricingDecisionReason = settlement.PricingDecisionReason
+		row.BillingCostFloorTriggered = settlement.CostFloorTriggered
+		row.BillingPricingRuleVersion = settlement.PricingRuleVersion
+		row.BillingDecision = settlement.Decision
+		row.EstimatedPromptTokens = settlement.EstimatedPromptTokens
+		row.EstimatedOutputTokens = settlement.EstimatedOutputTokens
+		row.EstimatedChargeAmount = settlement.EstimatedChargeAmount
+		row.PromptTokens = settlement.PromptTokens
+		row.CompletionTokens = settlement.CompletionTokens
+		row.BillingPromptTokenDelta = settlement.PromptTokenDelta
+		row.BillingOutputTokenDelta = settlement.OutputTokenDelta
+		row.BillingChargeDeltaAmount = settlement.ChargeDeltaAmount
+	}
+	attributions := make([]model.ProcurementAttribution, 0, len(ids))
+	if err := model.LOG_DB.Where("request_log_id IN ?", ids).Find(&attributions).Error; err != nil {
+		return err
+	}
+	for _, attribution := range attributions {
+		row := byID[attribution.RequestLogID]
+		if row == nil {
+			continue
+		}
+		row.BillingProcurementCostBaseAmount = attribution.CostBaseAmount
+		row.BillingProcurementCostSource = attribution.CostSource
+		row.BillingProcurementCostConfidence = attribution.CostConfidence
+		row.BillingProcurementCostStatus = attribution.Status
+		row.BillingGrossProfitBaseAmount = attribution.GrossProfitBaseAmount
+		row.BillingGrossMargin = attribution.GrossMargin
+		row.BillingCostRuleVersion = attribution.CostRuleVersion
+		row.BillingProcurementRetryCount = attribution.RetryCount
+		row.BillingProcurementLastRetryAt = attribution.LastRetryAt
+		row.BillingProcurementLastError = attribution.LastError
+	}
+	return nil
+}
+
 func init() {
 	model.BindLogRepository(model.LogRepository{
 		RecordLog:                             RecordLog,
@@ -237,6 +328,9 @@ func GetAll(logType int, startTimestamp int64, endTimestamp int64, modelName str
 	if err := hydrateLogsWithChannelNames(logs); err != nil {
 		return nil, err
 	}
+	if err := hydrateLogsWithFinanceRecords(logs); err != nil {
+		return nil, err
+	}
 	return logs, err
 }
 
@@ -267,6 +361,9 @@ func GetUser(userId string, logType int, startTimestamp int64, endTimestamp int6
 	if err := hydrateLogsWithChannelNames(logs); err != nil {
 		return nil, err
 	}
+	if err := hydrateLogsWithFinanceRecords(logs); err != nil {
+		return nil, err
+	}
 	return logs, nil
 }
 
@@ -280,6 +377,9 @@ func GetByID(logID string) (*model.Log, error) {
 		return nil, err
 	}
 	if err := hydrateLogsWithChannelNames([]*model.Log{row}); err != nil {
+		return nil, err
+	}
+	if err := hydrateLogsWithFinanceRecords([]*model.Log{row}); err != nil {
 		return nil, err
 	}
 	return row, nil
@@ -296,6 +396,9 @@ func GetUserByID(userId string, logID string) (*model.Log, error) {
 		return nil, err
 	}
 	if err := hydrateLogsWithChannelNames([]*model.Log{row}); err != nil {
+		return nil, err
+	}
+	if err := hydrateLogsWithFinanceRecords([]*model.Log{row}); err != nil {
 		return nil, err
 	}
 	return row, nil

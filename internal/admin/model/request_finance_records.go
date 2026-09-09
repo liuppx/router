@@ -296,3 +296,20 @@ func InspectFinanceConsistency(db *gorm.DB, startAt, endAt int64) (FinanceConsis
 	result.Consistent = result.MissingSettlements == 0 && result.MissingAttributions == 0 && result.SettlementMismatches == 0
 	return result, nil
 }
+
+// CanDropLegacyFinanceColumns is the explicit gate for the future cleanup
+// migration. It intentionally fails closed when normalized tables are absent
+// or any record in the verification window is missing or divergent.
+func CanDropLegacyFinanceColumns(db *gorm.DB, startAt, endAt int64) (bool, FinanceConsistencySummary, error) {
+	if db == nil {
+		return false, FinanceConsistencySummary{}, fmt.Errorf("database handle is nil")
+	}
+	if !db.Migrator().HasTable(&BillingSettlement{}) || !db.Migrator().HasTable(&ProcurementAttribution{}) {
+		return false, FinanceConsistencySummary{WindowStartAt: startAt, WindowEndAt: endAt}, nil
+	}
+	summary, err := InspectFinanceConsistency(db, startAt, endAt)
+	if err != nil {
+		return false, summary, err
+	}
+	return summary.Consistent, summary, nil
+}
