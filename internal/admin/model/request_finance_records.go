@@ -220,13 +220,21 @@ func updateProcurementAttribution(db *gorm.DB, logID string, updates map[string]
 }
 
 func MarkProcurementRetryFailure(logID, message string, retriedAt int64) error {
-	return updateProcurementAttribution(LOG_DB, logID, map[string]any{
+	return MarkProcurementRetryFailureWithDB(LOG_DB, logID, message, retriedAt)
+}
+
+func MarkProcurementRetryFailureWithDB(db *gorm.DB, logID, message string, retriedAt int64) error {
+	return updateProcurementAttribution(db, logID, map[string]any{
 		"status": ProcurementCostAttributionStatusRetry, "retry_count": gorm.Expr("retry_count + 1"), "last_retry_at": retriedAt, "last_error": message,
 	})
 }
 
 func ClearProcurementRetryFailure(logID string) error {
-	return updateProcurementAttribution(LOG_DB, logID, map[string]any{"last_error": ""})
+	return ClearProcurementRetryFailureWithDB(LOG_DB, logID)
+}
+
+func ClearProcurementRetryFailureWithDB(db *gorm.DB, logID string) error {
+	return updateProcurementAttribution(db, logID, map[string]any{"last_error": ""})
 }
 
 // RecordFinanceRecordsForLog writes the normalized records for newly created
