@@ -18,6 +18,16 @@ type FinanceConsistencySummary struct {
 	Consistent           bool  `json:"consistent"`
 }
 
+var legacyFinanceColumns = []string{
+	"billing_input_quantity", "billing_output_quantity", "billing_cache_read_quantity", "billing_cache_write_quantity",
+	"billing_input_amount", "billing_output_amount", "billing_cache_read_amount", "billing_cache_write_amount",
+	"billing_amount", "billing_charge_amount", "billing_official_anchor_amount", "billing_official_anchor_currency",
+	"billing_official_anchor_base_amount", "billing_sell_base_amount", "billing_cost_floor_base_amount", "billing_selected_sell_base_amount",
+	"billing_pricing_decision_reason", "billing_cost_floor_triggered", "billing_procurement_cost_base_amount", "billing_procurement_cost_source",
+	"billing_procurement_cost_confidence", "billing_procurement_cost_status", "billing_gross_profit_base_amount", "billing_gross_margin",
+	"billing_cost_rule_version", "billing_procurement_retry_count", "billing_procurement_last_retry_at", "billing_procurement_last_error",
+}
+
 const (
 	BillingSettlementsTableName      = "billing_settlements"
 	ProcurementAttributionsTableName = "procurement_attributions"
@@ -368,4 +378,35 @@ func CanDropLegacyFinanceColumns(db *gorm.DB, startAt, endAt int64) (bool, Finan
 		return false, summary, err
 	}
 	return summary.Consistent, summary, nil
+}
+
+// DropLegacyFinanceColumnsWithDB is intentionally not wired into an automatic
+// migration yet. It is the final, destructive operation after all legacy
+// readers and writers have been removed from the binary.
+func DropLegacyFinanceColumnsWithDB(db *gorm.DB, startAt, endAt int64) error {
+	if db == nil {
+		return fmt.Errorf("database handle is nil")
+	}
+	if !db.Migrator().HasTable(&Log{}) {
+		return fmt.Errorf("event logs table is missing")
+	}
+	if !db.Migrator().HasTable(&BillingSettlement{}) || !db.Migrator().HasTable(&ProcurementAttribution{}) {
+		return fmt.Errorf("normalized finance tables are missing")
+	}
+	allowed, summary, err := CanDropLegacyFinanceColumns(db, startAt, endAt)
+	if err != nil {
+		return err
+	}
+	if !allowed {
+		return fmt.Errorf("finance consistency gate failed: missing_settlements=%d missing_attributions=%d settlement_mismatches=%d", summary.MissingSettlements, summary.MissingAttributions, summary.SettlementMismatches)
+	}
+	for _, column := range legacyFinanceColumns {
+		if !db.Migrator().HasColumn(&Log{}, column) {
+			continue
+		}
+		if err := db.Migrator().DropColumn(&Log{}, column); err != nil {
+			return fmt.Errorf("drop legacy finance column %s: %w", column, err)
+		}
+	}
+	return nil
 }
