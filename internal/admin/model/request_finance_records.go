@@ -393,6 +393,9 @@ func DropLegacyFinanceColumnsWithDB(db *gorm.DB, startAt, endAt int64) error {
 	if !db.Migrator().HasTable(&BillingSettlement{}) || !db.Migrator().HasTable(&ProcurementAttribution{}) {
 		return fmt.Errorf("normalized finance tables are missing")
 	}
+	if startAt != 0 || endAt != 0 {
+		return fmt.Errorf("destructive finance cleanup requires a full-history consistency check")
+	}
 	allowed, summary, err := CanDropLegacyFinanceColumns(db, startAt, endAt)
 	if err != nil {
 		return err
@@ -400,13 +403,15 @@ func DropLegacyFinanceColumnsWithDB(db *gorm.DB, startAt, endAt int64) error {
 	if !allowed {
 		return fmt.Errorf("finance consistency gate failed: missing_settlements=%d missing_attributions=%d settlement_mismatches=%d", summary.MissingSettlements, summary.MissingAttributions, summary.SettlementMismatches)
 	}
-	for _, column := range legacyFinanceColumns {
-		if !db.Migrator().HasColumn(&Log{}, column) {
-			continue
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, column := range legacyFinanceColumns {
+			if !tx.Migrator().HasColumn(&Log{}, column) {
+				continue
+			}
+			if err := tx.Migrator().DropColumn(&Log{}, column); err != nil {
+				return fmt.Errorf("drop legacy finance column %s: %w", column, err)
+			}
 		}
-		if err := db.Migrator().DropColumn(&Log{}, column); err != nil {
-			return fmt.Errorf("drop legacy finance column %s: %w", column, err)
-		}
-	}
-	return nil
+		return nil
+	})
 }

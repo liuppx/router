@@ -39,7 +39,7 @@ func TestDropLegacyFinanceColumnsRequiresConsistency(t *testing.T) {
 	if err := db.Create(&ProcurementAttribution{RequestLogID: log.Id, Status: ProcurementCostAttributionStatusNone}).Error; err != nil {
 		t.Fatalf("create attribution: %v", err)
 	}
-	if err := DropLegacyFinanceColumnsWithDB(db, 1, 200); err != nil {
+	if err := DropLegacyFinanceColumnsWithDB(db, 0, 0); err != nil {
 		t.Fatalf("drop legacy columns: %v", err)
 	}
 	if db.Migrator().HasColumn(&Log{}, "billing_charge_amount") {
@@ -68,10 +68,26 @@ func TestDropLegacyFinanceColumnsFailsOnMismatch(t *testing.T) {
 	if err := db.Create(&ProcurementAttribution{RequestLogID: log.Id, Status: ProcurementCostAttributionStatusNone}).Error; err != nil {
 		t.Fatalf("create attribution: %v", err)
 	}
-	if err := DropLegacyFinanceColumnsWithDB(db, 1, 200); err == nil {
+	if err := DropLegacyFinanceColumnsWithDB(db, 0, 0); err == nil {
 		t.Fatal("expected consistency gate error")
 	}
 	if !db.Migrator().HasColumn(&Log{}, "billing_charge_amount") {
 		t.Fatal("legacy column must remain after failed cleanup")
+	}
+}
+
+func TestDropLegacyFinanceColumnsRejectsBoundedWindow(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open("file:finance-cleanup-window?mode=memory&cache=shared"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	if err := db.AutoMigrate(&Log{}, &BillingSettlement{}, &ProcurementAttribution{}); err != nil {
+		t.Fatalf("migrate records: %v", err)
+	}
+	if err := DropLegacyFinanceColumnsWithDB(db, 1, 2); err == nil {
+		t.Fatal("expected bounded cleanup window to be rejected")
+	}
+	if !db.Migrator().HasColumn(&Log{}, "billing_charge_amount") {
+		t.Fatal("legacy columns must remain after bounded cleanup rejection")
 	}
 }
