@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -605,6 +606,11 @@ func GetBillingHealth(c *gin.Context) {
 	appendProcurementCostHealthIssues(&response)
 	appendProcurementBatchHealthIssues(&response)
 	appendPricingPolicyHealthIssues(&response)
+	if consistency, err := model.InspectFinanceConsistency(model.LOG_DB, response.WindowStartAt, response.WindowEndAt); err != nil {
+		appendBillingHealthIssue(&response, billingHealthIssue{Key: "finance_consistency_check_failed", Level: "critical", Title: "财务记录一致性检查失败", Message: err.Error(), Link: "/admin/finance/health"})
+	} else if !consistency.Consistent {
+		appendBillingHealthIssue(&response, billingHealthIssue{Key: "finance_records_inconsistent", Level: "critical", Title: "财务记录存在不一致", Message: fmt.Sprintf("结算缺失 %d，采购归因缺失 %d，结算字段不一致 %d", consistency.MissingSettlements, consistency.MissingAttributions, consistency.SettlementMismatches), Link: "/admin/finance/health", Count: consistency.MissingSettlements + consistency.MissingAttributions + consistency.SettlementMismatches})
+	}
 	if response.CriticalCount > 0 {
 		response.Status = "critical"
 	} else if response.WarningCount > 0 {
@@ -615,6 +621,24 @@ func GetBillingHealth(c *gin.Context) {
 		"message": "",
 		"data":    response,
 	})
+}
+
+func GetFinanceConsistency(c *gin.Context) {
+	now := helper.GetTimestamp()
+	startAt := parseBillingReportTimestamp(c.Query("start_at"))
+	endAt := parseBillingReportTimestamp(c.Query("end_at"))
+	if endAt == 0 {
+		endAt = now
+	}
+	if startAt == 0 {
+		startAt = endAt - 7*24*60*60
+	}
+	result, err := model.InspectFinanceConsistency(model.LOG_DB, startAt, endAt)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "财务一致性检查失败: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "", "data": result})
 }
 
 func GetProcurementReport(c *gin.Context) {

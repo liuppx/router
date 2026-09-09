@@ -8,6 +8,16 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+type FinanceConsistencySummary struct {
+	WindowStartAt        int64 `json:"window_start_at"`
+	WindowEndAt          int64 `json:"window_end_at"`
+	ConsumeLogs          int64 `json:"consume_logs"`
+	MissingSettlements   int64 `json:"missing_settlements"`
+	MissingAttributions  int64 `json:"missing_attributions"`
+	SettlementMismatches int64 `json:"settlement_mismatches"`
+	Consistent           bool  `json:"consistent"`
+}
+
 const (
 	BillingSettlementsTableName      = "billing_settlements"
 	ProcurementAttributionsTableName = "procurement_attributions"
@@ -257,4 +267,32 @@ func CheckFinanceRecordConsistency(db *gorm.DB, logID string) error {
 		return fmt.Errorf("billing settlement mismatch for log %s", id)
 	}
 	return nil
+}
+
+func InspectFinanceConsistency(db *gorm.DB, startAt, endAt int64) (FinanceConsistencySummary, error) {
+	if db == nil {
+		return FinanceConsistencySummary{}, fmt.Errorf("database handle is nil")
+	}
+	result := FinanceConsistencySummary{WindowStartAt: startAt, WindowEndAt: endAt}
+	base := db.Table(EventLogsTableName).Where("type = ?", LogTypeConsume)
+	if startAt > 0 {
+		base = base.Where("created_at >= ?", startAt)
+	}
+	if endAt > 0 {
+		base = base.Where("created_at <= ?", endAt)
+	}
+	if err := base.Count(&result.ConsumeLogs).Error; err != nil {
+		return result, err
+	}
+	if err := db.Raw("SELECT COUNT(*) FROM event_logs el LEFT JOIN billing_settlements bs ON bs.request_log_id = el.id WHERE el.type = ? AND bs.request_log_id IS NULL AND (? = 0 OR el.created_at >= ?) AND (? = 0 OR el.created_at <= ?)", LogTypeConsume, startAt, startAt, endAt, endAt).Scan(&result.MissingSettlements).Error; err != nil {
+		return result, err
+	}
+	if err := db.Raw("SELECT COUNT(*) FROM event_logs el LEFT JOIN procurement_attributions pa ON pa.request_log_id = el.id WHERE el.type = ? AND pa.request_log_id IS NULL AND (? = 0 OR el.created_at >= ?) AND (? = 0 OR el.created_at <= ?)", LogTypeConsume, startAt, startAt, endAt, endAt).Scan(&result.MissingAttributions).Error; err != nil {
+		return result, err
+	}
+	if err := db.Raw("SELECT COUNT(*) FROM event_logs el JOIN billing_settlements bs ON bs.request_log_id = el.id WHERE el.type = ? AND (el.billing_charge_amount <> bs.charge_amount OR el.prompt_tokens <> bs.prompt_tokens OR el.completion_tokens <> bs.completion_tokens) AND (? = 0 OR el.created_at >= ?) AND (? = 0 OR el.created_at <= ?)", LogTypeConsume, startAt, startAt, endAt, endAt).Scan(&result.SettlementMismatches).Error; err != nil {
+		return result, err
+	}
+	result.Consistent = result.MissingSettlements == 0 && result.MissingAttributions == 0 && result.SettlementMismatches == 0
+	return result, nil
 }
