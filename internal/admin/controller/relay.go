@@ -24,6 +24,7 @@ import (
 	"github.com/yeying-community/router/internal/relay/model"
 	"github.com/yeying-community/router/internal/relay/relaymode"
 	"github.com/yeying-community/router/internal/relay/routeobs"
+	"github.com/yeying-community/router/internal/relay/routing"
 	"github.com/yeying-community/router/internal/transport/http/middleware"
 )
 
@@ -80,6 +81,9 @@ func Relay(c *gin.Context) {
 		return
 	}
 	lastFailedChannelId := channelId
+	initialProvider := selectedChannelProvider(c, originalModel)
+	lastProvider := initialProvider
+	policy := requestProviderRoutingPolicy(c)
 	channelName := c.GetString(ctxkey.ChannelName)
 	group := c.GetString(ctxkey.Group)
 	if markClientAbortIfNeeded(c, bizErr) {
@@ -93,6 +97,9 @@ func Relay(c *gin.Context) {
 	go processChannelRelayError(ctx, userId, group, channelId, channelName, originalModel, requestPath, *bizErr)
 	traceID := c.GetString(helper.TraceIDKey)
 	retryAllRemainingCandidates := config.RetryTimes > 0 || monitor.IsHardChannelFailure(&bizErr.Error, bizErr.StatusCode)
+	if policy.RetryScope == routing.RetryScopeNone {
+		retryAllRemainingCandidates = false
+	}
 	retryCount := 0
 	retryable := shouldRetry(c, bizErr)
 	if !retryable {
@@ -137,6 +144,11 @@ func Relay(c *gin.Context) {
 			}
 			break
 		}
+		selectedProvider := channelProvider(channel, originalModel)
+		if !retryProviderAllowed(policy, initialProvider, lastProvider, selectedProvider) {
+			failedChannelIDs[strings.TrimSpace(channel.Id)] = struct{}{}
+			continue
+		}
 		retryCount++
 		c.Set(ctxkey.RelayRetryCount, retryCount)
 		logger.RelayWarnf(ctx, relaylogging.NewFields("RETRY").
@@ -172,6 +184,7 @@ func Relay(c *gin.Context) {
 		channelId := c.GetString(ctxkey.ChannelId)
 		lastFailedChannelId = channelId
 		channelName = c.GetString(ctxkey.ChannelName)
+		lastProvider = channelProvider(channel, originalModel)
 		if trimmedChannelID := strings.TrimSpace(channelId); trimmedChannelID != "" {
 			failedChannelIDs[trimmedChannelID] = struct{}{}
 		}
@@ -475,6 +488,83 @@ func errorCodeString(code any) string {
 
 func priorityToInt(priority int64) int {
 	return int(priority)
+}
+
+func requestProviderRoutingPolicy(c *gin.Context) routing.ProviderRoutingPolicy {
+	policy := routing.DefaultPolicy()
+	if c == nil {
+		return policy
+	}
+	if value, ok := c.Get(ctxkey.ProviderRoutingPolicy); ok {
+		if resolved, ok := value.(routing.ProviderRoutingPolicy); ok {
+			return resolved
+		}
+	}
+	return policy
+}
+
+func selectedChannelProvider(c *gin.Context, requestModel string) string {
+	if c == nil {
+		return ""
+	}
+	value, ok := c.Get(ctxkey.ChannelModelConfigs)
+	if !ok {
+		return ""
+	}
+	rows, ok := value.([]dbmodel.ChannelModel)
+	if !ok {
+		return ""
+	}
+	selected, ok := dbmodel.FindSelectedChannelModelConfig(rows, requestModel)
+	if !ok {
+		return ""
+	}
+	return dbmodel.NormalizeGroupModelProviderValue(selected.Provider)
+}
+
+func channelProvider(channel *dbmodel.Channel, requestModel string) string {
+	if channel == nil {
+		return ""
+	}
+	selected, ok := dbmodel.FindSelectedChannelModelConfig(channel.GetSelectedChannelModels(), requestModel)
+	if !ok {
+		return ""
+	}
+	return dbmodel.NormalizeGroupModelProviderValue(selected.Provider)
+}
+
+func retryProviderAllowed(policy routing.ProviderRoutingPolicy, initialProvider string, lastProvider string, selectedProvider string) bool {
+	if policy.RetryScope == routing.RetryScopeNone {
+		return false
+	}
+	if selectedProvider == "" {
+		return initialProvider == "" || policy.RetryScope == routing.RetryScopeAllEligible
+	}
+	switch policy.RetryScope {
+	case routing.RetryScopeSameProvider:
+		return initialProvider == "" || selectedProvider == initialProvider
+	case routing.RetryScopeOrderedProviders:
+		if len(policy.ProviderOrder) == 0 {
+			return true
+		}
+		selectedIndex := providerOrderIndex(policy.ProviderOrder, selectedProvider)
+		if selectedIndex < 0 {
+			return false
+		}
+		lastIndex := providerOrderIndex(policy.ProviderOrder, lastProvider)
+		return lastIndex < 0 || selectedIndex >= lastIndex
+	default:
+		return true
+	}
+}
+
+func providerOrderIndex(order []string, provider string) int {
+	for index, candidate := range order {
+		if strings.EqualFold(strings.TrimSpace(candidate), strings.TrimSpace(provider)) {
+			return index
+		}
+	}
+	return -1
 }
 
 func resolveRetrySelectionFailureReason(stats dbmodel.SatisfiedChannelSelectionStats) string {
