@@ -2033,6 +2033,13 @@ func runMainVersionedMigrations(db *gorm.DB) error {
 				return migrateRequestFinanceRecordsWithDB(tx)
 			},
 		},
+		{
+			Version:     "202609091000_log_finance_records_compat",
+			Description: "create normalized billing settlement and procurement attribution records in log database and backfill event logs",
+			Up: func(tx *gorm.DB) error {
+				return migrateRequestFinanceRecordsWithDB(tx)
+			},
+		},
 	}
 	return runVersionedMigrations(db, migrationScopeMain, migrations)
 }

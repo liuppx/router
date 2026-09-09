@@ -266,15 +266,34 @@ func ClearProcurementRetryFailureWithDB(db *gorm.DB, logID string) error {
 	})
 }
 
-// RecordFinanceRecordsForLog writes the normalized records for newly created
-// consume logs. It is intentionally best-effort during the compatibility
-// window; event_logs remains the rollback source until the final cleanup.
+// CreateLogWithFinanceRecords atomically creates a request log and its
+// normalized finance records. Non-consume logs only require event_logs.
+func CreateLogWithFinanceRecords(db *gorm.DB, row *Log) error {
+	if db == nil {
+		return fmt.Errorf("database handle is nil")
+	}
+	if row == nil {
+		return fmt.Errorf("log is nil")
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(row).Error; err != nil {
+			return err
+		}
+		return RecordFinanceRecordsForLog(tx, row)
+	})
+}
+
+// RecordFinanceRecordsForLog writes normalized records for an existing
+// consume log. Missing tables are fatal because callers rely on atomicity.
 func RecordFinanceRecordsForLog(db *gorm.DB, row *Log) error {
 	if db == nil || row == nil || strings.TrimSpace(row.Id) == "" || row.Type != LogTypeConsume {
 		return nil
 	}
-	if !db.Migrator().HasTable(&BillingSettlement{}) || !db.Migrator().HasTable(&ProcurementAttribution{}) {
-		return nil
+	if !db.Migrator().HasTable(&BillingSettlement{}) {
+		return fmt.Errorf("normalized billing settlement table is missing")
+	}
+	if !db.Migrator().HasTable(&ProcurementAttribution{}) {
+		return fmt.Errorf("normalized procurement attribution table is missing")
 	}
 	settlement := billingSettlementFromLog(row)
 	if err := db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&settlement).Error; err != nil {

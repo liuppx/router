@@ -97,3 +97,53 @@ func TestLegacyProcurementRetryHelpersUseNormalizedRecords(t *testing.T) {
 		t.Fatalf("last error = %q", attribution.LastError)
 	}
 }
+
+func TestCreateLogWithFinanceRecordsIsAtomic(t *testing.T) {
+	t.Run("creates all records", func(t *testing.T) {
+		db, err := gorm.Open(sqlite.Open("file:finance-create-success?mode=memory&cache=shared"), &gorm.Config{})
+		if err != nil {
+			t.Fatalf("open sqlite: %v", err)
+		}
+		if err := db.AutoMigrate(&Log{}, &BillingSettlement{}, &ProcurementAttribution{}); err != nil {
+			t.Fatalf("migrate records: %v", err)
+		}
+		row := &Log{Id: "atomic-log", Type: LogTypeConsume, BillingChargeAmount: 42, BillingProcurementCostStatus: ProcurementCostAttributionStatusPending}
+		if err := CreateLogWithFinanceRecords(db, row); err != nil {
+			t.Fatalf("create records: %v", err)
+		}
+		for table, target := range map[string]any{
+			EventLogsTableName:               &Log{},
+			BillingSettlementsTableName:      &BillingSettlement{},
+			ProcurementAttributionsTableName: &ProcurementAttribution{},
+		} {
+			var count int64
+			if err := db.Model(target).Count(&count).Error; err != nil {
+				t.Fatalf("count %s: %v", table, err)
+			}
+			if count != 1 {
+				t.Fatalf("%s count = %d, want 1", table, count)
+			}
+		}
+	})
+
+	t.Run("rolls back without normalized tables", func(t *testing.T) {
+		db, err := gorm.Open(sqlite.Open("file:finance-create-rollback?mode=memory&cache=shared"), &gorm.Config{})
+		if err != nil {
+			t.Fatalf("open sqlite: %v", err)
+		}
+		if err := db.AutoMigrate(&Log{}); err != nil {
+			t.Fatalf("migrate logs: %v", err)
+		}
+		err = CreateLogWithFinanceRecords(db, &Log{Id: "rolled-back-log", Type: LogTypeConsume})
+		if err == nil {
+			t.Fatal("expected missing normalized table error")
+		}
+		var count int64
+		if err := db.Model(&Log{}).Where("id = ?", "rolled-back-log").Count(&count).Error; err != nil {
+			t.Fatalf("count logs: %v", err)
+		}
+		if count != 0 {
+			t.Fatalf("log count = %d, want rollback", count)
+		}
+	})
+}
