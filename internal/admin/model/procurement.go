@@ -1036,11 +1036,11 @@ func ConsumeChannelProcurementBatchesWithDB(db *gorm.DB, input ProcurementConsum
 	return result, nil
 }
 
-func UpdateLogProcurementCostObservation(logID string, costBaseAmount float64, costSource string, sellBaseAmount float64) error {
-	return UpdateLogProcurementCostObservationWithDB(LOG_DB, logID, costBaseAmount, costSource, sellBaseAmount)
+func UpdateProcurementCostObservation(logID string, costBaseAmount float64, costSource string, sellBaseAmount float64) error {
+	return UpdateProcurementCostObservationWithDB(LOG_DB, logID, costBaseAmount, costSource, sellBaseAmount)
 }
 
-func UpdateLogProcurementCostObservationWithDB(db *gorm.DB, logID string, costBaseAmount float64, costSource string, sellBaseAmount float64) error {
+func UpdateProcurementCostObservationWithDB(db *gorm.DB, logID string, costBaseAmount float64, costSource string, sellBaseAmount float64) error {
 	if db == nil {
 		return fmt.Errorf("database handle is nil")
 	}
@@ -1048,19 +1048,6 @@ func UpdateLogProcurementCostObservationWithDB(db *gorm.DB, logID string, costBa
 	normalizedCostSource := normalizeProcurementCostSource(costSource)
 	if normalizedLogID == "" || normalizedCostSource == "" || normalizedCostSource == ProcurementCostSourceNone {
 		return nil
-	}
-	updates := map[string]any{
-		"billing_procurement_cost_base_amount": costBaseAmount,
-		"billing_procurement_cost_source":      normalizedCostSource,
-		"billing_procurement_cost_status":      ProcurementCostAttributionStatusFromSource(normalizedCostSource),
-	}
-	if sellBaseAmount > 0 {
-		grossProfit := sellBaseAmount - costBaseAmount
-		updates["billing_gross_profit_base_amount"] = grossProfit
-		updates["billing_gross_margin"] = grossProfit / sellBaseAmount
-	}
-	if err := db.Model(&Log{}).Where("id = ?", normalizedLogID).Updates(updates).Error; err != nil {
-		return err
 	}
 	financeUpdates := map[string]any{
 		"cost_base_amount": costBaseAmount,
@@ -1072,14 +1059,33 @@ func UpdateLogProcurementCostObservationWithDB(db *gorm.DB, logID string, costBa
 		financeUpdates["gross_profit_base_amount"] = grossProfit
 		financeUpdates["gross_margin"] = grossProfit / sellBaseAmount
 	}
-	return updateProcurementAttribution(db, normalizedLogID, financeUpdates)
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := updateProcurementAttribution(tx, normalizedLogID, financeUpdates); err != nil {
+			return err
+		}
+		return updateLegacyProcurementCostObservation(tx, normalizedLogID, costBaseAmount, normalizedCostSource, sellBaseAmount)
+	})
 }
 
-func UpdateLogProcurementCostAttributionStatus(logID string, status string) error {
-	return UpdateLogProcurementCostAttributionStatusWithDB(LOG_DB, logID, status)
+func updateLegacyProcurementCostObservation(db *gorm.DB, logID string, costBaseAmount float64, costSource string, sellBaseAmount float64) error {
+	updates := map[string]any{
+		"billing_procurement_cost_base_amount": costBaseAmount,
+		"billing_procurement_cost_source":      costSource,
+		"billing_procurement_cost_status":      ProcurementCostAttributionStatusFromSource(costSource),
+	}
+	if sellBaseAmount > 0 {
+		grossProfit := sellBaseAmount - costBaseAmount
+		updates["billing_gross_profit_base_amount"] = grossProfit
+		updates["billing_gross_margin"] = grossProfit / sellBaseAmount
+	}
+	return db.Model(&Log{}).Where("id = ?", logID).Updates(updates).Error
 }
 
-func UpdateLogProcurementCostAttributionStatusWithDB(db *gorm.DB, logID string, status string) error {
+func UpdateProcurementCostAttributionStatus(logID string, status string) error {
+	return UpdateProcurementCostAttributionStatusWithDB(LOG_DB, logID, status)
+}
+
+func UpdateProcurementCostAttributionStatusWithDB(db *gorm.DB, logID string, status string) error {
 	if db == nil {
 		return fmt.Errorf("database handle is nil")
 	}
@@ -1088,10 +1094,10 @@ func UpdateLogProcurementCostAttributionStatusWithDB(db *gorm.DB, logID string, 
 	if normalizedLogID == "" || normalizedStatus == "" {
 		return nil
 	}
-	if err := db.Model(&Log{}).
-		Where("id = ?", normalizedLogID).
-		Update("billing_procurement_cost_status", normalizedStatus).Error; err != nil {
-		return err
-	}
-	return updateProcurementAttribution(db, normalizedLogID, map[string]any{"status": normalizedStatus})
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := updateProcurementAttribution(tx, normalizedLogID, map[string]any{"status": normalizedStatus}); err != nil {
+			return err
+		}
+		return tx.Model(&Log{}).Where("id = ?", normalizedLogID).Update("billing_procurement_cost_status", normalizedStatus).Error
+	})
 }

@@ -526,14 +526,14 @@ func TestConsumeChannelProcurementBatchesWithDBReportsPartialCoverage(t *testing
 	}
 }
 
-func TestUpdateLogProcurementCostObservationWithDB(t *testing.T) {
+func TestUpdateProcurementCostObservationWithDB(t *testing.T) {
 	db := newProcurementTestDB(t)
-	logRow := Log{Id: "log-1", BillingSellBaseAmount: 10}
+	logRow := Log{Id: "log-1", Type: LogTypeConsume, BillingSellBaseAmount: 10}
 	if err := db.Create(&logRow).Error; err != nil {
 		t.Fatalf("create log: %v", err)
 	}
 
-	if err := UpdateLogProcurementCostObservationWithDB(db, "log-1", 4, ProcurementCostSourceActual, 10); err != nil {
+	if err := UpdateProcurementCostObservationWithDB(db, "log-1", 4, ProcurementCostSourceActual, 10); err != nil {
 		t.Fatalf("update log procurement cost: %v", err)
 	}
 
@@ -552,6 +552,35 @@ func TestUpdateLogProcurementCostObservationWithDB(t *testing.T) {
 	}
 	if updated.BillingProcurementCostStatus != ProcurementCostAttributionStatusActual {
 		t.Fatalf("BillingProcurementCostStatus=%q, want actual", updated.BillingProcurementCostStatus)
+	}
+	var attribution ProcurementAttribution
+	if err := db.First(&attribution, "request_log_id = ?", "log-1").Error; err != nil {
+		t.Fatalf("load attribution: %v", err)
+	}
+	if attribution.CostBaseAmount != 4 || attribution.GrossProfitBaseAmount != 6 || attribution.GrossMargin != 0.6 || attribution.Status != ProcurementCostAttributionStatusActual {
+		t.Fatalf("unexpected normalized attribution: %+v", attribution)
+	}
+}
+
+func TestUpdateProcurementCostObservationRequiresNormalizedRecord(t *testing.T) {
+	db := newProcurementTestDB(t)
+	logRow := Log{Id: "missing-attribution", Type: LogTypeConsume, BillingSellBaseAmount: 10}
+	if err := db.Create(&logRow).Error; err != nil {
+		t.Fatalf("create log: %v", err)
+	}
+	if err := db.Delete(&ProcurementAttribution{}, "request_log_id = ?", logRow.Id).Error; err != nil {
+		t.Fatalf("delete attribution: %v", err)
+	}
+
+	if err := UpdateProcurementCostObservationWithDB(db, logRow.Id, 4, ProcurementCostSourceActual, 10); err == nil {
+		t.Fatal("expected missing normalized attribution error")
+	}
+	var updated Log
+	if err := db.First(&updated, "id = ?", logRow.Id).Error; err != nil {
+		t.Fatalf("load log: %v", err)
+	}
+	if updated.BillingProcurementCostBaseAmount != 0 || updated.BillingProcurementCostStatus != "" {
+		t.Fatalf("legacy fields changed without normalized record: %+v", updated)
 	}
 }
 

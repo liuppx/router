@@ -77,7 +77,7 @@ func TestLegacyProcurementRetryHelpersUseNormalizedRecords(t *testing.T) {
 		t.Fatalf("get retry log: %v", err)
 	}
 
-	if err := MarkLogProcurementRetryFailureWithDB(db, log.Id, "upstream timeout", 123); err != nil {
+	if err := MarkProcurementRetryFailureWithDB(db, log.Id, "upstream timeout", 123); err != nil {
 		t.Fatalf("mark retry failure: %v", err)
 	}
 	var attribution ProcurementAttribution
@@ -87,7 +87,7 @@ func TestLegacyProcurementRetryHelpersUseNormalizedRecords(t *testing.T) {
 	if attribution.RetryCount != 1 || attribution.LastRetryAt != 123 || attribution.LastError != "upstream timeout" {
 		t.Fatalf("attribution = %+v", attribution)
 	}
-	if err := ClearLogProcurementRetryFailureWithDB(db, log.Id); err != nil {
+	if err := ClearProcurementRetryFailureWithDB(db, log.Id); err != nil {
 		t.Fatalf("clear retry failure: %v", err)
 	}
 	if err := db.First(&attribution, "request_log_id = ?", log.Id).Error; err != nil {

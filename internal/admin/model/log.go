@@ -103,7 +103,7 @@ func (Log) TableName() string {
 	return EventLogsTableName
 }
 
-func MarkLogProcurementRetryFailureWithDB(db *gorm.DB, logID string, message string, retriedAt int64) error {
+func updateLegacyProcurementRetryFailure(db *gorm.DB, logID string, message string, retriedAt int64) error {
 	if db == nil {
 		return fmt.Errorf("database handle is nil")
 	}
@@ -120,14 +120,10 @@ func MarkLogProcurementRetryFailureWithDB(db *gorm.DB, logID string, message str
 		}).Error; err != nil {
 		return err
 	}
-	return MarkProcurementRetryFailureWithDB(db, logID, message, retriedAt)
+	return nil
 }
 
-func MarkLogProcurementRetryFailure(logID string, message string, retriedAt int64) error {
-	return MarkLogProcurementRetryFailureWithDB(LOG_DB, logID, message, retriedAt)
-}
-
-func ClearLogProcurementRetryFailureWithDB(db *gorm.DB, logID string) error {
+func clearLegacyProcurementRetryFailure(db *gorm.DB, logID string) error {
 	if db == nil {
 		return fmt.Errorf("database handle is nil")
 	}
@@ -141,11 +137,7 @@ func ClearLogProcurementRetryFailureWithDB(db *gorm.DB, logID string) error {
 		}).Error; err != nil {
 		return err
 	}
-	return ClearProcurementRetryFailureWithDB(db, logID)
-}
-
-func ClearLogProcurementRetryFailure(logID string) error {
-	return ClearLogProcurementRetryFailureWithDB(LOG_DB, logID)
+	return nil
 }
 
 const (

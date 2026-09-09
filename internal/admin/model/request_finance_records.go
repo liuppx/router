@@ -214,9 +214,22 @@ func updateProcurementAttribution(db *gorm.DB, logID string, updates map[string]
 		return nil
 	}
 	if !db.Migrator().HasTable(&ProcurementAttribution{}) {
-		return nil
+		return fmt.Errorf("normalized procurement attribution table is missing")
 	}
-	return db.Model(&ProcurementAttribution{}).Where("request_log_id = ?", id).Updates(updates).Error
+	result := db.Model(&ProcurementAttribution{}).Where("request_log_id = ?", id).Updates(updates)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		var count int64
+		if err := db.Model(&ProcurementAttribution{}).Where("request_log_id = ?", id).Count(&count).Error; err != nil {
+			return err
+		}
+		if count == 0 {
+			return fmt.Errorf("normalized procurement attribution %s not found", id)
+		}
+	}
+	return nil
 }
 
 func MarkProcurementRetryFailure(logID, message string, retriedAt int64) error {
@@ -224,8 +237,16 @@ func MarkProcurementRetryFailure(logID, message string, retriedAt int64) error {
 }
 
 func MarkProcurementRetryFailureWithDB(db *gorm.DB, logID, message string, retriedAt int64) error {
-	return updateProcurementAttribution(db, logID, map[string]any{
-		"status": ProcurementCostAttributionStatusRetry, "retry_count": gorm.Expr("retry_count + 1"), "last_retry_at": retriedAt, "last_error": message,
+	if db == nil {
+		return fmt.Errorf("database handle is nil")
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := updateProcurementAttribution(tx, logID, map[string]any{
+			"status": ProcurementCostAttributionStatusRetry, "retry_count": gorm.Expr("retry_count + 1"), "last_retry_at": retriedAt, "last_error": message,
+		}); err != nil {
+			return err
+		}
+		return updateLegacyProcurementRetryFailure(tx, logID, message, retriedAt)
 	})
 }
 
@@ -234,7 +255,15 @@ func ClearProcurementRetryFailure(logID string) error {
 }
 
 func ClearProcurementRetryFailureWithDB(db *gorm.DB, logID string) error {
-	return updateProcurementAttribution(db, logID, map[string]any{"last_error": ""})
+	if db == nil {
+		return fmt.Errorf("database handle is nil")
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := updateProcurementAttribution(tx, logID, map[string]any{"last_error": ""}); err != nil {
+			return err
+		}
+		return clearLegacyProcurementRetryFailure(tx, logID)
+	})
 }
 
 // RecordFinanceRecordsForLog writes the normalized records for newly created
