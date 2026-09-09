@@ -18,7 +18,7 @@ type FinanceConsistencySummary struct {
 	Consistent           bool  `json:"consistent"`
 }
 
-var legacyFinanceColumns = []string{
+var financeColumnsPendingRemoval = []string{
 	"billing_input_quantity", "billing_output_quantity", "billing_cache_read_quantity", "billing_cache_write_quantity",
 	"billing_input_amount", "billing_output_amount", "billing_cache_read_amount", "billing_cache_write_amount",
 	"billing_amount", "billing_charge_amount", "billing_official_anchor_amount", "billing_official_anchor_currency",
@@ -176,7 +176,7 @@ func procurementAttributionFromLog(row *Log) ProcurementAttribution {
 }
 
 // ListProcurementRetryLogs reads retry state from the normalized attribution
-// table while returning the legacy request log needed by existing billing code.
+// table while returning the request log needed by existing billing code.
 func ListProcurementRetryLogs(db *gorm.DB, limit int, maxCreatedAt int64) ([]Log, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database handle is nil")
@@ -363,10 +363,10 @@ func InspectFinanceConsistency(db *gorm.DB, startAt, endAt int64) (FinanceConsis
 	return result, nil
 }
 
-// CanDropLegacyFinanceColumns is the explicit gate for the future cleanup
+// CanDropFinanceColumns is the explicit gate for the future cleanup
 // migration. It intentionally fails closed when normalized tables are absent
 // or any record in the verification window is missing or divergent.
-func CanDropLegacyFinanceColumns(db *gorm.DB, startAt, endAt int64) (bool, FinanceConsistencySummary, error) {
+func CanDropFinanceColumns(db *gorm.DB, startAt, endAt int64) (bool, FinanceConsistencySummary, error) {
 	if db == nil {
 		return false, FinanceConsistencySummary{}, fmt.Errorf("database handle is nil")
 	}
@@ -380,10 +380,10 @@ func CanDropLegacyFinanceColumns(db *gorm.DB, startAt, endAt int64) (bool, Finan
 	return summary.Consistent, summary, nil
 }
 
-// DropLegacyFinanceColumnsWithDB is intentionally not wired into an automatic
-// migration yet. It is the final, destructive operation after all legacy
+// DropFinanceColumnsWithDB is intentionally not wired into an automatic
+// migration yet. It is the final, destructive operation after all old
 // readers and writers have been removed from the binary.
-func DropLegacyFinanceColumnsWithDB(db *gorm.DB, startAt, endAt int64) error {
+func DropFinanceColumnsWithDB(db *gorm.DB, startAt, endAt int64) error {
 	if db == nil {
 		return fmt.Errorf("database handle is nil")
 	}
@@ -396,7 +396,7 @@ func DropLegacyFinanceColumnsWithDB(db *gorm.DB, startAt, endAt int64) error {
 	if startAt != 0 || endAt != 0 {
 		return fmt.Errorf("destructive finance cleanup requires a full-history consistency check")
 	}
-	allowed, summary, err := CanDropLegacyFinanceColumns(db, startAt, endAt)
+	allowed, summary, err := CanDropFinanceColumns(db, startAt, endAt)
 	if err != nil {
 		return err
 	}
@@ -404,12 +404,12 @@ func DropLegacyFinanceColumnsWithDB(db *gorm.DB, startAt, endAt int64) error {
 		return fmt.Errorf("finance consistency gate failed: missing_settlements=%d missing_attributions=%d settlement_mismatches=%d", summary.MissingSettlements, summary.MissingAttributions, summary.SettlementMismatches)
 	}
 	return db.Transaction(func(tx *gorm.DB) error {
-		for _, column := range legacyFinanceColumns {
+		for _, column := range financeColumnsPendingRemoval {
 			if !tx.Migrator().HasColumn(&Log{}, column) {
 				continue
 			}
 			if err := tx.Migrator().DropColumn(&Log{}, column); err != nil {
-				return fmt.Errorf("drop legacy finance column %s: %w", column, err)
+				return fmt.Errorf("drop finance column pending removal %s: %w", column, err)
 			}
 		}
 		return nil

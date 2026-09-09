@@ -7,12 +7,12 @@ import (
 	"gorm.io/gorm"
 )
 
-func TestCanDropLegacyFinanceColumnsFailsClosedWithoutNormalizedTables(t *testing.T) {
+func TestCanDropFinanceColumnsFailsClosedWithoutNormalizedTables(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open("file:finance-cleanup-gate?mode=memory&cache=shared"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	allowed, _, err := CanDropLegacyFinanceColumns(db, 1, 2)
+	allowed, _, err := CanDropFinanceColumns(db, 1, 2)
 	if err != nil {
 		t.Fatalf("gate error: %v", err)
 	}
@@ -21,7 +21,7 @@ func TestCanDropLegacyFinanceColumnsFailsClosedWithoutNormalizedTables(t *testin
 	}
 }
 
-func TestDropLegacyFinanceColumnsRequiresConsistency(t *testing.T) {
+func TestDropFinanceColumnsRequiresConsistency(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open("file:finance-cleanup-drop?mode=memory&cache=shared"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
@@ -39,7 +39,7 @@ func TestDropLegacyFinanceColumnsRequiresConsistency(t *testing.T) {
 	if err := db.Create(&ProcurementAttribution{RequestLogID: log.Id, Status: ProcurementCostAttributionStatusNone}).Error; err != nil {
 		t.Fatalf("create attribution: %v", err)
 	}
-	if err := DropLegacyFinanceColumnsWithDB(db, 0, 0); err != nil {
+	if err := DropFinanceColumnsWithDB(db, 0, 0); err != nil {
 		t.Fatalf("drop legacy columns: %v", err)
 	}
 	if db.Migrator().HasColumn(&Log{}, "billing_charge_amount") {
@@ -50,7 +50,7 @@ func TestDropLegacyFinanceColumnsRequiresConsistency(t *testing.T) {
 	}
 }
 
-func TestDropLegacyFinanceColumnsFailsOnMismatch(t *testing.T) {
+func TestDropFinanceColumnsFailsOnMismatch(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open("file:finance-cleanup-mismatch?mode=memory&cache=shared"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
@@ -68,7 +68,7 @@ func TestDropLegacyFinanceColumnsFailsOnMismatch(t *testing.T) {
 	if err := db.Create(&ProcurementAttribution{RequestLogID: log.Id, Status: ProcurementCostAttributionStatusNone}).Error; err != nil {
 		t.Fatalf("create attribution: %v", err)
 	}
-	if err := DropLegacyFinanceColumnsWithDB(db, 0, 0); err == nil {
+	if err := DropFinanceColumnsWithDB(db, 0, 0); err == nil {
 		t.Fatal("expected consistency gate error")
 	}
 	if !db.Migrator().HasColumn(&Log{}, "billing_charge_amount") {
@@ -76,7 +76,7 @@ func TestDropLegacyFinanceColumnsFailsOnMismatch(t *testing.T) {
 	}
 }
 
-func TestDropLegacyFinanceColumnsRejectsBoundedWindow(t *testing.T) {
+func TestDropFinanceColumnsRejectsBoundedWindow(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open("file:finance-cleanup-window?mode=memory&cache=shared"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
@@ -84,7 +84,7 @@ func TestDropLegacyFinanceColumnsRejectsBoundedWindow(t *testing.T) {
 	if err := db.AutoMigrate(&Log{}, &BillingSettlement{}, &ProcurementAttribution{}); err != nil {
 		t.Fatalf("migrate records: %v", err)
 	}
-	if err := DropLegacyFinanceColumnsWithDB(db, 1, 2); err == nil {
+	if err := DropFinanceColumnsWithDB(db, 1, 2); err == nil {
 		t.Fatal("expected bounded cleanup window to be rejected")
 	}
 	if !db.Migrator().HasColumn(&Log{}, "billing_charge_amount") {
