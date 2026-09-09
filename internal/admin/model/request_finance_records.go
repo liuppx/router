@@ -1,0 +1,155 @@
+package model
+
+import (
+	"fmt"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+)
+
+const (
+	BillingSettlementsTableName      = "billing_settlements"
+	ProcurementAttributionsTableName = "procurement_attributions"
+)
+
+// BillingSettlement owns the immutable pricing and usage snapshot for one
+// request. RequestLogID is the stable migration key from event_logs.
+type BillingSettlement struct {
+	RequestLogID             string  `gorm:"type:char(36);primaryKey"`
+	UserID                   string  `gorm:"type:char(36);index"`
+	CreatedAt                int64   `gorm:"bigint;index"`
+	Source                   string  `gorm:"type:varchar(32);index;default:''"`
+	SourceID                 string  `gorm:"type:char(36);index;default:''"`
+	SourceName               string  `gorm:"type:varchar(255);default:''"`
+	SourceDetail             string  `gorm:"type:varchar(255);default:''"`
+	PriceUnit                string  `gorm:"type:varchar(64);default:''"`
+	Currency                 string  `gorm:"type:varchar(16);default:''"`
+	PricingSource            string  `gorm:"type:varchar(64);default:''"`
+	UsageSource              string  `gorm:"type:varchar(64);default:''"`
+	EstimateSource           string  `gorm:"type:varchar(64);default:''"`
+	EstimateEstimator        string  `gorm:"type:varchar(64);default:''"`
+	EstimatePrecision        string  `gorm:"type:varchar(32);default:''"`
+	SettlementMode           string  `gorm:"type:varchar(64);default:''"`
+	SettlementTruthMode      string  `gorm:"type:varchar(64);default:''"`
+	EffectiveRatio           float64 `gorm:"type:double precision;default:0"`
+	GroupChannelRatio        float64 `gorm:"type:double precision;default:0"`
+	ModelChannelRatio        float64 `gorm:"type:double precision;default:0"`
+	ChargeRate               float64 `gorm:"type:double precision;default:0"`
+	InputQuantity            float64 `gorm:"type:double precision;default:0"`
+	OutputQuantity           float64 `gorm:"type:double precision;default:0"`
+	CacheReadQuantity        float64 `gorm:"type:double precision;default:0"`
+	CacheWriteQuantity       float64 `gorm:"type:double precision;default:0"`
+	InputAmount              float64 `gorm:"type:double precision;default:0"`
+	OutputAmount             float64 `gorm:"type:double precision;default:0"`
+	CacheReadAmount          float64 `gorm:"type:double precision;default:0"`
+	CacheWriteAmount         float64 `gorm:"type:double precision;default:0"`
+	Amount                   float64 `gorm:"type:double precision;default:0"`
+	ChargeAmount             int64   `gorm:"bigint;default:0"`
+	OfficialAnchorAmount     float64 `gorm:"type:double precision;default:0"`
+	OfficialAnchorCurrency   string  `gorm:"type:varchar(16);default:''"`
+	OfficialAnchorBaseAmount float64 `gorm:"type:double precision;default:0"`
+	SellBaseAmount           float64 `gorm:"type:double precision;default:0"`
+	CostFloorBaseAmount      float64 `gorm:"type:double precision;default:0"`
+	SelectedSellBaseAmount   float64 `gorm:"type:double precision;default:0"`
+	PricingDecisionReason    string  `gorm:"type:varchar(64);default:''"`
+	CostFloorTriggered       bool    `gorm:"default:false"`
+	PricingRuleVersion       string  `gorm:"type:varchar(64);default:''"`
+	Decision                 string  `gorm:"type:text"`
+	EstimatedPromptTokens    int     `gorm:"default:0"`
+	EstimatedOutputTokens    int     `gorm:"default:0"`
+	EstimatedChargeAmount    int64   `gorm:"bigint;default:0"`
+	PromptTokens             int     `gorm:"default:0"`
+	CompletionTokens         int     `gorm:"default:0"`
+	PromptTokenDelta         int     `gorm:"default:0"`
+	OutputTokenDelta         int     `gorm:"default:0"`
+	ChargeDeltaAmount        int64   `gorm:"bigint;default:0"`
+}
+
+func (BillingSettlement) TableName() string { return BillingSettlementsTableName }
+
+// ProcurementAttribution owns procurement cost calculation and retry state.
+type ProcurementAttribution struct {
+	RequestLogID          string  `gorm:"type:char(36);primaryKey"`
+	ChannelID             string  `gorm:"type:varchar(64);index"`
+	CreatedAt             int64   `gorm:"bigint;index"`
+	CostBaseAmount        float64 `gorm:"type:double precision;default:0"`
+	CostSource            string  `gorm:"type:varchar(32);default:''"`
+	CostConfidence        string  `gorm:"type:varchar(64);default:''"`
+	Status                string  `gorm:"type:varchar(32);index;default:''"`
+	GrossProfitBaseAmount float64 `gorm:"type:double precision;default:0"`
+	GrossMargin           float64 `gorm:"type:double precision;default:0"`
+	CostRuleVersion       string  `gorm:"type:varchar(64);default:''"`
+	RetryCount            int     `gorm:"default:0"`
+	LastRetryAt           int64   `gorm:"bigint;default:0"`
+	LastError             string  `gorm:"type:text"`
+}
+
+func (ProcurementAttribution) TableName() string { return ProcurementAttributionsTableName }
+
+func migrateRequestFinanceRecordsWithDB(db *gorm.DB) error {
+	if db == nil {
+		return fmt.Errorf("database handle is nil")
+	}
+	if err := db.AutoMigrate(&BillingSettlement{}, &ProcurementAttribution{}); err != nil {
+		return err
+	}
+	return db.Where("type = ?", LogTypeConsume).FindInBatches(&[]Log{}, 500, func(batch *gorm.DB, _ int) error {
+		var rows []Log
+		if err := batch.Find(&rows).Error; err != nil {
+			return err
+		}
+		settlements := make([]BillingSettlement, 0, len(rows))
+		attributions := make([]ProcurementAttribution, 0, len(rows))
+		for i := range rows {
+			settlements = append(settlements, billingSettlementFromLog(&rows[i]))
+			attributions = append(attributions, procurementAttributionFromLog(&rows[i]))
+		}
+		if len(settlements) > 0 {
+			if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&settlements).Error; err != nil {
+				return err
+			}
+		}
+		if len(attributions) > 0 {
+			if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&attributions).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}).Error
+}
+
+func billingSettlementFromLog(row *Log) BillingSettlement {
+	if row == nil {
+		return BillingSettlement{}
+	}
+	return BillingSettlement{
+		RequestLogID: row.Id, UserID: row.UserId, CreatedAt: row.CreatedAt,
+		Source: row.BillingSource, SourceID: row.BillingSourceID, SourceName: row.BillingSourceName, SourceDetail: row.BillingSourceDetail,
+		PriceUnit: row.BillingPriceUnit, Currency: row.BillingCurrency, PricingSource: row.BillingPricingSource, UsageSource: row.BillingUsageSource,
+		EstimateSource: row.BillingEstimateSource, EstimateEstimator: row.BillingEstimateEstimator, EstimatePrecision: row.BillingEstimatePrecision,
+		SettlementMode: row.BillingSettlementMode, SettlementTruthMode: row.BillingSettlementTruthMode,
+		EffectiveRatio: row.BillingEffectiveRatio, GroupChannelRatio: row.BillingGroupChannelRatio, ModelChannelRatio: row.BillingModelChannelRatio, ChargeRate: row.BillingChargeRate,
+		InputQuantity: row.BillingInputQuantity, OutputQuantity: row.BillingOutputQuantity, CacheReadQuantity: row.BillingCacheReadQuantity, CacheWriteQuantity: row.BillingCacheWriteQuantity,
+		InputAmount: row.BillingInputAmount, OutputAmount: row.BillingOutputAmount, CacheReadAmount: row.BillingCacheReadAmount, CacheWriteAmount: row.BillingCacheWriteAmount,
+		Amount: row.BillingAmount, ChargeAmount: row.BillingChargeAmount,
+		OfficialAnchorAmount: row.BillingOfficialAnchorAmount, OfficialAnchorCurrency: row.BillingOfficialAnchorCurrency, OfficialAnchorBaseAmount: row.BillingOfficialAnchorBaseAmount,
+		SellBaseAmount: row.BillingSellBaseAmount, CostFloorBaseAmount: row.BillingCostFloorBaseAmount, SelectedSellBaseAmount: row.BillingSelectedSellBaseAmount,
+		PricingDecisionReason: row.BillingPricingDecisionReason, CostFloorTriggered: row.BillingCostFloorTriggered, PricingRuleVersion: row.BillingPricingRuleVersion, Decision: row.BillingDecision,
+		EstimatedPromptTokens: row.EstimatedPromptTokens, EstimatedOutputTokens: row.EstimatedOutputTokens, EstimatedChargeAmount: row.EstimatedChargeAmount,
+		PromptTokens: row.PromptTokens, CompletionTokens: row.CompletionTokens, PromptTokenDelta: row.BillingPromptTokenDelta, OutputTokenDelta: row.BillingOutputTokenDelta, ChargeDeltaAmount: row.BillingChargeDeltaAmount,
+	}
+}
+
+func procurementAttributionFromLog(row *Log) ProcurementAttribution {
+	if row == nil {
+		return ProcurementAttribution{}
+	}
+	return ProcurementAttribution{
+		RequestLogID: row.Id, ChannelID: row.ChannelId, CreatedAt: row.CreatedAt,
+		CostBaseAmount: row.BillingProcurementCostBaseAmount, CostSource: row.BillingProcurementCostSource,
+		CostConfidence: row.BillingProcurementCostConfidence, Status: row.BillingProcurementCostStatus,
+		GrossProfitBaseAmount: row.BillingGrossProfitBaseAmount, GrossMargin: row.BillingGrossMargin,
+		CostRuleVersion: row.BillingCostRuleVersion, RetryCount: row.BillingProcurementRetryCount,
+		LastRetryAt: row.BillingProcurementLastRetryAt, LastError: row.BillingProcurementLastError,
+	}
+}
