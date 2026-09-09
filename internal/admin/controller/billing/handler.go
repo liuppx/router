@@ -703,7 +703,7 @@ func GetProcurementRetries(c *gin.Context) {
 
 func RetryProcurementAttribution(c *gin.Context) {
 	logID := strings.TrimSpace(c.Param("id"))
-	row, err := model.GetProcurementCostRetryLog(logID)
+	row, err := model.GetProcurementRetryLog(model.LOG_DB, logID)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "采购成本重试记录不存在或已处理"})
 		return

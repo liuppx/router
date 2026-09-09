@@ -36,7 +36,7 @@ func runProcurementRetryWorker() {
 
 func runProcurementRetryOnce() {
 	maxCreatedAt := helper.GetTimestamp() - procurementRetryCooldownSeconds
-	rows, err := model.ListProcurementCostRetryLogs(procurementRetryBatchSize, maxCreatedAt)
+	rows, err := model.ListProcurementRetryLogs(model.LOG_DB, procurementRetryBatchSize, maxCreatedAt)
 	if err != nil {
 		logger.SysWarnf("[billing.procurement] list retry candidates failed: %s", err.Error())
 		return

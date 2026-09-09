@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"strings"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -152,4 +153,68 @@ func procurementAttributionFromLog(row *Log) ProcurementAttribution {
 		CostRuleVersion: row.BillingCostRuleVersion, RetryCount: row.BillingProcurementRetryCount,
 		LastRetryAt: row.BillingProcurementLastRetryAt, LastError: row.BillingProcurementLastError,
 	}
+}
+
+// ListProcurementRetryLogs reads retry state from the normalized attribution
+// table while returning the legacy request log needed by existing billing code.
+func ListProcurementRetryLogs(db *gorm.DB, limit int, maxCreatedAt int64) ([]Log, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database handle is nil")
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	query := db.Table(ProcurementAttributionsTableName+" pa").
+		Select("el.*").
+		Joins("JOIN "+EventLogsTableName+" el ON el.id = pa.request_log_id").
+		Where("el.type = ? AND pa.status = ?", LogTypeConsume, ProcurementCostAttributionStatusRetry)
+	if maxCreatedAt > 0 {
+		query = query.Where("pa.created_at <= ?", maxCreatedAt)
+	}
+	rows := make([]Log, 0, limit)
+	if err := query.Order("pa.last_retry_at ASC, pa.created_at ASC, pa.request_log_id ASC").Limit(limit).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+func GetProcurementRetryLog(db *gorm.DB, logID string) (*Log, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database handle is nil")
+	}
+	id := strings.TrimSpace(logID)
+	if id == "" {
+		return nil, fmt.Errorf("log id is required")
+	}
+	row := &Log{}
+	err := db.Table(EventLogsTableName+" el").
+		Select("el.*").
+		Joins("JOIN "+ProcurementAttributionsTableName+" pa ON pa.request_log_id = el.id").
+		Where("el.id = ? AND el.type = ? AND pa.status = ?", id, LogTypeConsume, ProcurementCostAttributionStatusRetry).
+		First(row).Error
+	return row, err
+}
+
+func updateProcurementAttribution(db *gorm.DB, logID string, updates map[string]any) error {
+	if db == nil {
+		return fmt.Errorf("database handle is nil")
+	}
+	id := strings.TrimSpace(logID)
+	if id == "" || len(updates) == 0 {
+		return nil
+	}
+	if !db.Migrator().HasTable(&ProcurementAttribution{}) {
+		return nil
+	}
+	return db.Model(&ProcurementAttribution{}).Where("request_log_id = ?", id).Updates(updates).Error
+}
+
+func MarkProcurementRetryFailure(logID, message string, retriedAt int64) error {
+	return updateProcurementAttribution(LOG_DB, logID, map[string]any{
+		"status": ProcurementCostAttributionStatusRetry, "retry_count": gorm.Expr("retry_count + 1"), "last_retry_at": retriedAt, "last_error": message,
+	})
+}
+
+func ClearProcurementRetryFailure(logID string) error {
+	return updateProcurementAttribution(LOG_DB, logID, map[string]any{"last_error": ""})
 }

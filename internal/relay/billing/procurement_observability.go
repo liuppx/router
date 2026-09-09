@@ -111,6 +111,8 @@ func RecordProcurementConsumptionObservation(ctx context.Context, logRow *model.
 			logger.Errorf(ctx, "procurement cost log update failed log_id=%s channel_id=%s model=%s err=%q", strings.TrimSpace(logRow.Id), strings.TrimSpace(logRow.ChannelId), strings.TrimSpace(logRow.ModelName), err.Error())
 		} else if err := model.ClearLogProcurementRetryFailure(logRow.Id); err != nil {
 			logger.Errorf(ctx, "procurement retry metadata clear failed log_id=%s err=%q", strings.TrimSpace(logRow.Id), err.Error())
+		} else if err := model.ClearProcurementRetryFailure(logRow.Id); err != nil {
+			logger.Errorf(ctx, "normalized procurement retry metadata clear failed log_id=%s err=%q", strings.TrimSpace(logRow.Id), err.Error())
 		}
 		attributionStatus := procurementCostAttributionStatus(result)
 		if attributionStatus == model.ProcurementCostAttributionStatusUnconfigured {
@@ -160,6 +162,9 @@ func markProcurementCostAttributionRetryFailure(ctx context.Context, logRow *mod
 	logRow.BillingProcurementLastError = strings.TrimSpace(message)
 	if err := model.MarkLogProcurementRetryFailure(logRow.Id, logRow.BillingProcurementLastError, logRow.BillingProcurementLastRetryAt); err != nil {
 		logger.Errorf(ctx, "procurement retry failure update failed log_id=%s err=%q", strings.TrimSpace(logRow.Id), err.Error())
+	}
+	if err := model.MarkProcurementRetryFailure(logRow.Id, logRow.BillingProcurementLastError, logRow.BillingProcurementLastRetryAt); err != nil {
+		logger.Errorf(ctx, "normalized procurement retry failure update failed log_id=%s err=%q", strings.TrimSpace(logRow.Id), err.Error())
 	}
 }
 
