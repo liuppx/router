@@ -2,9 +2,6 @@ package model
 
 import (
 	"context"
-	"fmt"
-
-	"gorm.io/gorm"
 )
 
 const EventLogsTableName = "event_logs"
@@ -101,43 +98,6 @@ type Log struct {
 
 func (Log) TableName() string {
 	return EventLogsTableName
-}
-
-func updateLegacyProcurementRetryFailure(db *gorm.DB, logID string, message string, retriedAt int64) error {
-	if db == nil {
-		return fmt.Errorf("database handle is nil")
-	}
-	if logID == "" {
-		return nil
-	}
-	if err := db.Model(&Log{}).
-		Where("id = ?", logID).
-		Updates(map[string]any{
-			"billing_procurement_cost_status":   ProcurementCostAttributionStatusRetry,
-			"billing_procurement_retry_count":   gorm.Expr("billing_procurement_retry_count + 1"),
-			"billing_procurement_last_retry_at": retriedAt,
-			"billing_procurement_last_error":    message,
-		}).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func clearLegacyProcurementRetryFailure(db *gorm.DB, logID string) error {
-	if db == nil {
-		return fmt.Errorf("database handle is nil")
-	}
-	if logID == "" {
-		return nil
-	}
-	if err := db.Model(&Log{}).
-		Where("id = ?", logID).
-		Updates(map[string]any{
-			"billing_procurement_last_error": "",
-		}).Error; err != nil {
-		return err
-	}
-	return nil
 }
 
 const (

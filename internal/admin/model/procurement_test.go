@@ -537,22 +537,6 @@ func TestUpdateProcurementCostObservationWithDB(t *testing.T) {
 		t.Fatalf("update log procurement cost: %v", err)
 	}
 
-	var updated Log
-	if err := db.Where("id = ?", "log-1").Take(&updated).Error; err != nil {
-		t.Fatalf("load updated log: %v", err)
-	}
-	if updated.BillingProcurementCostBaseAmount != 4 {
-		t.Fatalf("BillingProcurementCostBaseAmount=%v, want 4", updated.BillingProcurementCostBaseAmount)
-	}
-	if updated.BillingGrossProfitBaseAmount != 6 {
-		t.Fatalf("BillingGrossProfitBaseAmount=%v, want 6", updated.BillingGrossProfitBaseAmount)
-	}
-	if updated.BillingGrossMargin != 0.6 {
-		t.Fatalf("BillingGrossMargin=%v, want 0.6", updated.BillingGrossMargin)
-	}
-	if updated.BillingProcurementCostStatus != ProcurementCostAttributionStatusActual {
-		t.Fatalf("BillingProcurementCostStatus=%q, want actual", updated.BillingProcurementCostStatus)
-	}
 	var attribution ProcurementAttribution
 	if err := db.First(&attribution, "request_log_id = ?", "log-1").Error; err != nil {
 		t.Fatalf("load attribution: %v", err)

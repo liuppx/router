@@ -256,7 +256,7 @@ func MarkProcurementRetryFailureWithDB(db *gorm.DB, logID, message string, retri
 		}); err != nil {
 			return err
 		}
-		return updateLegacyProcurementRetryFailure(tx, logID, message, retriedAt)
+		return nil
 	})
 }
 
@@ -272,7 +272,7 @@ func ClearProcurementRetryFailureWithDB(db *gorm.DB, logID string) error {
 		if err := updateProcurementAttribution(tx, logID, map[string]any{"last_error": ""}); err != nil {
 			return err
 		}
-		return clearLegacyProcurementRetryFailure(tx, logID)
+		return nil
 	})
 }
 
