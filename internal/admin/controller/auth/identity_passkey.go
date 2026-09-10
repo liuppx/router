@@ -362,7 +362,7 @@ func extractCredentialSubjectString(credentials []struct {
 		if cred.Type != credentialType || cred.Credential == "" {
 			continue
 		}
-		_, subject := identityCredentialTypeAndSubject(cred.Credential)
+		subject := decodeIdentityCredentialSubject(cred.Credential, credentialType)
 		if subject == nil {
 			continue
 		}
@@ -375,6 +375,41 @@ func extractCredentialSubjectString(credentials []struct {
 		}
 	}
 	return ""
+}
+
+func decodeIdentityCredentialSubject(token string, expectedType string) map[string]any {
+	parts := strings.Split(strings.TrimSpace(token), ".")
+	if len(parts) != 3 {
+		return nil
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil
+	}
+	var claims map[string]any
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return nil
+	}
+	vc, ok := claims["vc"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	rawTypes, ok := vc["type"].([]any)
+	if !ok {
+		return nil
+	}
+	foundType := false
+	for _, item := range rawTypes {
+		if value, ok := item.(string); ok && value == expectedType {
+			foundType = true
+			break
+		}
+	}
+	if !foundType {
+		return nil
+	}
+	subject, _ := vc["credentialSubject"].(map[string]any)
+	return subject
 }
 
 func identityPasskeyScopes(includeAvatar bool) []string {

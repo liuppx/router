@@ -42,7 +42,7 @@ func jcsCanonical(value any) (string, error) {
 	case []any:
 		return jcsArray(v)
 	default:
-		// Fallback: marshal to JSON then re-parse
+		// Normalize structs through JSON before canonicalization.
 		raw, err := json.Marshal(value)
 		if err != nil {
 			return "", err
@@ -114,8 +114,6 @@ func jcsArray(arr []any) (string, error) {
 }
 
 func stringSliceSort(s []string) {
-	// Simple insertion sort to avoid importing sort if not needed,
-	// but sort is in stdlib so use it.
 	for i := 1; i < len(s); i++ {
 		for j := i; j > 0 && s[j-1] > s[j]; j-- {
 			s[j-1], s[j] = s[j], s[j-1]
@@ -125,24 +123,24 @@ func stringSliceSort(s []string) {
 
 // IdentityPresentation represents the wallet identity presentation structure.
 type IdentityPresentation struct {
-	Version         int             `json:"version"`
-	Holder          string          `json:"holder"`
-	Audience        string          `json:"audience"`
-	Nonce           string          `json:"nonce"`
-	IssuedAt        string          `json:"issuedAt"`
-	ExpiresAt       string          `json:"expiresAt"`
-	Scopes          []string        `json:"scopes"`
-	IdentityDocument json.RawMessage `json:"identityDocument,omitempty"`
-	WalletProof     json.RawMessage `json:"walletProof,omitempty"`
-	Credentials     []string        `json:"credentials,omitempty"`
-	Proof           PresentationProof `json:"proof"`
+	Version          int               `json:"version"`
+	Holder           string            `json:"holder"`
+	Audience         string            `json:"audience"`
+	Nonce            string            `json:"nonce"`
+	IssuedAt         string            `json:"issuedAt"`
+	ExpiresAt        string            `json:"expiresAt"`
+	Scopes           []string          `json:"scopes"`
+	IdentityDocument json.RawMessage   `json:"identityDocument,omitempty"`
+	WalletProof      json.RawMessage   `json:"walletProof,omitempty"`
+	Credentials      []string          `json:"credentials,omitempty"`
+	Proof            PresentationProof `json:"proof"`
 }
 
 type PresentationProof struct {
-	Type              string `json:"type"`
+	Type               string `json:"type"`
 	VerificationMethod string `json:"verificationMethod"`
-	Purpose           string `json:"purpose"`
-	ProofValue        string `json:"proofValue"`
+	Purpose            string `json:"purpose"`
+	ProofValue         string `json:"proofValue"`
 }
 
 type IdentityController struct {
@@ -155,15 +153,17 @@ type IdentityController struct {
 }
 
 type IdentityDocument struct {
-	Version      int                  `json:"version"`
-	ID           string               `json:"id"`
-	WalletIdentityID string           `json:"walletIdentityId"`
-	Controllers  []IdentityController `json:"controllers"`
+	Version          int                  `json:"version"`
+	ID               string               `json:"id"`
+	WalletIdentityID string               `json:"walletIdentityId"`
+	Controllers      []IdentityController `json:"controllers"`
+	Proof            PresentationProof    `json:"proof"`
 }
 
-// VerifyIdentityPresentation verifies the Ed25519 signature on a wallet identity
-// presentation. It does NOT verify credentials (JWT-VC) — the caller must do
-// that separately using the issuer's JWKS.
+// VerifyIdentityPresentation verifies the presentation signature, embedded
+// identity document proof, audience, nonce, controller authorization, and time
+// bounds. JWT-VC credentials are verified separately with the issuer trust
+// bundle by VerifyIdentityPresentationCredentials.
 func VerifyIdentityPresentation(presentationJSON []byte, expectedAudience, expectedNonce string) (*IdentityPresentation, error) {
 	var pres IdentityPresentation
 	if err := json.Unmarshal(presentationJSON, &pres); err != nil {
@@ -215,6 +215,9 @@ func VerifyIdentityPresentation(presentationJSON []byte, expectedAudience, expec
 	if doc.ID != pres.Holder {
 		return nil, errors.New("IDENTITY_PRESENTATION_INVALID")
 	}
+	if err := verifyIdentityDocumentProof(pres.IdentityDocument, &doc, pres.Holder); err != nil {
+		return nil, err
+	}
 
 	controller := findController(doc.Controllers, pres.Proof.VerificationMethod, pres.Holder)
 	if controller == nil {
@@ -253,6 +256,37 @@ func VerifyIdentityPresentation(presentationJSON []byte, expectedAudience, expec
 	}
 
 	return &pres, nil
+}
+
+func verifyIdentityDocumentProof(documentJSON []byte, doc *IdentityDocument, holder string) error {
+	if doc == nil || doc.Proof.Type != "YeyingIdentityDocumentProofV1" || doc.Proof.Purpose != "manage" || doc.Proof.VerificationMethod == "" || doc.Proof.ProofValue == "" {
+		return errors.New("IDENTITY_DOCUMENT_PROOF_INVALID")
+	}
+	controller := findController(doc.Controllers, doc.Proof.VerificationMethod, holder)
+	if controller == nil || !containsPurpose(controller.Purposes, "manage") || controller.Status != "active" {
+		return errors.New("IDENTITY_DOCUMENT_CONTROLLER_NOT_AUTHORIZED")
+	}
+	pubBytes, err := base64.RawURLEncoding.DecodeString(controller.PublicKey)
+	if err != nil || len(pubBytes) != ed25519.PublicKeySize {
+		return errors.New("IDENTITY_DOCUMENT_KEY_MISSING")
+	}
+	sigBytes, err := base64.RawURLEncoding.DecodeString(doc.Proof.ProofValue)
+	if err != nil {
+		return errors.New("IDENTITY_DOCUMENT_PROOF_INVALID")
+	}
+	var documentMap map[string]any
+	if err := json.Unmarshal(documentJSON, &documentMap); err != nil {
+		return errors.New("IDENTITY_PRESENTATION_INVALID")
+	}
+	delete(documentMap, "proof")
+	canonical, err := jcsCanonical(documentMap)
+	if err != nil {
+		return fmt.Errorf("IDENTITY_PRESENTATION_INVALID: %w", err)
+	}
+	if !ed25519.Verify(ed25519.PublicKey(pubBytes), []byte(canonical), sigBytes) {
+		return errors.New("IDENTITY_DOCUMENT_PROOF_INVALID")
+	}
+	return nil
 }
 
 func findController(controllers []IdentityController, method, holder string) *IdentityController {

@@ -55,7 +55,7 @@ func TestLegacyProcurementRetryHelpersUseNormalizedRecords(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	if err := db.AutoMigrate(&Log{}, &ProcurementAttribution{}); err != nil {
+	if err := db.AutoMigrate(&Log{}, &BillingSettlement{}, &ProcurementAttribution{}); err != nil {
 		t.Fatalf("migrate records: %v", err)
 	}
 	log := Log{Id: "retry-log", Type: LogTypeConsume, CreatedAt: 100, BillingProcurementCostStatus: ProcurementCostAttributionStatusNone}
@@ -75,6 +75,10 @@ func TestLegacyProcurementRetryHelpersUseNormalizedRecords(t *testing.T) {
 	}
 	if _, err := GetProcurementRetryLog(db, log.Id); err != nil {
 		t.Fatalf("get retry log: %v", err)
+	}
+	rows[0].BillingProcurementCostStatus = ProcurementCostAttributionStatusRetry
+	if rows[0].BillingProcurementRetryCount != 0 {
+		t.Fatalf("retry count = %d, want 0", rows[0].BillingProcurementRetryCount)
 	}
 
 	if err := MarkProcurementRetryFailureWithDB(db, log.Id, "upstream timeout", 123); err != nil {

@@ -195,7 +195,55 @@ func ListProcurementRetryLogs(db *gorm.DB, limit int, maxCreatedAt int64) ([]Log
 	if err := query.Order("pa.last_retry_at ASC, pa.created_at ASC, pa.request_log_id ASC").Limit(limit).Find(&rows).Error; err != nil {
 		return nil, err
 	}
+	if err := hydrateProcurementRetryLogs(db, rows); err != nil {
+		return nil, err
+	}
 	return rows, nil
+}
+
+func hydrateProcurementRetryLogs(db *gorm.DB, rows []Log) error {
+	if len(rows) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(rows))
+	byID := make(map[string]*Log, len(rows))
+	for index := range rows {
+		ids = append(ids, rows[index].Id)
+		byID[rows[index].Id] = &rows[index]
+	}
+	attributions := make([]ProcurementAttribution, 0, len(rows))
+	if err := db.Where("request_log_id IN ?", ids).Find(&attributions).Error; err != nil {
+		return err
+	}
+	for _, attribution := range attributions {
+		row := byID[attribution.RequestLogID]
+		if row == nil {
+			continue
+		}
+		row.BillingProcurementCostBaseAmount = attribution.CostBaseAmount
+		row.BillingProcurementCostSource = attribution.CostSource
+		row.BillingProcurementCostConfidence = attribution.CostConfidence
+		row.BillingProcurementCostStatus = attribution.Status
+		row.BillingGrossProfitBaseAmount = attribution.GrossProfitBaseAmount
+		row.BillingGrossMargin = attribution.GrossMargin
+		row.BillingCostRuleVersion = attribution.CostRuleVersion
+		row.BillingProcurementRetryCount = attribution.RetryCount
+		row.BillingProcurementLastRetryAt = attribution.LastRetryAt
+		row.BillingProcurementLastError = attribution.LastError
+	}
+	settlements := make([]BillingSettlement, 0, len(rows))
+	if err := db.Where("request_log_id IN ?", ids).Find(&settlements).Error; err != nil {
+		return err
+	}
+	for _, settlement := range settlements {
+		row := byID[settlement.RequestLogID]
+		if row == nil {
+			continue
+		}
+		row.BillingSellBaseAmount = settlement.SellBaseAmount
+		row.BillingSettlementTruthMode = settlement.SettlementTruthMode
+	}
+	return nil
 }
 
 func GetProcurementRetryLog(db *gorm.DB, logID string) (*Log, error) {

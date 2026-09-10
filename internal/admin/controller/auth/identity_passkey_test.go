@@ -8,17 +8,6 @@ import (
 
 // Wallet identity assertion tests live in common/identity_verify_test.go.
 
-func TestIdentityCredentialExtractsAvatarURL(t *testing.T) {
-	token := testIdentityCredential(t, "AvatarCredential", map[string]any{
-		"id":        "did:yeying:wid_test",
-		"avatarUri": "https://avatar.example/alice.png",
-	})
-	avatarURL := identityPresentationAvatarURL([]string{token})
-	if avatarURL != "https://avatar.example/alice.png" {
-		t.Fatalf("avatarURL = %q", avatarURL)
-	}
-}
-
 func TestExtractAvatarURLFromNodeCredentials(t *testing.T) {
 	token := testIdentityCredential(t, "AvatarCredential", map[string]any{
 		"id":        "did:yeying:wid_test",

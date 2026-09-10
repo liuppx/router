@@ -52,8 +52,13 @@ node:
 
 identity:
   # 夜莺 Node 钱包身份 API 地址，例如 http://127.0.0.1:8100。
+  # 仅用于无钱包插件的通行证登录；插件钱包身份登录不实时依赖 Node。
   node_url: ""
+  # Node 信任包目录，包含 issuer-metadata.json、jwks.json、manifest.json。
+  # 插件钱包身份登录使用该目录本地校验 JWT-VC 凭证。
+  trust_dir: "/data/node"
   # 在 Node 应用中心发布的 Router 应用 ID。
+  # 仅用于无钱包插件的通行证登录。
   app_id: ""
   # 可选。留空时使用 server.public_url + /api/v1/public/oauth/identity/callback。
   # 必须与 Node 应用的 redirectUris 完全一致，并且必须由 Router 后端处理，不能指向 Vite。
