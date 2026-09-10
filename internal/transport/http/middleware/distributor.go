@@ -9,6 +9,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,7 @@ import (
 	relaychannel "github.com/yeying-community/router/internal/relay/channel"
 	"github.com/yeying-community/router/internal/relay/responsestate"
 	"github.com/yeying-community/router/internal/relay/routeobs"
+	"github.com/yeying-community/router/internal/relay/routing"
 )
 
 type ModelRequest struct {
@@ -50,6 +52,46 @@ func pickChannelByPriority(channels []*model.Channel, ignoreFirstPriority bool) 
 	return targets[rand.Intn(len(targets))]
 }
 
+func pickChannelByPolicy(channels []*model.Channel, policy routing.ProviderRoutingPolicy) *model.Channel {
+	if policy.SelectionMethod != routing.SelectionWeightedRandom {
+		return pickChannelByPriority(channels, false)
+	}
+	if len(channels) == 0 {
+		return nil
+	}
+	firstPriority := channels[0].GetPriority()
+	tier := make([]*model.Channel, 0, len(channels))
+	for _, channel := range channels {
+		if channel.GetPriority() != firstPriority {
+			break
+		}
+		tier = append(tier, channel)
+	}
+	if len(tier) == 0 {
+		return nil
+	}
+	var total uint64
+	for _, channel := range tier {
+		weight := channel.GetWeight()
+		if weight == 0 {
+			weight = 1
+		}
+		total += uint64(weight)
+	}
+	target := uint64(rand.Int63n(int64(total)))
+	for _, channel := range tier {
+		weight := channel.GetWeight()
+		if weight == 0 {
+			weight = 1
+		}
+		if target < uint64(weight) {
+			return channel
+		}
+		target -= uint64(weight)
+	}
+	return tier[len(tier)-1]
+}
+
 func channelIDInList(channels []*model.Channel, channelID string) bool {
 	normalizedChannelID := strings.TrimSpace(channelID)
 	if normalizedChannelID == "" {
@@ -75,6 +117,59 @@ func channelIDs(channels []*model.Channel) []string {
 		result = append(result, channel.Id)
 	}
 	return result
+}
+
+func channelProvider(channel *model.Channel, requestModel string) string {
+	if channel == nil {
+		return ""
+	}
+	for _, row := range channel.GetSelectedChannelModels() {
+		if requestModel == row.Model || requestModel == row.UpstreamModel {
+			return model.NormalizeGroupModelProviderValue(row.Provider)
+		}
+	}
+	return ""
+}
+
+func applyProviderRoutingPolicy(channels []*model.Channel, requestModel string, policy routing.ProviderRoutingPolicy) ([]*model.Channel, []model.ChannelCandidateFilter) {
+	if len(channels) == 0 || policy.ProviderScope.Mode == routing.ProviderScopeAny && len(policy.ProviderOrder) == 0 {
+		return channels, nil
+	}
+	allowed := make(map[string]struct{}, len(policy.ProviderScope.Providers))
+	for _, provider := range policy.ProviderScope.Providers {
+		allowed[provider] = struct{}{}
+	}
+	ordered := make(map[string]int, len(policy.ProviderOrder))
+	for index, provider := range policy.ProviderOrder {
+		ordered[provider] = index
+	}
+	result := make([]*model.Channel, 0, len(channels))
+	filtered := make([]model.ChannelCandidateFilter, 0)
+	for _, channel := range channels {
+		provider := channelProvider(channel, requestModel)
+		_, listed := allowed[provider]
+		excluded := (policy.ProviderScope.Mode == routing.ProviderScopeAllowList && !listed) ||
+			(policy.ProviderScope.Mode == routing.ProviderScopeDenyList && listed)
+		if excluded {
+			filtered = append(filtered, model.ChannelCandidateFilter{ChannelID: channel.Id, Reason: "provider_scope"})
+			continue
+		}
+		result = append(result, channel)
+	}
+	if len(ordered) > 0 {
+		sort.SliceStable(result, func(i, j int) bool {
+			left, leftOK := ordered[channelProvider(result[i], requestModel)]
+			right, rightOK := ordered[channelProvider(result[j], requestModel)]
+			if leftOK != rightOK {
+				return leftOK
+			}
+			if leftOK && left != right {
+				return left < right
+			}
+			return result[i].GetPriority() > result[j].GetPriority()
+		})
+	}
+	return result, filtered
 }
 
 func recordRouteDecision(c *gin.Context, source string, groupID string, requestModel string, requestPath string, candidates []*model.Channel, filteredCandidates []model.ChannelCandidateFilter, selected *model.Channel, selectionMode string) {
@@ -207,7 +302,14 @@ func selectEntitlementChannelForRequest(ctx context.Context, c *gin.Context, use
 			logger.RelayWarnf(ctx, "DISTRIBUTE decision=skip reason=list_candidates_failed user_id=%s group=%s model=%s endpoint=%s listed_candidates=%d endpoint_filtered_candidates=%d error=%q", userID, groupID, requestModel, requestPath, stats.ListedCount, stats.EndpointFilteredCount, err.Error())
 			continue
 		}
-		channel := pickChannelByPriority(candidates, false)
+		policyValue, _ := c.Get(ctxkey.ProviderRoutingPolicy)
+		policy, policyOK := policyValue.(routing.ProviderRoutingPolicy)
+		policyFiltered := []model.ChannelCandidateFilter(nil)
+		if policyOK {
+			candidates, policyFiltered = applyProviderRoutingPolicy(candidates, requestModel, policy)
+			stats.FilteredCandidates = append(stats.FilteredCandidates, policyFiltered...)
+		}
+		channel := pickChannelByPolicy(candidates, policy)
 		if channel == nil {
 			logger.RelayWarnf(ctx, "DISTRIBUTE decision=skip reason=no_available_channel user_id=%s group=%s model=%s endpoint=%s listed_candidates=%d endpoint_filtered_candidates=%d", userID, groupID, requestModel, requestPath, stats.ListedCount, stats.EndpointFilteredCount)
 			continue
@@ -286,6 +388,16 @@ func responseStateConflict(c *gin.Context) bool {
 func Distribute() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
+		if rawBody, bodyErr := common.GetRequestBody(c); bodyErr != nil {
+			abortWithMessage(c, http.StatusBadRequest, "读取请求体失败")
+			return
+		} else if policy, policyErr := routing.ParseRequestPolicy(rawBody); policyErr != nil {
+			c.Set(ctxkey.RelayErrorCode, "invalid_provider_routing_policy")
+			abortWithMessage(c, http.StatusBadRequest, policyErr.Error())
+			return
+		} else {
+			c.Set(ctxkey.ProviderRoutingPolicy, policy)
+		}
 		userId := c.GetString(ctxkey.Id)
 		requestModel := c.GetString(ctxkey.RequestModel)
 		userGroup, entitlementSource, groupErr := model.ResolveUserEntitlementGroupForModel(ctx, userId, requestModel)

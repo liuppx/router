@@ -6,24 +6,29 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/yeying-community/router/common/ctxkey"
+	"github.com/yeying-community/router/internal/relay/routing"
 )
 
 // RouteDecision is the stable explanation of the initial channel selection.
 // The final channel is filled when the request is logged, after any retries.
 type RouteDecision struct {
-	Source              string              `json:"source"`
-	GroupID             string              `json:"group_id"`
-	Model               string              `json:"model"`
-	Endpoint            string              `json:"endpoint"`
-	CandidateChannelIDs []string            `json:"candidate_channel_ids"`
-	CandidateCount      int                 `json:"candidate_count"`
-	FilteredCandidates  []FilteredCandidate `json:"filtered_candidates,omitempty"`
-	SelectedPriority    int64               `json:"selected_priority"`
-	SelectionMode       string              `json:"selection_mode"`
-	InitialChannelID    string              `json:"initial_channel_id"`
-	InitialChannelName  string              `json:"initial_channel_name,omitempty"`
-	FinalChannelID      string              `json:"final_channel_id,omitempty"`
-	FinalChannelName    string              `json:"final_channel_name,omitempty"`
+	Source              string                  `json:"source"`
+	GroupID             string                  `json:"group_id"`
+	Model               string                  `json:"model"`
+	Endpoint            string                  `json:"endpoint"`
+	CandidateChannelIDs []string                `json:"candidate_channel_ids"`
+	CandidateCount      int                     `json:"candidate_count"`
+	FilteredCandidates  []FilteredCandidate     `json:"filtered_candidates,omitempty"`
+	SelectedPriority    int64                   `json:"selected_priority"`
+	SelectionMode       string                  `json:"selection_mode"`
+	InitialChannelID    string                  `json:"initial_channel_id"`
+	InitialChannelName  string                  `json:"initial_channel_name,omitempty"`
+	FinalChannelID      string                  `json:"final_channel_id,omitempty"`
+	FinalChannelName    string                  `json:"final_channel_name,omitempty"`
+	ProviderScope       routing.ProviderScope   `json:"provider_scope,omitempty"`
+	ProviderOrder       []string                `json:"provider_order,omitempty"`
+	RetryScope          routing.RetryScope      `json:"retry_scope,omitempty"`
+	SelectionMethod     routing.SelectionMethod `json:"selection_method,omitempty"`
 }
 
 type FilteredCandidate struct {
@@ -34,6 +39,14 @@ type FilteredCandidate struct {
 func SetRouteDecision(c *gin.Context, decision RouteDecision) {
 	if c == nil {
 		return
+	}
+	if value, ok := c.Get(ctxkey.ProviderRoutingPolicy); ok {
+		if policy, ok := value.(routing.ProviderRoutingPolicy); ok {
+			decision.ProviderScope = policy.ProviderScope
+			decision.ProviderOrder = append([]string(nil), policy.ProviderOrder...)
+			decision.RetryScope = policy.RetryScope
+			decision.SelectionMethod = policy.SelectionMethod
+		}
 	}
 	decision.Source = strings.TrimSpace(decision.Source)
 	decision.GroupID = strings.TrimSpace(decision.GroupID)

@@ -106,6 +106,58 @@ func LoadProviderModelSpecificationMapByModelsWithDB(db *gorm.DB, providerByMode
 	return result, nil
 }
 
+// LoadProviderModelSpecificationWithDB loads a model specification by its
+// catalog identity. Callers that already selected a channel model should use
+// this instead of resolving a provider from a globally ambiguous model name.
+func LoadProviderModelSpecificationWithDB(db *gorm.DB, provider string, modelName string) (*ProviderModelSpecification, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database handle is nil")
+	}
+	normalizedProvider := NormalizeGroupModelProviderValue(provider)
+	candidates := NormalizeProviderLookupCandidates(modelName)
+	if normalizedProvider == "" || len(candidates) == 0 {
+		return nil, nil
+	}
+	rows := make([]providerModelSpecificationLookupRow, 0, len(candidates))
+	if err := db.
+		Model(&ProviderModel{}).
+		Select("provider", "model", "specification").
+		Where("provider = ? AND is_deleted = ? AND model IN ?", normalizedProvider, false, candidates).
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	rowsByModel := make(map[string]providerModelSpecificationLookupRow, len(rows)*2)
+	for _, row := range rows {
+		storedModel := strings.TrimSpace(row.Model)
+		if storedModel == "" {
+			continue
+		}
+		rowsByModel[storedModel] = row
+		canonicalModel := canonicalizeModelNameForProvider(normalizedProvider, storedModel)
+		if canonicalModel != "" {
+			if _, exists := rowsByModel[canonicalModel]; !exists {
+				rowsByModel[canonicalModel] = row
+			}
+		}
+	}
+	for _, candidate := range candidates {
+		row, ok := rowsByModel[candidate]
+		if !ok {
+			canonicalCandidate := canonicalizeModelNameForProvider(normalizedProvider, candidate)
+			row, ok = rowsByModel[canonicalCandidate]
+		}
+		if !ok {
+			continue
+		}
+		specification, err := ParseProviderModelSpecification(row.Specification)
+		if err != nil {
+			return nil, fmt.Errorf("parse provider model specification for %s/%s: %w", normalizedProvider, strings.TrimSpace(row.Model), err)
+		}
+		return specification, nil
+	}
+	return nil, nil
+}
+
 func LoadUniqueProviderMapByModelsWithDB(db *gorm.DB, modelNames []string) (map[string]string, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database handle is nil")

@@ -71,6 +71,30 @@ type appendProviderModelRequest struct {
 	Source             string   `json:"source,omitempty"`
 }
 
+type updateProviderModelBillingPolicyRequest struct {
+	PrechargePolicy     string  `json:"precharge_policy"`
+	MinimumReserve      int64   `json:"minimum_reserve"`
+	InputSafetyFactor   float64 `json:"input_safety_factor"`
+	OutputReserveTokens int     `json:"output_reserve_tokens"`
+	ChangeReason        string  `json:"change_reason,omitempty"`
+}
+
+func validatePrechargePolicyRequest(req updateProviderModelBillingPolicyRequest) error {
+	policy := strings.ToLower(strings.TrimSpace(req.PrechargePolicy))
+	switch policy {
+	case "fixed_reserve", "tokenizer_estimate", "heuristic_estimate", "max_output_reserve":
+	default:
+		return fmt.Errorf("unsupported precharge policy %q", req.PrechargePolicy)
+	}
+	if req.MinimumReserve < 0 || req.OutputReserveTokens < 0 {
+		return errors.New("reserve values must be non-negative")
+	}
+	if req.InputSafetyFactor < 0 {
+		return errors.New("input safety factor must be non-negative")
+	}
+	return nil
+}
+
 func providerModelNames(details []model.ProviderModelDetail) []string {
 	normalized := model.FilterActiveProviderModelDetails(details)
 	names := make([]string, 0, len(normalized))
@@ -953,6 +977,68 @@ func AppendProviderModel(c *gin.Context) {
 		"message": "",
 		"data":    saved,
 	})
+}
+
+// UpdateProviderModelBillingPolicy updates only the published model's
+// request-time reservation policy. Existing endpoint specifications remain
+// untouched; the version is incremented so in-flight requests can retain a
+// snapshot of the previous policy.
+func UpdateProviderModelBillingPolicy(c *gin.Context) {
+	provider := strings.TrimSpace(c.Param("provider"))
+	modelName := strings.TrimSpace(c.Param("model"))
+	if provider == "" || modelName == "" {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "provider and model are required"})
+		return
+	}
+	var req updateProviderModelBillingPolicyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+	if err := validatePrechargePolicyRequest(req); err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+	var row model.ProviderModel
+	db := model.DB.Where("provider = ? AND model = ? AND is_deleted = ?", provider, modelName, false).First(&row)
+	if errors.Is(db.Error, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "provider model not found"})
+		return
+	}
+	if db.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": db.Error.Error()})
+		return
+	}
+	spec, err := model.ParseProviderModelSpecification(row.Specification)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "invalid provider model specification: " + err.Error()})
+		return
+	}
+	if spec == nil {
+		spec = &model.ProviderModelSpecification{Version: 1}
+	}
+	if spec.Version < 1 {
+		spec.Version = 1
+	}
+	if spec.Billing == nil {
+		spec.Billing = &model.ProviderModelBillingSpecification{}
+	}
+	spec.Billing.PrechargePolicy = strings.ToLower(strings.TrimSpace(req.PrechargePolicy))
+	spec.Billing.MinimumReserve = req.MinimumReserve
+	spec.Billing.InputSafetyFactor = req.InputSafetyFactor
+	spec.Billing.OutputReserveTokens = req.OutputReserveTokens
+	spec.Billing.Version++
+	if spec.Billing.Version < 1 {
+		spec.Billing.Version = 1
+	}
+	now := helper.GetTimestamp()
+	row.Specification = model.MarshalProviderModelSpecification(spec)
+	row.UpdatedAt = now
+	if err := model.DB.Model(&model.ProviderModel{}).Where("provider = ? AND model = ?", provider, modelName).Updates(map[string]any{"specification": row.Specification, "updated_at": now}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "", "data": gin.H{"provider": provider, "model": modelName, "specification": spec, "change_reason": strings.TrimSpace(req.ChangeReason)}})
 }
 
 func DeleteProvider(c *gin.Context) {

@@ -14,8 +14,14 @@ func newProcurementTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	if err := db.AutoMigrate(&ChannelBillingSnapshot{}, &ChannelBillingSnapshotItem{}, &ChannelProcurementBatch{}, &RequestProcurementConsumption{}, &Log{}); err != nil {
+	if err := db.AutoMigrate(&ChannelBillingSnapshot{}, &ChannelBillingSnapshotItem{}, &ChannelProcurementBatch{}, &RequestProcurementConsumption{}, &Log{}, &BillingSettlement{}, &ProcurementAttribution{}); err != nil {
 		t.Fatalf("auto migrate: %v", err)
+	}
+	if err := db.Exec(`CREATE TRIGGER sync_test_finance AFTER INSERT ON event_logs WHEN NEW.type = 2 BEGIN
+		INSERT OR REPLACE INTO billing_settlements (request_log_id, input_quantity, output_quantity, cache_read_quantity, cache_write_quantity, charge_amount, sell_base_amount, cost_floor_triggered, cost_floor_base_amount) VALUES (NEW.id, NEW.billing_input_quantity, NEW.billing_output_quantity, NEW.billing_cache_read_quantity, NEW.billing_cache_write_quantity, NEW.billing_charge_amount, NEW.billing_sell_base_amount, NEW.billing_cost_floor_triggered, NEW.billing_cost_floor_base_amount);
+		INSERT OR REPLACE INTO procurement_attributions (request_log_id, status, cost_base_amount, gross_profit_base_amount) VALUES (NEW.id, NEW.billing_procurement_cost_status, NEW.billing_procurement_cost_base_amount, NEW.billing_gross_profit_base_amount);
+	END`).Error; err != nil {
+		t.Fatalf("create finance test trigger: %v", err)
 	}
 	return db
 }
@@ -520,32 +526,45 @@ func TestConsumeChannelProcurementBatchesWithDBReportsPartialCoverage(t *testing
 	}
 }
 
-func TestUpdateLogProcurementCostObservationWithDB(t *testing.T) {
+func TestUpdateProcurementCostObservationWithDB(t *testing.T) {
 	db := newProcurementTestDB(t)
-	logRow := Log{Id: "log-1", BillingSellBaseAmount: 10}
+	logRow := Log{Id: "log-1", Type: LogTypeConsume, BillingSellBaseAmount: 10}
 	if err := db.Create(&logRow).Error; err != nil {
 		t.Fatalf("create log: %v", err)
 	}
 
-	if err := UpdateLogProcurementCostObservationWithDB(db, "log-1", 4, ProcurementCostSourceActual, 10); err != nil {
+	if err := UpdateProcurementCostObservationWithDB(db, "log-1", 4, ProcurementCostSourceActual, 10); err != nil {
 		t.Fatalf("update log procurement cost: %v", err)
 	}
 
+	var attribution ProcurementAttribution
+	if err := db.First(&attribution, "request_log_id = ?", "log-1").Error; err != nil {
+		t.Fatalf("load attribution: %v", err)
+	}
+	if attribution.CostBaseAmount != 4 || attribution.GrossProfitBaseAmount != 6 || attribution.GrossMargin != 0.6 || attribution.Status != ProcurementCostAttributionStatusActual {
+		t.Fatalf("unexpected normalized attribution: %+v", attribution)
+	}
+}
+
+func TestUpdateProcurementCostObservationRequiresNormalizedRecord(t *testing.T) {
+	db := newProcurementTestDB(t)
+	logRow := Log{Id: "missing-attribution", Type: LogTypeConsume, BillingSellBaseAmount: 10}
+	if err := db.Create(&logRow).Error; err != nil {
+		t.Fatalf("create log: %v", err)
+	}
+	if err := db.Delete(&ProcurementAttribution{}, "request_log_id = ?", logRow.Id).Error; err != nil {
+		t.Fatalf("delete attribution: %v", err)
+	}
+
+	if err := UpdateProcurementCostObservationWithDB(db, logRow.Id, 4, ProcurementCostSourceActual, 10); err == nil {
+		t.Fatal("expected missing normalized attribution error")
+	}
 	var updated Log
-	if err := db.Where("id = ?", "log-1").Take(&updated).Error; err != nil {
-		t.Fatalf("load updated log: %v", err)
+	if err := db.First(&updated, "id = ?", logRow.Id).Error; err != nil {
+		t.Fatalf("load log: %v", err)
 	}
-	if updated.BillingProcurementCostBaseAmount != 4 {
-		t.Fatalf("BillingProcurementCostBaseAmount=%v, want 4", updated.BillingProcurementCostBaseAmount)
-	}
-	if updated.BillingGrossProfitBaseAmount != 6 {
-		t.Fatalf("BillingGrossProfitBaseAmount=%v, want 6", updated.BillingGrossProfitBaseAmount)
-	}
-	if updated.BillingGrossMargin != 0.6 {
-		t.Fatalf("BillingGrossMargin=%v, want 0.6", updated.BillingGrossMargin)
-	}
-	if updated.BillingProcurementCostStatus != ProcurementCostAttributionStatusActual {
-		t.Fatalf("BillingProcurementCostStatus=%q, want actual", updated.BillingProcurementCostStatus)
+	if updated.BillingProcurementCostBaseAmount != 0 || updated.BillingProcurementCostStatus != "" {
+		t.Fatalf("legacy fields changed without normalized record: %+v", updated)
 	}
 }
 

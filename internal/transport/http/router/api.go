@@ -259,6 +259,7 @@ func SetApiRouter(engine *gin.Engine) {
 		{
 			adminBillingRoute.GET("/currencies", adminbilling.GetBillingCurrencies)
 			adminBillingRoute.GET("/health", adminbilling.GetBillingHealth)
+			adminBillingRoute.GET("/finance/consistency", adminbilling.GetFinanceConsistency)
 			adminBillingRoute.GET("/procurement-report", adminbilling.GetProcurementReport)
 			adminBillingRoute.GET("/procurement-trend", adminbilling.GetProcurementTrend)
 			adminBillingRoute.GET("/procurement-batches", adminbilling.GetProcurementBatches)
@@ -437,6 +438,7 @@ func SetApiRouter(engine *gin.Engine) {
 			adminProviderRoute.GET("/", channel.GetProviders)
 			adminProviderRoute.POST("/", channel.CreateProvider)
 			adminProviderRoute.POST("/:id/model", channel.AppendProviderModel)
+			adminProviderRoute.PATCH("/:provider/models/:model/billing/policy", channel.UpdateProviderModelBillingPolicy)
 			adminProviderRoute.GET("/:id", channel.GetProvider)
 			adminProviderRoute.PUT("/:id", channel.UpdateProvider)
 			adminProviderRoute.DELETE("/:id", channel.DeleteProvider)

@@ -107,9 +107,9 @@ func RecordProcurementConsumptionObservation(ctx context.Context, logRow *model.
 		if len(result.Consumptions) == 0 {
 			continue
 		}
-		if err := model.UpdateLogProcurementCostObservation(logRow.Id, result.TotalCostAmount, result.CostSource, logRow.BillingSellBaseAmount); err != nil {
+		if err := model.UpdateProcurementCostObservation(logRow.Id, result.TotalCostAmount, result.CostSource, logRow.BillingSellBaseAmount); err != nil {
 			logger.Errorf(ctx, "procurement cost log update failed log_id=%s channel_id=%s model=%s err=%q", strings.TrimSpace(logRow.Id), strings.TrimSpace(logRow.ChannelId), strings.TrimSpace(logRow.ModelName), err.Error())
-		} else if err := model.ClearLogProcurementRetryFailure(logRow.Id); err != nil {
+		} else if err := model.ClearProcurementRetryFailure(logRow.Id); err != nil {
 			logger.Errorf(ctx, "procurement retry metadata clear failed log_id=%s err=%q", strings.TrimSpace(logRow.Id), err.Error())
 		}
 		attributionStatus := procurementCostAttributionStatus(result)
@@ -145,7 +145,7 @@ func markProcurementCostAttributionStatus(ctx context.Context, logRow *model.Log
 		return
 	}
 	logRow.BillingProcurementCostStatus = status
-	if err := model.UpdateLogProcurementCostAttributionStatus(logRow.Id, status); err != nil {
+	if err := model.UpdateProcurementCostAttributionStatus(logRow.Id, status); err != nil {
 		logger.Errorf(ctx, "procurement cost status update failed log_id=%s status=%s err=%q", strings.TrimSpace(logRow.Id), status, err.Error())
 	}
 }
@@ -158,7 +158,7 @@ func markProcurementCostAttributionRetryFailure(ctx context.Context, logRow *mod
 	logRow.BillingProcurementRetryCount++
 	logRow.BillingProcurementLastRetryAt = helper.GetTimestamp()
 	logRow.BillingProcurementLastError = strings.TrimSpace(message)
-	if err := model.MarkLogProcurementRetryFailure(logRow.Id, logRow.BillingProcurementLastError, logRow.BillingProcurementLastRetryAt); err != nil {
+	if err := model.MarkProcurementRetryFailure(logRow.Id, logRow.BillingProcurementLastError, logRow.BillingProcurementLastRetryAt); err != nil {
 		logger.Errorf(ctx, "procurement retry failure update failed log_id=%s err=%q", strings.TrimSpace(logRow.Id), err.Error())
 	}
 }

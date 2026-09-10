@@ -39,9 +39,12 @@ var tokenizerEncodingRules = []tokenizerEncodingRule{
 		Prefixes: []string{
 			"gpt-4o",
 			"chatgpt-4o",
-			"gpt-4.1",
-			"gpt-4.5",
+			// All modern GPT-4.x releases use the o200k vocabulary. Keep
+			// this family rule broad so newly released versions do not fall
+			// through to the legacy gpt-4/cl100k rule below.
+			"gpt-4.",
 			"gpt-5",
+			"gpt-6",
 			"gpt-realtime",
 			"gpt-audio",
 			"gpt-image",

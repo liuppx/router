@@ -1,13 +1,67 @@
 package channel
 
 import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/yeying-community/router/internal/admin/model"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
+
+func TestUpdateProviderModelBillingPolicyPreservesSpecificationAndIncrementsVersion(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open("file:"+t.Name()+"?mode=memory&cache=private"), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.AutoMigrate(&model.ProviderModel{}); err != nil {
+		t.Fatal(err)
+	}
+	originalDB := model.DB
+	model.DB = db
+	t.Cleanup(func() { model.DB = originalDB })
+
+	spec := &model.ProviderModelSpecification{Version: 1, Endpoints: map[string]model.ProviderModelEndpointSpecification{
+		model.ChannelModelEndpointResponses: {InputModalities: []string{"text"}},
+	}}
+	if err := db.Create(&model.ProviderModel{Provider: "openai", Model: "gpt-5.6", Specification: model.MarshalProviderModelSpecification(spec)}).Error; err != nil {
+		t.Fatal(err)
+	}
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.PATCH("/api/admin/providers/:provider/models/:model/billing/policy", UpdateProviderModelBillingPolicy)
+
+	for version := 1; version <= 2; version++ {
+		body, _ := json.Marshal(updateProviderModelBillingPolicyRequest{PrechargePolicy: "tokenizer_estimate", MinimumReserve: int64(500 * version), InputSafetyFactor: 1.1, OutputReserveTokens: 4096})
+		req := httptest.NewRequest(http.MethodPatch, "/api/admin/providers/openai/models/gpt-5.6/billing/policy", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+		engine.ServeHTTP(resp, req)
+		if resp.Code != http.StatusOK {
+			t.Fatalf("update %d status=%d body=%s", version, resp.Code, resp.Body.String())
+		}
+	}
+
+	var row model.ProviderModel
+	if err := db.First(&row, "provider = ? AND model = ?", "openai", "gpt-5.6").Error; err != nil {
+		t.Fatal(err)
+	}
+	got, err := model.ParseProviderModelSpecification(row.Specification)
+	if err != nil || got == nil || got.Billing == nil {
+		t.Fatalf("specification=%+v err=%v", got, err)
+	}
+	if got.Billing.Version != 2 || got.Billing.MinimumReserve != 1000 {
+		t.Fatalf("billing=%+v", got.Billing)
+	}
+	if _, ok := got.Endpoints[model.ChannelModelEndpointResponses]; !ok {
+		t.Fatalf("endpoints were overwritten: %+v", got.Endpoints)
+	}
+}
 
 func TestMergeMissingProviderDetailsAsDeleted(t *testing.T) {
 	current := []model.ProviderModelDetail{

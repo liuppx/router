@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -135,7 +136,7 @@ func loadProcurementReportChannelNames(channelIDs []string) map[string]string {
 }
 
 func procurementReportUnconfiguredCostCondition() string {
-	return "billing_procurement_cost_status = ?"
+	return "pa.status = ?"
 }
 
 func loadProcurementReportUnconfiguredModelChannels(summary model.ProcurementReportSummary) map[string][]procurementReportRelatedChannel {
@@ -150,17 +151,18 @@ func loadProcurementReportUnconfiguredModelChannels(summary model.ProcurementRep
 		LastRequestAt int64  `gorm:"column:last_request_at"`
 	}
 	rows := make([]modelChannelRow, 0)
-	query := model.LOG_DB.Table(model.EventLogsTableName).
+	query := model.LOG_DB.Table(model.EventLogsTableName+" el").
+		Joins("JOIN "+model.ProcurementAttributionsTableName+" pa ON pa.request_log_id = el.id").
 		Select(`
-			COALESCE(NULLIF(TRIM(model_name), ''), '-') AS model_key,
-			COALESCE(NULLIF(TRIM(channel_id), ''), '-') AS channel_id,
+			COALESCE(NULLIF(TRIM(el.model_name), ''), '-') AS model_key,
+			COALESCE(NULLIF(TRIM(el.channel_id), ''), '-') AS channel_id,
 			COUNT(1) AS request_count,
-			COALESCE(MAX(created_at), 0) AS last_request_at
+			COALESCE(MAX(el.created_at), 0) AS last_request_at
 		`).
-		Where("type = ? AND created_at BETWEEN ? AND ?", model.LogTypeConsume, summary.StartAt, summary.EndAt).
+		Where("el.type = ? AND el.created_at BETWEEN ? AND ?", model.LogTypeConsume, summary.StartAt, summary.EndAt).
 		Where(procurementReportUnconfiguredCostCondition(), model.ProcurementCostAttributionStatusUnconfigured)
 	if summary.GroupID != "" {
-		query = query.Where("group_id = ?", summary.GroupID)
+		query = query.Where("el.group_id = ?", summary.GroupID)
 	}
 	err := query.
 		Group("model_key, channel_id").
@@ -605,6 +607,11 @@ func GetBillingHealth(c *gin.Context) {
 	appendProcurementCostHealthIssues(&response)
 	appendProcurementBatchHealthIssues(&response)
 	appendPricingPolicyHealthIssues(&response)
+	if consistency, err := model.InspectFinanceConsistency(model.LOG_DB, response.WindowStartAt, response.WindowEndAt); err != nil {
+		appendBillingHealthIssue(&response, billingHealthIssue{Key: "finance_consistency_check_failed", Level: "critical", Title: "财务记录一致性检查失败", Message: err.Error(), Link: "/admin/finance/health"})
+	} else if !consistency.Consistent {
+		appendBillingHealthIssue(&response, billingHealthIssue{Key: "finance_records_inconsistent", Level: "critical", Title: "财务记录存在不一致", Message: fmt.Sprintf("结算缺失 %d，采购归因缺失 %d，结算字段不一致 %d", consistency.MissingSettlements, consistency.MissingAttributions, consistency.SettlementMismatches), Link: "/admin/finance/health", Count: consistency.MissingSettlements + consistency.MissingAttributions + consistency.SettlementMismatches})
+	}
 	if response.CriticalCount > 0 {
 		response.Status = "critical"
 	} else if response.WarningCount > 0 {
@@ -615,6 +622,24 @@ func GetBillingHealth(c *gin.Context) {
 		"message": "",
 		"data":    response,
 	})
+}
+
+func GetFinanceConsistency(c *gin.Context) {
+	now := helper.GetTimestamp()
+	startAt := parseBillingReportTimestamp(c.Query("start_at"))
+	endAt := parseBillingReportTimestamp(c.Query("end_at"))
+	if endAt == 0 {
+		endAt = now
+	}
+	if startAt == 0 {
+		startAt = endAt - 7*24*60*60
+	}
+	result, err := model.InspectFinanceConsistency(model.LOG_DB, startAt, endAt)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "财务一致性检查失败: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "", "data": result})
 }
 
 func GetProcurementReport(c *gin.Context) {
@@ -676,25 +701,27 @@ func GetProcurementRetries(c *gin.Context) {
 	}
 	startAt := parseBillingReportTimestamp(c.Query("start_at"))
 	endAt := parseBillingReportTimestamp(c.Query("end_at"))
-	query := model.LOG_DB.
-		Where("type = ? AND billing_procurement_cost_status = ?", model.LogTypeConsume, model.ProcurementCostAttributionStatusRetry)
+	query := model.LOG_DB.Table(model.EventLogsTableName+" el").
+		Joins("JOIN "+model.ProcurementAttributionsTableName+" pa ON pa.request_log_id = el.id").
+		Select("el.*").
+		Where("el.type = ? AND pa.status = ?", model.LogTypeConsume, model.ProcurementCostAttributionStatusRetry)
 	if startAt > 0 {
-		query = query.Where("created_at >= ?", startAt)
+		query = query.Where("el.created_at >= ?", startAt)
 	}
 	if endAt > 0 {
-		query = query.Where("created_at <= ?", endAt)
+		query = query.Where("el.created_at <= ?", endAt)
 	}
 	if groupID := strings.TrimSpace(c.Query("group_id")); groupID != "" {
-		query = query.Where("group_id = ?", groupID)
+		query = query.Where("el.group_id = ?", groupID)
 	}
 	if channelID := strings.TrimSpace(c.Query("channel_id")); channelID != "" {
-		query = query.Where("channel_id = ?", channelID)
+		query = query.Where("el.channel_id = ?", channelID)
 	}
 	if modelName := strings.TrimSpace(c.Query("model")); modelName != "" {
-		query = query.Where("COALESCE(NULLIF(TRIM(actual_model_name), ''), NULLIF(TRIM(model_name), ''), NULLIF(TRIM(request_model_name), '')) = ?", modelName)
+		query = query.Where("COALESCE(NULLIF(TRIM(el.actual_model_name), ''), NULLIF(TRIM(el.model_name), ''), NULLIF(TRIM(el.request_model_name), '')) = ?", modelName)
 	}
 	rows := make([]model.Log, 0, limit)
-	if err := query.Order("billing_procurement_last_retry_at DESC, created_at DESC, id DESC").Limit(limit).Find(&rows).Error; err != nil {
+	if err := query.Order("pa.last_retry_at DESC, el.created_at DESC, el.id DESC").Limit(limit).Find(&rows).Error; err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "加载采购成本重试列表失败: " + err.Error()})
 		return
 	}
@@ -703,7 +730,7 @@ func GetProcurementRetries(c *gin.Context) {
 
 func RetryProcurementAttribution(c *gin.Context) {
 	logID := strings.TrimSpace(c.Param("id"))
-	row, err := model.GetProcurementCostRetryLog(logID)
+	row, err := model.GetProcurementRetryLog(model.LOG_DB, logID)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "采购成本重试记录不存在或已处理"})
 		return

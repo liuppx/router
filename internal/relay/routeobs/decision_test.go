@@ -6,10 +6,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/yeying-community/router/common/ctxkey"
+	"github.com/yeying-community/router/internal/relay/routing"
 )
 
 func TestFinalizedRouteDecisionJSONKeepsInitialAndRecordsFinalChannel(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
+	c.Set(ctxkey.ProviderRoutingPolicy, routing.ProviderRoutingPolicy{
+		ProviderScope: routing.ProviderScope{Mode: routing.ProviderScopeAllowList, Providers: []string{"anthropic"}},
+		ProviderOrder: []string{"anthropic", "openai"},
+		RetryScope:    routing.RetryScopeOrderedProviders, SelectionMethod: routing.SelectionWeightedRandom,
+	})
 	SetRouteDecision(c, RouteDecision{
 		Source:              "automatic",
 		GroupID:             " group-1 ",
@@ -39,5 +45,8 @@ func TestFinalizedRouteDecisionJSONKeepsInitialAndRecordsFinalChannel(t *testing
 	}
 	if len(got.FilteredCandidates) != 1 || got.FilteredCandidates[0].ChannelID != "channel-3" {
 		t.Fatalf("unexpected filtered candidates: %+v", got.FilteredCandidates)
+	}
+	if got.ProviderScope.Mode != routing.ProviderScopeAllowList || got.ProviderOrder[0] != "anthropic" || got.RetryScope != routing.RetryScopeOrderedProviders || got.SelectionMethod != routing.SelectionWeightedRandom {
+		t.Fatalf("unexpected routing policy: %+v", got)
 	}
 }

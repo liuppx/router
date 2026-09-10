@@ -116,6 +116,13 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 		}
 	}
 	pricing = adminmodel.ResolveTextRequestPricing(pricing, upstreamPath)
+	// Resolve the published model policy once per request. The resulting
+	// version is copied into the billing snapshot so in-flight requests remain
+	// explainable after an administrator changes the model policy.
+	policyResolution, policyErr := resolveTextPrechargePolicy(meta, pricing)
+	if policyErr != nil {
+		logger.Warnf(ctx, "resolve model precharge policy failed; using global fallback model=%s provider=%s err=%s", strings.TrimSpace(meta.ActualModelName), strings.TrimSpace(pricing.Provider), policyErr.Error())
+	}
 	// pre-consume quota
 	rawRequestBody, err := prepareTextBillingRequestBody(c, meta, validatedRawBody)
 	if err != nil {
@@ -163,12 +170,17 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	}
 	maxOutputTokens := resolveTextMaxOutputTokens(textRequest)
 	preConsumedPricing := adminmodel.ResolveTextUsagePricing(pricing, upstreamPath, promptTokens, maxOutputTokens)
-	preConsumedSnapshot, err := billing.ComputeTextPreConsumedBillingSnapshot(promptTokens, maxOutputTokens, preConsumedPricing, groupRatio)
+	reservedTokens := policyResolution.Policy.ReserveTokens(promptTokens, maxOutputTokens)
+	preConsumedSnapshot, err := billing.ComputeTextPreConsumedBillingSnapshotWithReservedTokens(promptTokens, maxOutputTokens, reservedTokens, preConsumedPricing, groupRatio)
 	if err != nil {
 		logger.Errorf(ctx, "ComputeTextPreConsumedQuota failed: %s", err.Error())
 		return openai.ErrorWrapper(err, "calculate_text_quota_failed", http.StatusInternalServerError)
 	}
 	preConsumedSnapshot.SetBillingRatioBreakdown(billingRatio)
+	preConsumedSnapshot.PrechargePolicy = policyResolution.Policy.Type
+	preConsumedSnapshot.PrechargePolicySource = policyResolution.Source
+	preConsumedSnapshot.PrechargePolicyVersion = policyResolution.Version
+	preConsumedSnapshot.PrechargeReservedTokens = reservedTokens
 	if err := billing.ApplyEstimatedProcurementCostFloor(&preConsumedSnapshot, meta.ChannelId, meta.ActualModelName); err != nil {
 		logger.Errorf(ctx, "estimate procurement cost for text pre-consume failed: %s", err.Error())
 		return openai.ErrorWrapper(err, "calculate_text_quota_failed", http.StatusInternalServerError)
@@ -236,6 +248,53 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	preConsumedQuotaSettled = true
 	groupQuotaSettled = true
 	return nil
+}
+
+func resolveTextPrechargePolicy(relayMeta *meta.Meta, pricing adminmodel.ResolvedModelPricing) (billing.PrechargePolicyResolution, error) {
+	fallback := billing.ResolvePrechargePolicy(nil, config.PreConsumedQuota)
+	if relayMeta == nil {
+		return fallback, nil
+	}
+	selected, selectedOK := adminmodel.FindSelectedChannelModelConfig(
+		relayMeta.ChannelModelConfigs,
+		relayMeta.OriginModelName,
+		relayMeta.ActualModelName,
+	)
+	provider := ""
+	modelName := strings.TrimSpace(relayMeta.ActualModelName)
+	if selectedOK {
+		provider = adminmodel.NormalizeGroupModelProviderValue(selected.Provider)
+		if upstreamModel := strings.TrimSpace(selected.UpstreamModel); upstreamModel != "" {
+			modelName = upstreamModel
+		}
+	}
+	if provider == "" {
+		provider = adminmodel.NormalizeGroupModelProviderValue(pricing.Provider)
+	}
+	if provider != "" {
+		specification, err := adminmodel.LoadProviderModelSpecificationWithDB(adminmodel.DB, provider, modelName)
+		if err != nil {
+			return fallback, err
+		}
+		return billing.ResolvePrechargePolicy(specification, config.PreConsumedQuota), nil
+	}
+
+	// Older channel rows may not yet carry provider. Preserve their previous
+	// behavior only when the catalog proves that the model identity is unique.
+	providerMap, err := adminmodel.LoadUniqueProviderMapByModelsWithDB(adminmodel.DB, []string{modelName})
+	if err != nil {
+		return fallback, err
+	}
+	specifications, err := adminmodel.LoadProviderModelSpecificationMapByModelsWithDB(adminmodel.DB, providerMap, []string{modelName})
+	if err != nil {
+		return fallback, err
+	}
+	for _, candidate := range adminmodel.NormalizeProviderLookupCandidates(modelName) {
+		if specification, ok := specifications[candidate]; ok {
+			return billing.ResolvePrechargePolicy(specification, config.PreConsumedQuota), nil
+		}
+	}
+	return fallback, nil
 }
 
 func prepareTextBillingRequestBody(c *gin.Context, meta *meta.Meta, rawRequestBody []byte) ([]byte, error) {
