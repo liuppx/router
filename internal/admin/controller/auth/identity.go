@@ -105,11 +105,24 @@ func VerifyIdentityWalletLogin(c *gin.Context) {
 		identityError(c, "夜莺身份验证失败: "+err.Error())
 		return
 	}
-	if !identityPresentationHasScope(pres.Scopes, "identity.email") || !identityPresentationHasCredential(pres.Credentials, "EmailCredential") {
+	requiredScopes := strings.Fields(row.Scopes)
+	if len(requiredScopes) == 0 {
+		requiredScopes = routerIdentityRequiredScopes
+	}
+	verifiedCredentials, err := common.VerifyIdentityPresentationCredentials(pres, common.IdentityCredentialVerificationOptions{
+		TrustDir:                config.IdentityTrustDir,
+		RequiredScopes:          requiredScopes,
+		RequiredCredentialTypes: []string{"WalletAccountCredential", "EmailCredential", "UsernameCredential"},
+	})
+	if err != nil {
+		identityError(c, "钱包身份授权证明无效: "+err.Error())
+		return
+	}
+	if !identityPresentationHasScope(pres.Scopes, "identity.email") {
 		identityError(c, "Router 需要已验证邮箱，请先在夜莺钱包插件中完成钱包身份验证和邮箱验证")
 		return
 	}
-	username := identityPresentationUsername(pres.Credentials)
+	username := verifiedIdentitySubjectString(verifiedCredentials, "UsernameCredential", "username")
 	if !identityPresentationHasScope(pres.Scopes, "identity.username") || username == "" {
 		identityError(c, "Router 需要已验证用户名，请先在夜莺钱包插件中完成身份用户名验证")
 		return
@@ -122,7 +135,8 @@ func VerifyIdentityWalletLogin(c *gin.Context) {
 		identityError(c, "钱包地址无效")
 		return
 	}
-	accountCredentialAddr, accountCredentialChain := identityPresentationWalletAccount(pres.Credentials)
+	accountCredentialAddr := verifiedIdentitySubjectString(verifiedCredentials, "WalletAccountCredential", "address")
+	accountCredentialChain := verifiedIdentitySubjectString(verifiedCredentials, "WalletAccountCredential", "chainKey")
 	if accountCredentialAddr == "" || !strings.EqualFold(model.NormalizeWalletAddress(accountCredentialAddr), addr) || accountCredentialChain == "" || !strings.EqualFold(accountCredentialChain, walletProofChain) {
 		identityError(c, "钱包身份账户凭证无效")
 		return
@@ -135,14 +149,14 @@ func VerifyIdentityWalletLogin(c *gin.Context) {
 		identityError(c, err.Error())
 		return
 	}
-	if email := identityPresentationEmail(pres.Credentials); email != "" {
+	if email := strings.ToLower(verifiedIdentitySubjectString(verifiedCredentials, "EmailCredential", "email")); email != "" {
 		if err := model.SyncIdentityEmail(user.Id, email); err != nil {
 			logger.SysError("sync wallet identity email failed: " + err.Error())
 			identityError(c, "无法同步钱包身份邮箱")
 			return
 		}
 	}
-	if avatarURL := model.NormalizeIdentityAvatarURL(identityPresentationAvatarURL(pres.Credentials)); avatarURL != "" {
+	if avatarURL := model.NormalizeIdentityAvatarURL(verifiedIdentitySubjectString(verifiedCredentials, "AvatarCredential", "avatarUri", "avatarUrl", "avatar")); avatarURL != "" {
 		if err := model.SyncIdentityAvatarURL(user.Id, avatarURL); err != nil {
 			logger.SysError("sync wallet identity avatar failed: " + err.Error())
 		} else {
@@ -199,6 +213,21 @@ func VerifyIdentityWalletLogin(c *gin.Context) {
 	})
 }
 
+func verifiedIdentitySubjectString(credentials map[string]common.VerifiedIdentityCredential, credentialType string, keys ...string) string {
+	credential, ok := credentials[credentialType]
+	if !ok || credential.Subject == nil {
+		return ""
+	}
+	for _, key := range keys {
+		value, _ := credential.Subject[key].(string)
+		value = strings.TrimSpace(value)
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
 // extractWalletProofAddress reads the walletProof.address from the presentation JSON.
 func extractWalletProof(presentation json.RawMessage) (string, string) {
 	var raw map[string]any
@@ -221,94 +250,6 @@ func identityPresentationHasScope(scopes []string, target string) bool {
 		}
 	}
 	return false
-}
-
-func identityPresentationHasCredential(credentials []string, credentialType string) bool {
-	for _, token := range credentials {
-		if identityCredentialType(token) == credentialType {
-			return true
-		}
-	}
-	return false
-}
-
-func identityCredentialType(token string) string {
-	credentialType, _ := identityCredentialTypeAndSubject(token)
-	return credentialType
-}
-
-func identityCredentialTypeAndSubject(token string) (string, map[string]any) {
-	parts := strings.Split(strings.TrimSpace(token), ".")
-	if len(parts) != 3 {
-		return "", nil
-	}
-	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return "", nil
-	}
-	var claims map[string]any
-	if err := json.Unmarshal(payload, &claims); err != nil {
-		return "", nil
-	}
-	vc, ok := claims["vc"].(map[string]any)
-	if !ok {
-		return "", nil
-	}
-	rawTypes, ok := vc["type"].([]any)
-	if !ok {
-		return "", nil
-	}
-	subject, _ := vc["credentialSubject"].(map[string]any)
-	credentialType := ""
-	for _, item := range rawTypes {
-		if value, ok := item.(string); ok && value != "VerifiableCredential" {
-			credentialType = value
-			break
-		}
-	}
-	return credentialType, subject
-}
-
-func identityCredentialSubjectString(credentials []string, credentialType string, keys ...string) string {
-	for _, token := range credentials {
-		actualType, subject := identityCredentialTypeAndSubject(token)
-		if actualType != credentialType || subject == nil {
-			continue
-		}
-		for _, key := range keys {
-			value, _ := subject[key].(string)
-			value = strings.TrimSpace(value)
-			if value != "" {
-				return value
-			}
-		}
-	}
-	return ""
-}
-
-func identityPresentationEmail(credentials []string) string {
-	return strings.ToLower(identityCredentialSubjectString(credentials, "EmailCredential", "email"))
-}
-
-func identityPresentationUsername(credentials []string) string {
-	return identityCredentialSubjectString(credentials, "UsernameCredential", "username")
-}
-
-func identityPresentationAvatarURL(credentials []string) string {
-	return identityCredentialSubjectString(credentials, "AvatarCredential", "avatarUri", "avatarUrl", "avatar")
-}
-
-func identityPresentationWalletAccount(credentials []string) (string, string) {
-	for _, token := range credentials {
-		actualType, subject := identityCredentialTypeAndSubject(token)
-		if actualType != "WalletAccountCredential" || subject == nil {
-			continue
-		}
-		address, _ := subject["address"].(string)
-		chainKey, _ := subject["chainKey"].(string)
-		return strings.TrimSpace(address), strings.TrimSpace(chainKey)
-	}
-	return "", ""
 }
 
 func routerIdentityScopes(includeAvatar bool) []string {

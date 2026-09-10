@@ -150,6 +150,7 @@ type IdentityConfig struct {
 	NodeURL     string `yaml:"node_url"`
 	AppID       string `yaml:"app_id"`
 	CallbackURL string `yaml:"callback_url"`
+	TrustDir    string `yaml:"trust_dir"`
 }
 
 type RelayConfig struct {
@@ -276,6 +277,9 @@ func defaultAppConfig() AppConfig {
 			APIKey:         "",
 			TimeoutSeconds: 20,
 		},
+		Identity: IdentityConfig{
+			TrustDir: "/data/node",
+		},
 		Relay: RelayConfig{
 			TimeoutSeconds:                         0,
 			Proxy:                                  "",
@@ -383,6 +387,10 @@ func ApplyAppConfig(cfg *AppConfig, portFlagSet bool, logDirFlagSet bool) error 
 	config.IdentityNodeURL = strings.TrimRight(strings.TrimSpace(cfg.Identity.NodeURL), "/")
 	config.IdentityAppID = strings.TrimSpace(cfg.Identity.AppID)
 	config.IdentityCallbackURL = strings.TrimSpace(cfg.Identity.CallbackURL)
+	config.IdentityTrustDir = strings.TrimSpace(cfg.Identity.TrustDir)
+	if config.IdentityTrustDir == "" {
+		config.IdentityTrustDir = "/data/node"
+	}
 	SQLDSN = strings.TrimSpace(cfg.Database.SQLDSN)
 	LogSQLDSN = strings.TrimSpace(cfg.Database.LogSQLDSN)
 	SQLMaxIdleConns = cfg.Database.MaxIdleConns
