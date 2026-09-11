@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"testing"
 
 	"gorm.io/driver/sqlite"
@@ -47,6 +48,33 @@ func TestFinanceRecordsBackfillFromConsumeLogs(t *testing.T) {
 	}
 	if err := migrateRequestFinanceRecordsWithDB(db); err != nil {
 		t.Fatalf("repeat backfill records: %v", err)
+	}
+}
+
+func TestFinanceRecordsBackfillProcessesBatches(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open("file:finance-records-batches?mode=memory&cache=shared"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	if err := db.AutoMigrate(&Log{}, &BillingSettlement{}, &ProcurementAttribution{}); err != nil {
+		t.Fatalf("migrate records: %v", err)
+	}
+	rows := make([]Log, 0, 1200)
+	for i := 0; i < 1200; i++ {
+		rows = append(rows, Log{Id: fmt.Sprintf("batch-log-%04d", i), Type: LogTypeConsume, BillingChargeAmount: int64(i + 1)})
+	}
+	if err := db.CreateInBatches(&rows, 100).Error; err != nil {
+		t.Fatalf("create logs: %v", err)
+	}
+	if err := migrateRequestFinanceRecordsWithDB(db); err != nil {
+		t.Fatalf("backfill records: %v", err)
+	}
+	var count int64
+	if err := db.Model(&BillingSettlement{}).Count(&count).Error; err != nil {
+		t.Fatalf("count settlements: %v", err)
+	}
+	if count != 1200 {
+		t.Fatalf("settlement count = %d, want 1200", count)
 	}
 }
 
