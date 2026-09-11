@@ -114,11 +114,8 @@ func migrateRequestFinanceRecordsWithDB(db *gorm.DB) error {
 	if err := db.AutoMigrate(&BillingSettlement{}, &ProcurementAttribution{}); err != nil {
 		return err
 	}
-	return db.Where("type = ?", LogTypeConsume).FindInBatches(&[]Log{}, 500, func(batch *gorm.DB, _ int) error {
-		var rows []Log
-		if err := batch.Find(&rows).Error; err != nil {
-			return err
-		}
+	var rows []Log
+	return db.Where("type = ?", LogTypeConsume).FindInBatches(&rows, 500, func(batch *gorm.DB, _ int) error {
 		settlements := make([]BillingSettlement, 0, len(rows))
 		attributions := make([]ProcurementAttribution, 0, len(rows))
 		for i := range rows {
