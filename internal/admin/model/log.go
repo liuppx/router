@@ -36,41 +36,41 @@ type Log struct {
 	BillingGroupChannelRatio         float64 `json:"billing_group_channel_ratio" gorm:"type:double precision;default:0"`
 	BillingModelChannelRatio         float64 `json:"billing_model_channel_ratio" gorm:"type:double precision;default:0"`
 	BillingChargeRate                float64 `json:"billing_charge_rate" gorm:"type:double precision;default:0"`
-	BillingInputQuantity             float64 `json:"billing_input_quantity" gorm:"type:double precision;default:0"`
-	BillingOutputQuantity            float64 `json:"billing_output_quantity" gorm:"type:double precision;default:0"`
-	BillingCacheReadQuantity         float64 `json:"billing_cache_read_quantity" gorm:"type:double precision;default:0"`
-	BillingCacheWriteQuantity        float64 `json:"billing_cache_write_quantity" gorm:"type:double precision;default:0"`
-	BillingInputAmount               float64 `json:"billing_input_amount" gorm:"type:double precision;default:0"`
-	BillingOutputAmount              float64 `json:"billing_output_amount" gorm:"type:double precision;default:0"`
-	BillingCacheReadAmount           float64 `json:"billing_cache_read_amount" gorm:"type:double precision;default:0"`
-	BillingCacheWriteAmount          float64 `json:"billing_cache_write_amount" gorm:"type:double precision;default:0"`
-	BillingAmount                    float64 `json:"billing_amount" gorm:"type:double precision;default:0"`
-	BillingChargeAmount              int64   `json:"billing_charge_amount" gorm:"bigint;default:0"`
+	BillingInputQuantity             float64 `json:"billing_input_quantity" gorm:"-"`
+	BillingOutputQuantity            float64 `json:"billing_output_quantity" gorm:"-"`
+	BillingCacheReadQuantity         float64 `json:"billing_cache_read_quantity" gorm:"-"`
+	BillingCacheWriteQuantity        float64 `json:"billing_cache_write_quantity" gorm:"-"`
+	BillingInputAmount               float64 `json:"billing_input_amount" gorm:"-"`
+	BillingOutputAmount              float64 `json:"billing_output_amount" gorm:"-"`
+	BillingCacheReadAmount           float64 `json:"billing_cache_read_amount" gorm:"-"`
+	BillingCacheWriteAmount          float64 `json:"billing_cache_write_amount" gorm:"-"`
+	BillingAmount                    float64 `json:"billing_amount" gorm:"-"`
+	BillingChargeAmount              int64   `json:"billing_charge_amount" gorm:"-"`
 	BillingImageToolCalls            int     `json:"billing_image_tool_calls" gorm:"default:0"`
 	BillingImageToolOutputTokens     int     `json:"billing_image_tool_output_tokens" gorm:"default:0"`
 	BillingImageToolAmount           float64 `json:"billing_image_tool_amount" gorm:"type:double precision;default:0"`
 	BillingImageToolChargeAmount     int64   `json:"billing_image_tool_charge_amount" gorm:"bigint;default:0"`
 	BillingSettlementTruthMode       string  `json:"billing_settlement_truth_mode" gorm:"type:varchar(64);default:''"`
-	BillingOfficialAnchorAmount      float64 `json:"billing_official_anchor_amount" gorm:"type:double precision;default:0"`
-	BillingOfficialAnchorCurrency    string  `json:"billing_official_anchor_currency" gorm:"type:varchar(16);default:''"`
-	BillingOfficialAnchorBaseAmount  float64 `json:"billing_official_anchor_base_amount" gorm:"type:double precision;default:0"`
-	BillingProcurementCostBaseAmount float64 `json:"billing_procurement_cost_base_amount" gorm:"type:double precision;default:0"`
-	BillingProcurementCostSource     string  `json:"billing_procurement_cost_source" gorm:"type:varchar(32);default:''"`
-	BillingProcurementCostConfidence string  `json:"billing_procurement_cost_confidence" gorm:"type:varchar(64);default:''"`
-	BillingProcurementCostStatus     string  `json:"billing_procurement_cost_status" gorm:"type:varchar(32);index;default:''"`
-	BillingSellBaseAmount            float64 `json:"billing_sell_base_amount" gorm:"type:double precision;default:0"`
-	BillingCostFloorBaseAmount       float64 `json:"billing_cost_floor_base_amount" gorm:"type:double precision;default:0"`
-	BillingSelectedSellBaseAmount    float64 `json:"billing_selected_sell_base_amount" gorm:"type:double precision;default:0"`
-	BillingPricingDecisionReason     string  `json:"billing_pricing_decision_reason" gorm:"type:varchar(64);default:''"`
-	BillingCostFloorTriggered        bool    `json:"billing_cost_floor_triggered" gorm:"default:false"`
-	BillingGrossProfitBaseAmount     float64 `json:"billing_gross_profit_base_amount" gorm:"type:double precision;default:0"`
-	BillingGrossMargin               float64 `json:"billing_gross_margin" gorm:"type:double precision;default:0"`
+	BillingOfficialAnchorAmount      float64 `json:"billing_official_anchor_amount" gorm:"-"`
+	BillingOfficialAnchorCurrency    string  `json:"billing_official_anchor_currency" gorm:"-"`
+	BillingOfficialAnchorBaseAmount  float64 `json:"billing_official_anchor_base_amount" gorm:"-"`
+	BillingProcurementCostBaseAmount float64 `json:"billing_procurement_cost_base_amount" gorm:"-"`
+	BillingProcurementCostSource     string  `json:"billing_procurement_cost_source" gorm:"-"`
+	BillingProcurementCostConfidence string  `json:"billing_procurement_cost_confidence" gorm:"-"`
+	BillingProcurementCostStatus     string  `json:"billing_procurement_cost_status" gorm:"-"`
+	BillingSellBaseAmount            float64 `json:"billing_sell_base_amount" gorm:"-"`
+	BillingCostFloorBaseAmount       float64 `json:"billing_cost_floor_base_amount" gorm:"-"`
+	BillingSelectedSellBaseAmount    float64 `json:"billing_selected_sell_base_amount" gorm:"-"`
+	BillingPricingDecisionReason     string  `json:"billing_pricing_decision_reason" gorm:"-"`
+	BillingCostFloorTriggered        bool    `json:"billing_cost_floor_triggered" gorm:"-"`
+	BillingGrossProfitBaseAmount     float64 `json:"billing_gross_profit_base_amount" gorm:"-"`
+	BillingGrossMargin               float64 `json:"billing_gross_margin" gorm:"-"`
 	BillingPricingRuleVersion        string  `json:"billing_pricing_rule_version" gorm:"type:varchar(64);default:''"`
-	BillingCostRuleVersion           string  `json:"billing_cost_rule_version" gorm:"type:varchar(64);default:''"`
+	BillingCostRuleVersion           string  `json:"billing_cost_rule_version" gorm:"-"`
 	BillingDecision                  string  `json:"billing_decision" gorm:"type:text"`
-	BillingProcurementRetryCount     int     `json:"billing_procurement_retry_count" gorm:"default:0"`
-	BillingProcurementLastRetryAt    int64   `json:"billing_procurement_last_retry_at" gorm:"bigint;default:0"`
-	BillingProcurementLastError      string  `json:"billing_procurement_last_error" gorm:"type:text"`
+	BillingProcurementRetryCount     int     `json:"billing_procurement_retry_count" gorm:"-"`
+	BillingProcurementLastRetryAt    int64   `json:"billing_procurement_last_retry_at" gorm:"-"`
+	BillingProcurementLastError      string  `json:"billing_procurement_last_error" gorm:"-"`
 	EstimatedPromptTokens            int     `json:"estimated_prompt_tokens" gorm:"default:0"`
 	EstimatedOutputTokens            int     `json:"estimated_output_tokens" gorm:"default:0"`
 	EstimatedChargeAmount            int64   `json:"estimated_charge_amount" gorm:"bigint;default:0"`

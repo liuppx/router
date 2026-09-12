@@ -107,35 +107,6 @@ type ProcurementAttribution struct {
 
 func (ProcurementAttribution) TableName() string { return ProcurementAttributionsTableName }
 
-func migrateRequestFinanceRecordsWithDB(db *gorm.DB) error {
-	if db == nil {
-		return fmt.Errorf("database handle is nil")
-	}
-	if err := db.AutoMigrate(&BillingSettlement{}, &ProcurementAttribution{}); err != nil {
-		return err
-	}
-	var rows []Log
-	return db.Where("type = ?", LogTypeConsume).FindInBatches(&rows, 500, func(batch *gorm.DB, _ int) error {
-		settlements := make([]BillingSettlement, 0, len(rows))
-		attributions := make([]ProcurementAttribution, 0, len(rows))
-		for i := range rows {
-			settlements = append(settlements, billingSettlementFromLog(&rows[i]))
-			attributions = append(attributions, procurementAttributionFromLog(&rows[i]))
-		}
-		if len(settlements) > 0 {
-			if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&settlements).Error; err != nil {
-				return err
-			}
-		}
-		if len(attributions) > 0 {
-			if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&attributions).Error; err != nil {
-				return err
-			}
-		}
-		return nil
-	}).Error
-}
-
 func billingSettlementFromLog(row *Log) BillingSettlement {
 	if row == nil {
 		return BillingSettlement{}
@@ -374,7 +345,7 @@ func CheckFinanceRecordConsistency(db *gorm.DB, logID string) error {
 	if err := db.First(&settlement, "request_log_id = ?", id).Error; err != nil {
 		return err
 	}
-	if settlement.ChargeAmount != logRow.BillingChargeAmount || settlement.PromptTokens != logRow.PromptTokens || settlement.CompletionTokens != logRow.CompletionTokens {
+	if settlement.PromptTokens != logRow.PromptTokens || settlement.CompletionTokens != logRow.CompletionTokens {
 		return fmt.Errorf("billing settlement mismatch for log %s", id)
 	}
 	return nil
@@ -401,15 +372,15 @@ func InspectFinanceConsistency(db *gorm.DB, startAt, endAt int64) (FinanceConsis
 	if err := db.Raw("SELECT COUNT(*) FROM event_logs el LEFT JOIN procurement_attributions pa ON pa.request_log_id = el.id WHERE el.type = ? AND pa.request_log_id IS NULL AND (? = 0 OR el.created_at >= ?) AND (? = 0 OR el.created_at <= ?)", LogTypeConsume, startAt, startAt, endAt, endAt).Scan(&result.MissingAttributions).Error; err != nil {
 		return result, err
 	}
-	if err := db.Raw("SELECT COUNT(*) FROM event_logs el JOIN billing_settlements bs ON bs.request_log_id = el.id WHERE el.type = ? AND (el.billing_charge_amount <> bs.charge_amount OR el.prompt_tokens <> bs.prompt_tokens OR el.completion_tokens <> bs.completion_tokens) AND (? = 0 OR el.created_at >= ?) AND (? = 0 OR el.created_at <= ?)", LogTypeConsume, startAt, startAt, endAt, endAt).Scan(&result.SettlementMismatches).Error; err != nil {
+	if err := db.Raw("SELECT COUNT(*) FROM event_logs el JOIN billing_settlements bs ON bs.request_log_id = el.id WHERE el.type = ? AND (el.prompt_tokens <> bs.prompt_tokens OR el.completion_tokens <> bs.completion_tokens) AND (? = 0 OR el.created_at >= ?) AND (? = 0 OR el.created_at <= ?)", LogTypeConsume, startAt, startAt, endAt, endAt).Scan(&result.SettlementMismatches).Error; err != nil {
 		return result, err
 	}
 	result.Consistent = result.MissingSettlements == 0 && result.MissingAttributions == 0 && result.SettlementMismatches == 0
 	return result, nil
 }
 
-// CanDropFinanceColumns is the explicit gate for the future cleanup
-// migration. It intentionally fails closed when normalized tables are absent
+// CanDropFinanceColumns is the explicit gate for the cleanup migration. It
+// intentionally fails closed when normalized tables are absent
 // or any record in the verification window is missing or divergent.
 func CanDropFinanceColumns(db *gorm.DB, startAt, endAt int64) (bool, FinanceConsistencySummary, error) {
 	if db == nil {
@@ -425,14 +396,13 @@ func CanDropFinanceColumns(db *gorm.DB, startAt, endAt int64) (bool, FinanceCons
 	return summary.Consistent, summary, nil
 }
 
-// DropFinanceColumnsWithDB is intentionally not wired into an automatic
-// migration yet. It is the final, destructive operation after all old
-// readers and writers have been removed from the binary.
+// DropFinanceColumnsWithDB performs the final destructive operation after all
+// old readers and writers have been removed from the binary.
 func DropFinanceColumnsWithDB(db *gorm.DB, startAt, endAt int64) error {
 	if db == nil {
 		return fmt.Errorf("database handle is nil")
 	}
-	if !db.Migrator().HasTable(&Log{}) {
+	if !db.Migrator().HasTable(EventLogsTableName) {
 		return fmt.Errorf("event logs table is missing")
 	}
 	if !db.Migrator().HasTable(&BillingSettlement{}) || !db.Migrator().HasTable(&ProcurementAttribution{}) {
@@ -450,10 +420,10 @@ func DropFinanceColumnsWithDB(db *gorm.DB, startAt, endAt int64) error {
 	}
 	return db.Transaction(func(tx *gorm.DB) error {
 		for _, column := range financeColumnsPendingRemoval {
-			if !tx.Migrator().HasColumn(&Log{}, column) {
+			if !tx.Migrator().HasColumn(EventLogsTableName, column) {
 				continue
 			}
-			if err := tx.Migrator().DropColumn(&Log{}, column); err != nil {
+			if err := tx.Exec("ALTER TABLE " + EventLogsTableName + " DROP COLUMN " + column).Error; err != nil {
 				return fmt.Errorf("drop finance column pending removal %s: %w", column, err)
 			}
 		}

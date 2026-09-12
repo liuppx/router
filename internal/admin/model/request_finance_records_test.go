@@ -1,84 +1,13 @@
 package model
 
 import (
-	"fmt"
 	"testing"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-func TestFinanceRecordsBackfillFromConsumeLogs(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:finance-records?mode=memory&cache=shared"), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
-	}
-	if err := db.AutoMigrate(&Log{}); err != nil {
-		t.Fatalf("migrate logs: %v", err)
-	}
-	if err := db.Create(&Log{Id: "log-1", Type: LogTypeConsume, UserId: "user-1", ChannelId: "channel-1", BillingChargeAmount: 42, BillingProcurementCostStatus: ProcurementCostAttributionStatusPending}).Error; err != nil {
-		t.Fatalf("create log: %v", err)
-	}
-	if err := migrateRequestFinanceRecordsWithDB(db); err != nil {
-		t.Fatalf("backfill records: %v", err)
-	}
-	log2 := &Log{Id: "log-2", Type: LogTypeConsume, UserId: "user-2", BillingChargeAmount: 77, PromptTokens: 3, CompletionTokens: 4}
-	if err := db.Create(log2).Error; err != nil {
-		t.Fatalf("create second log: %v", err)
-	}
-	if err := RecordFinanceRecordsForLog(db, log2); err != nil {
-		t.Fatalf("record normalized records: %v", err)
-	}
-	if err := CheckFinanceRecordConsistency(db, "log-2"); err != nil {
-		t.Fatalf("consistency check: %v", err)
-	}
-	var settlement BillingSettlement
-	if err := db.First(&settlement, "request_log_id = ?", "log-1").Error; err != nil {
-		t.Fatalf("load settlement: %v", err)
-	}
-	if settlement.ChargeAmount != 42 || settlement.UserID != "user-1" {
-		t.Fatalf("settlement = %+v", settlement)
-	}
-	var attribution ProcurementAttribution
-	if err := db.First(&attribution, "request_log_id = ?", "log-1").Error; err != nil {
-		t.Fatalf("load attribution: %v", err)
-	}
-	if attribution.ChannelID != "channel-1" || attribution.Status != ProcurementCostAttributionStatusPending {
-		t.Fatalf("attribution = %+v", attribution)
-	}
-	if err := migrateRequestFinanceRecordsWithDB(db); err != nil {
-		t.Fatalf("repeat backfill records: %v", err)
-	}
-}
-
-func TestFinanceRecordsBackfillProcessesBatches(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:finance-records-batches?mode=memory&cache=shared"), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
-	}
-	if err := db.AutoMigrate(&Log{}, &BillingSettlement{}, &ProcurementAttribution{}); err != nil {
-		t.Fatalf("migrate records: %v", err)
-	}
-	rows := make([]Log, 0, 1200)
-	for i := 0; i < 1200; i++ {
-		rows = append(rows, Log{Id: fmt.Sprintf("batch-log-%04d", i), Type: LogTypeConsume, BillingChargeAmount: int64(i + 1)})
-	}
-	if err := db.CreateInBatches(&rows, 100).Error; err != nil {
-		t.Fatalf("create logs: %v", err)
-	}
-	if err := migrateRequestFinanceRecordsWithDB(db); err != nil {
-		t.Fatalf("backfill records: %v", err)
-	}
-	var count int64
-	if err := db.Model(&BillingSettlement{}).Count(&count).Error; err != nil {
-		t.Fatalf("count settlements: %v", err)
-	}
-	if count != 1200 {
-		t.Fatalf("settlement count = %d, want 1200", count)
-	}
-}
-
-func TestLegacyProcurementRetryHelpersUseNormalizedRecords(t *testing.T) {
+func TestProcurementRetryHelpersUseNormalizedRecords(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open("file:finance-retry-helpers?mode=memory&cache=shared"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
@@ -139,7 +68,16 @@ func TestCreateLogWithFinanceRecordsIsAtomic(t *testing.T) {
 		if err := db.AutoMigrate(&Log{}, &BillingSettlement{}, &ProcurementAttribution{}); err != nil {
 			t.Fatalf("migrate records: %v", err)
 		}
-		row := &Log{Id: "atomic-log", Type: LogTypeConsume, BillingChargeAmount: 42, BillingProcurementCostStatus: ProcurementCostAttributionStatusPending}
+		if db.Migrator().HasColumn(EventLogsTableName, "billing_charge_amount") || db.Migrator().HasColumn(EventLogsTableName, "billing_procurement_cost_status") {
+			t.Fatal("event_logs must not own normalized finance columns")
+		}
+		row := &Log{
+			Id:                               "atomic-log",
+			Type:                             LogTypeConsume,
+			BillingChargeAmount:              42,
+			BillingProcurementCostBaseAmount: 12.5,
+			BillingProcurementCostStatus:     ProcurementCostAttributionStatusPending,
+		}
 		if err := CreateLogWithFinanceRecords(db, row); err != nil {
 			t.Fatalf("create records: %v", err)
 		}
@@ -155,6 +93,20 @@ func TestCreateLogWithFinanceRecordsIsAtomic(t *testing.T) {
 			if count != 1 {
 				t.Fatalf("%s count = %d, want 1", table, count)
 			}
+		}
+		var settlement BillingSettlement
+		if err := db.First(&settlement, "request_log_id = ?", row.Id).Error; err != nil {
+			t.Fatalf("load settlement: %v", err)
+		}
+		if settlement.ChargeAmount != 42 {
+			t.Fatalf("settlement charge = %d, want 42", settlement.ChargeAmount)
+		}
+		var attribution ProcurementAttribution
+		if err := db.First(&attribution, "request_log_id = ?", row.Id).Error; err != nil {
+			t.Fatalf("load attribution: %v", err)
+		}
+		if attribution.CostBaseAmount != 12.5 || attribution.Status != ProcurementCostAttributionStatusPending {
+			t.Fatalf("attribution = %+v", attribution)
 		}
 	})
 

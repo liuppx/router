@@ -17,13 +17,16 @@ func newProcurementTestDB(t *testing.T) *gorm.DB {
 	if err := db.AutoMigrate(&ChannelBillingSnapshot{}, &ChannelBillingSnapshotItem{}, &ChannelProcurementBatch{}, &RequestProcurementConsumption{}, &Log{}, &BillingSettlement{}, &ProcurementAttribution{}); err != nil {
 		t.Fatalf("auto migrate: %v", err)
 	}
-	if err := db.Exec(`CREATE TRIGGER sync_test_finance AFTER INSERT ON event_logs WHEN NEW.type = 2 BEGIN
-		INSERT OR REPLACE INTO billing_settlements (request_log_id, input_quantity, output_quantity, cache_read_quantity, cache_write_quantity, charge_amount, sell_base_amount, cost_floor_triggered, cost_floor_base_amount) VALUES (NEW.id, NEW.billing_input_quantity, NEW.billing_output_quantity, NEW.billing_cache_read_quantity, NEW.billing_cache_write_quantity, NEW.billing_charge_amount, NEW.billing_sell_base_amount, NEW.billing_cost_floor_triggered, NEW.billing_cost_floor_base_amount);
-		INSERT OR REPLACE INTO procurement_attributions (request_log_id, status, cost_base_amount, gross_profit_base_amount) VALUES (NEW.id, NEW.billing_procurement_cost_status, NEW.billing_procurement_cost_base_amount, NEW.billing_gross_profit_base_amount);
-	END`).Error; err != nil {
-		t.Fatalf("create finance test trigger: %v", err)
-	}
 	return db
+}
+
+func createProcurementTestLogs(t *testing.T, db *gorm.DB, rows ...*Log) {
+	t.Helper()
+	for _, row := range rows {
+		if err := CreateLogWithFinanceRecords(db, row); err != nil {
+			t.Fatalf("create log with finance records: %v", err)
+		}
+	}
 }
 
 func TestConsumeChannelProcurementBatchesWithDB(t *testing.T) {
@@ -529,9 +532,7 @@ func TestConsumeChannelProcurementBatchesWithDBReportsPartialCoverage(t *testing
 func TestUpdateProcurementCostObservationWithDB(t *testing.T) {
 	db := newProcurementTestDB(t)
 	logRow := Log{Id: "log-1", Type: LogTypeConsume, BillingSellBaseAmount: 10}
-	if err := db.Create(&logRow).Error; err != nil {
-		t.Fatalf("create log: %v", err)
-	}
+	createProcurementTestLogs(t, db, &logRow)
 
 	if err := UpdateProcurementCostObservationWithDB(db, "log-1", 4, ProcurementCostSourceActual, 10); err != nil {
 		t.Fatalf("update log procurement cost: %v", err)
@@ -549,9 +550,7 @@ func TestUpdateProcurementCostObservationWithDB(t *testing.T) {
 func TestUpdateProcurementCostObservationRequiresNormalizedRecord(t *testing.T) {
 	db := newProcurementTestDB(t)
 	logRow := Log{Id: "missing-attribution", Type: LogTypeConsume, BillingSellBaseAmount: 10}
-	if err := db.Create(&logRow).Error; err != nil {
-		t.Fatalf("create log: %v", err)
-	}
+	createProcurementTestLogs(t, db, &logRow)
 	if err := db.Delete(&ProcurementAttribution{}, "request_log_id = ?", logRow.Id).Error; err != nil {
 		t.Fatalf("delete attribution: %v", err)
 	}
@@ -1018,8 +1017,8 @@ func TestListProcurementReportWithDB(t *testing.T) {
 			BillingGrossProfitBaseAmount: 5,
 		},
 	}
-	if err := db.Create(&rows).Error; err != nil {
-		t.Fatalf("seed logs: %v", err)
+	for index := range rows {
+		createProcurementTestLogs(t, db, &rows[index])
 	}
 
 	report, err := ListProcurementReportWithDB(db, ProcurementReportQuery{
@@ -1118,7 +1117,7 @@ func TestListProcurementReportWithDB(t *testing.T) {
 
 func TestListProcurementReportDoesNotClassifyEstimatedCostAsUnconfigured(t *testing.T) {
 	db := newProcurementTestDB(t)
-	if err := db.Create(&Log{
+	row := &Log{
 		Id:                               "log-estimated",
 		Type:                             LogTypeConsume,
 		CreatedAt:                        100,
@@ -1129,9 +1128,8 @@ func TestListProcurementReportDoesNotClassifyEstimatedCostAsUnconfigured(t *test
 		BillingProcurementCostSource:     ProcurementCostSourceEstimated,
 		BillingProcurementCostStatus:     ProcurementCostAttributionStatusEstimated,
 		BillingGrossProfitBaseAmount:     6,
-	}).Error; err != nil {
-		t.Fatalf("seed estimated log: %v", err)
 	}
+	createProcurementTestLogs(t, db, row)
 	report, err := ListProcurementReportWithDB(db, ProcurementReportQuery{
 		StartAt: 90,
 		EndAt:   110,
@@ -1163,8 +1161,8 @@ func TestListProcurementReportSeparatesPendingAndRetry(t *testing.T) {
 		{Id: "pending", Type: LogTypeConsume, CreatedAt: 100, ChannelId: "channel-1", BillingSellBaseAmount: 10, BillingProcurementCostStatus: ProcurementCostAttributionStatusPending},
 		{Id: "retry", Type: LogTypeConsume, CreatedAt: 101, ChannelId: "channel-1", BillingSellBaseAmount: 20, BillingProcurementCostStatus: ProcurementCostAttributionStatusRetry},
 	}
-	if err := db.Create(&rows).Error; err != nil {
-		t.Fatalf("seed attribution logs: %v", err)
+	for index := range rows {
+		createProcurementTestLogs(t, db, &rows[index])
 	}
 	report, err := ListProcurementReportWithDB(db, ProcurementReportQuery{StartAt: 90, EndAt: 110, GroupBy: ProcurementReportGroupByChannel})
 	if err != nil {

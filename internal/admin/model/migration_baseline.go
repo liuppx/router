@@ -75,5 +75,5 @@ func runLogBaselineMigrationWithDB(tx *gorm.DB) error {
 	if tx == nil {
 		return fmt.Errorf("database handle is nil")
 	}
-	return tx.AutoMigrate(&Log{})
+	return tx.AutoMigrate(&Log{}, &BillingSettlement{}, &ProcurementAttribution{})
 }
