@@ -137,3 +137,24 @@ func TestLogMigrationsDropFinanceColumns(t *testing.T) {
 		t.Fatalf("cleanup migration count = %d, want 1", applied)
 	}
 }
+
+func TestDropObsoleteEventLogFinanceColumnsWithDB(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open("file:obsolete-event-log-finance?mode=memory&cache=shared"), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec("CREATE TABLE event_logs (id varchar(36) primary key, billing_gross_profit_cny double, billing_yyc_amount double, billing_yyc_rate double, billing_image_tool_amount double)").Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := DropObsoleteEventLogFinanceColumnsWithDB(db); err != nil {
+		t.Fatal(err)
+	}
+	for _, column := range []string{"billing_gross_profit_cny", "billing_yyc_amount", "billing_yyc_rate"} {
+		if db.Migrator().HasColumn(EventLogsTableName, column) {
+			t.Fatalf("%s should be removed", column)
+		}
+	}
+	if !db.Migrator().HasColumn(EventLogsTableName, "billing_image_tool_amount") {
+		t.Fatal("active image-tool billing column must remain")
+	}
+}

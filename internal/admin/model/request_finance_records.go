@@ -28,6 +28,18 @@ var financeColumnsPendingRemoval = []string{
 	"billing_cost_rule_version", "billing_procurement_retry_count", "billing_procurement_last_retry_at", "billing_procurement_last_error",
 }
 
+// Pre-normalization finance columns no longer represented by Log or runtime
+// queries. Keep active image-tool billing columns out of this list.
+var obsoleteEventLogFinanceColumns = []string{
+	"billing_gross_profit_cny",
+	"billing_procurement_cost_cny",
+	"billing_sell_amount_cny",
+	"billing_official_anchor_amount_cny",
+	"billing_image_tool_yyc_amount",
+	"billing_yyc_amount",
+	"billing_yyc_rate",
+}
+
 const (
 	BillingSettlementsTableName      = "billing_settlements"
 	ProcurementAttributionsTableName = "procurement_attributions"
@@ -429,4 +441,24 @@ func DropFinanceColumnsWithDB(db *gorm.DB, startAt, endAt int64) error {
 		}
 		return nil
 	})
+}
+
+// DropObsoleteEventLogFinanceColumnsWithDB removes pre-normalization columns
+// that have no runtime readers. The checks make the migration idempotent.
+func DropObsoleteEventLogFinanceColumnsWithDB(db *gorm.DB) error {
+	if db == nil {
+		return fmt.Errorf("database handle is nil")
+	}
+	if !db.Migrator().HasTable(EventLogsTableName) {
+		return nil
+	}
+	for _, column := range obsoleteEventLogFinanceColumns {
+		if !db.Migrator().HasColumn(EventLogsTableName, column) {
+			continue
+		}
+		if err := db.Exec("ALTER TABLE " + EventLogsTableName + " DROP COLUMN " + column).Error; err != nil {
+			return fmt.Errorf("drop obsolete event log finance column %s: %w", column, err)
+		}
+	}
+	return nil
 }

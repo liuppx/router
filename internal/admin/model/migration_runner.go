@@ -3435,6 +3435,13 @@ func runLogVersionedMigrations(db *gorm.DB) error {
 				return DropFinanceColumnsWithDB(tx, 0, 0)
 			},
 		},
+		{
+			Version:     "202609121030_drop_obsolete_event_log_finance_columns",
+			Description: "remove pre-normalization CNY and YYC columns from event logs",
+			Up: func(tx *gorm.DB) error {
+				return DropObsoleteEventLogFinanceColumnsWithDB(tx)
+			},
+		},
 	}
 	return runVersionedMigrations(db, migrationScopeLog, migrations)
 }
