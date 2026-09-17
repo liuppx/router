@@ -120,8 +120,11 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
     status?.register_enabled !== false &&
     status?.password_register_enabled !== false;
   const userWalletAddress = String(userState?.user?.wallet_address || '').trim();
+  const userUsername = String(userState?.user?.username || '').trim();
+  // Prefer the account username in the header; wallet addresses remain a
+  // useful fallback for wallet-only identities that do not have one.
   const userDisplayName =
-    formatHeaderWalletAddress(userWalletAddress) || userState?.user?.username || '';
+    userUsername || formatHeaderWalletAddress(userWalletAddress) || '';
 
   const desktopNavItems = useMemo(() => {
     return navigationButtons.map((button) => {
@@ -372,7 +375,7 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
               >
                 <span
                   className='router-header-toolbar-chip'
-                  title={userWalletAddress || userState.user.username}
+                  title={userUsername || userWalletAddress}
                 >
                   {userDisplayName}
                 </span>
