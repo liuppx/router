@@ -21,12 +21,20 @@ import {
   AppSection,
   AppSegmented,
   AppToolbar,
+  chartAxisStyle,
+  chartCategoricalPalette,
+  chartGridStyle,
+  chartTooltipStyle,
 } from '../../router-ui';
 import './SpendingCalendar.css';
 
+// Series colors come from the validated categorical palette so the calendar
+// chart matches every other revenue/cost chart across the product. The two
+// hues (`tokens` purple, `cost` cyan) are the only units the calendar can be
+// shown in, so they stay fixed regardless of the data they carry.
 const chartColors = {
-  cost: '#00B5D8',
-  tokens: '#6C63FF',
+  cost: chartCategoricalPalette[4],
+  tokens: chartCategoricalPalette[3],
 };
 
 const calendarSpanDefaults = {
@@ -526,26 +534,15 @@ const SpendingCalendar = () => {
         <div className='chart-container'>
           <ResponsiveContainer width='100%' height={220}>
             <BarChart data={calendarBuckets}>
-              <CartesianGrid strokeDasharray='3 3' vertical={false} opacity={0.1} />
+              <CartesianGrid {...chartGridStyle()} />
               <XAxis
                 dataKey='label'
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: '#A3AED0' }}
+                {...chartAxisStyle()}
                 minTickGap={10}
               />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: '#A3AED0' }}
-              />
+              <YAxis {...chartAxisStyle()} />
               <Tooltip
-                contentStyle={{
-                  background: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                }}
+                {...chartTooltipStyle()}
                 formatter={(value) => formatCalendarValue(value)}
                 labelFormatter={(label) =>
                   `${t('dashboard.statistics.tooltip.date')}: ${label}`

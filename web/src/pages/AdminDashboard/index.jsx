@@ -14,6 +14,7 @@ import {
   YAxis,
 } from 'recharts';
 import { API } from '../../helpers/api';
+import { showError } from '../../helpers/utils';
 import {
   buildPublicDisplayCurrencyIndex,
   convertChargeAmountToDisplayAmount,
@@ -27,12 +28,27 @@ import {
   AppSegmented,
   AppSection,
   AppSelect,
+  AppSpin,
   AppTag,
   AppTable,
   AppTooltip,
   AppToolbar,
+  formatBillingPercent,
+  BILLING_PERCENT_DECIMALS,
+  chartAxisStyle,
+  chartCategoricalPalette,
+  chartGridStyle,
+  chartNeutralColor,
+  chartStatusPalette,
+  chartTooltipStyle,
+  chartTooltipLabelStyle,
+  chartTooltipItemStyle,
+  getActiveChartTheme,
 } from '../../router-ui';
-import '../Dashboard/Dashboard.css';
+import './Dashboard.css';
+import ChannelSectionTabs from '../../components/ChannelSectionTabs';
+import UserSectionTabs from '../../components/UserSectionTabs';
+import ModelSectionTabs from '../../components/ModelSectionTabs';
 import './AdminDashboard.css';
 
 const PERIOD_OPTIONS = [
@@ -56,10 +72,12 @@ const USER_GROWTH_GRANULARITY_OPTIONS = ['week', 'month'];
 const USER_GROWTH_LINE_KEYS = ['new_user_count', 'active_user_count', 'topup_user_count'];
 const USER_SEGMENT_FOCUS_LIMIT = 100;
 
-const DASHBOARD_SECTIONS = ['channels', 'users'];
+const DASHBOARD_SECTIONS = ['spending', 'channels', 'users', 'models'];
 const DASHBOARD_SECTION_TITLES = {
+  spending: 'dashboard.admin.nav.spending',
   channels: 'dashboard.admin.nav.channels',
   users: 'dashboard.admin.nav.users',
+  models: 'dashboard.admin.nav.models',
 };
 
 const MODEL_SORT_OPTIONS = [
@@ -67,6 +85,13 @@ const MODEL_SORT_OPTIONS = [
   'requests',
   'health',
   'latency',
+];
+
+const CHANNEL_SORT_OPTIONS = [
+  'health',
+  'pass_rate',
+  'latency',
+  'requests',
 ];
 
 const EMPTY_SUMMARY = {
@@ -172,25 +197,25 @@ const EMPTY_DASHBOARD = {
 };
 
 const HEALTH_LEVEL_COLORS = {
-  healthy: '#16a34a',
-  warning: '#f59e0b',
-  critical: '#ef4444',
-  unknown: '#94a3b8',
+  healthy: chartStatusPalette.success,
+  warning: chartStatusPalette.warning,
+  critical: chartStatusPalette.danger,
+  unknown: chartNeutralColor(),
 };
 
 const CHANNEL_HEALTH_HISTORY_SIZE = 60;
 
 const CHANNEL_HEALTH_POINT_COLORS = {
-  success: '#16a34a',
-  warning: '#f59e0b',
-  failure: '#dc2626',
-  unknown: '#cbd5e1',
+  success: chartStatusPalette.success,
+  warning: chartStatusPalette.warning,
+  failure: chartStatusPalette.danger,
+  unknown: chartNeutralColor(),
 };
 
 const USER_GROWTH_LINE_COLORS = {
-  new_user_count: '#2563eb',
-  active_user_count: '#16a34a',
-  topup_user_count: '#f59e0b',
+  new_user_count: chartCategoricalPalette[0],
+  active_user_count: chartCategoricalPalette[2],
+  topup_user_count: chartCategoricalPalette[1],
 };
 
 const ACTIVE_CIRCUIT_BREAKER_STATES = new Set(['open', 'half_open']);
@@ -388,7 +413,7 @@ const toPercent = (raw) => {
   return value;
 };
 
-const formatPercent = (raw) => `${toPercent(raw).toFixed(1)}%`;
+const formatPercent = (raw) => formatBillingPercent(toPercent(raw), BILLING_PERCENT_DECIMALS);
 
 const normalizeChannelHealthPointState = (point) => {
   const raw = typeof point === 'string' ? point : point?.state;
@@ -438,6 +463,10 @@ const AdminDashboard = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  // Dashboard figures are shown in USD via a fixed fallback charge rate rather
+  // than the runtime currency table: passing [] makes buildPublicDisplayCurrencyIndex
+  // fall back to getFallbackUSDChargeRate(), so this is intentional (no runtime
+  // currency load needed for the operator's USD-only overview), not a missing feed.
   const displayCurrencyIndex = useMemo(
     () => buildPublicDisplayCurrencyIndex([]),
     [],
@@ -446,6 +475,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [trendMetric, setTrendMetric] = useState('spend_amount');
   const [modelSort, setModelSort] = useState('spend');
+  const [channelSort, setChannelSort] = useState('health');
   const [userGrowthGranularity, setUserGrowthGranularity] = useState('week');
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
   const [usageKeywordInput, setUsageKeywordInput] = useState('');
@@ -455,12 +485,12 @@ const AdminDashboard = () => {
     const params = new URLSearchParams(location.search || '');
     const rawSection = (params.get('section') || '').trim().toLowerCase();
     if (rawSection === 'overview' || rawSection === 'trend') {
-      return 'channels';
+      return 'spending';
     }
     if (rawSection === 'health') {
       return 'channels';
     }
-    return DASHBOARD_SECTIONS.includes(rawSection) ? rawSection : 'channels';
+    return DASHBOARD_SECTIONS.includes(rawSection) ? rawSection : 'spending';
   }, [location.search]);
 
   const activeSectionTitle = t(DASHBOARD_SECTION_TITLES[activeSection]);
@@ -530,6 +560,18 @@ const AdminDashboard = () => {
     return `${num > 0 ? '+' : '-'}${formatCount(Math.abs(num))}`;
   }, []);
 
+  const formatSignedPercent = useCallback((value) => {
+    const num = Number(value || 0);
+    if (!Number.isFinite(num) || num === 0) return '0.00%';
+    return `${num > 0 ? '+' : '-'}${(Math.abs(num) * 100).toFixed(2)}%`;
+  }, []);
+
+  const deltaTone = useCallback((value) => {
+    const num = Number(value || 0);
+    if (!Number.isFinite(num) || num === 0) return 'neutral';
+    return num > 0 ? 'positive' : 'negative';
+  }, []);
+
   const formatGrowthRate = useCallback(
     (comparison) => {
       const current = Number(comparison?.current || 0);
@@ -576,6 +618,7 @@ const AdminDashboard = () => {
       }
     } catch (error) {
       console.error('Failed to load admin dashboard:', error);
+      showError(error);
       setDashboard(EMPTY_DASHBOARD);
     } finally {
       setLoading(false);
@@ -742,16 +785,60 @@ const AdminDashboard = () => {
     [dashboard.user_growth_trend, formatPeriodRange],
   );
 
+  const userGrowthKpis = useMemo(() => {
+    const activeUsers = Number(
+      userGrowthSummary.current?.active_user_count || 0,
+    );
+    const topupUsers = Number(
+      userGrowthSummary.current?.topup_user_count || 0,
+    );
+    const previousActiveUsers = Number(
+      userGrowthSummary.previous?.active_user_count || 0,
+    );
+    const previousTopupUsers = Number(
+      userGrowthSummary.previous?.topup_user_count || 0,
+    );
+    const spendAmount = Number(dashboard.usage_totals?.spend_amount || 0);
+    const balanceTotal = dashboard.usage_rank.reduce(
+      (sum, item) => sum + Number(item?.balance_amount || 0),
+      0,
+    );
+    const paidConversion =
+      activeUsers > 0 ? topupUsers / activeUsers : 0;
+    const previousPaidConversion =
+      previousActiveUsers > 0 ? previousTopupUsers / previousActiveUsers : 0;
+    const arpu = activeUsers > 0 ? spendAmount / activeUsers : 0;
+    return {
+      active_users: activeUsers,
+      active_users_comparison: userGrowthSummary.active_users || null,
+      topup_users: topupUsers,
+      topup_users_comparison: userGrowthSummary.topup_users || null,
+      paid_conversion_rate: paidConversion,
+      paid_conversion_delta: paidConversion - previousPaidConversion,
+      arpu,
+      user_balance_total: balanceTotal,
+    };
+  }, [
+    dashboard.usage_totals?.spend_amount,
+    dashboard.usage_rank,
+    userGrowthSummary.active_users,
+    userGrowthSummary.current?.active_user_count,
+    userGrowthSummary.current?.topup_user_count,
+    userGrowthSummary.previous?.active_user_count,
+    userGrowthSummary.previous?.topup_user_count,
+    userGrowthSummary.topup_users,
+  ]);
+
   const trendLineColor = useMemo(() => {
     switch (trendMetric) {
       case 'topup_amount':
-        return '#16a34a';
+        return chartStatusPalette.success;
       case 'request_count':
-        return '#2563eb';
+        return chartCategoricalPalette[0];
       case 'active_user_count':
-        return '#9333ea';
+        return chartCategoricalPalette[3];
       default:
-        return '#ea580c';
+        return chartCategoricalPalette[1];
     }
   }, [trendMetric]);
 
@@ -770,6 +857,57 @@ const AdminDashboard = () => {
       })),
     [t],
   );
+
+  const channelSortOptions = useMemo(
+    () =>
+      CHANNEL_SORT_OPTIONS.map((value) => ({
+        value,
+        label: t(`dashboard.admin.channels.sort.${value}`),
+      })),
+    [t],
+  );
+
+  const sortedChannelHealthData = useMemo(() => {
+    const items = [...channelHealthData];
+    items.sort((left, right) => {
+      if (channelSort === 'pass_rate') {
+        if (left.pass_rate_percent !== right.pass_rate_percent) {
+          return right.pass_rate_percent - left.pass_rate_percent;
+        }
+      } else if (channelSort === 'latency') {
+        const leftLatency = Number(left.avg_latency_ms || 0);
+        const rightLatency = Number(right.avg_latency_ms || 0);
+        if (leftLatency !== rightLatency) {
+          if (leftLatency <= 0) return 1;
+          if (rightLatency <= 0) return -1;
+          return leftLatency - rightLatency;
+        }
+      } else if (channelSort === 'requests') {
+        // Busiest-first by total request count; ties break on health_score desc
+        // so high-volume + risky channels still float to the top.
+        const leftReq = Number(left.request_count || 0);
+        const rightReq = Number(right.request_count || 0);
+        if (leftReq !== rightReq) {
+          return rightReq - leftReq;
+        }
+        if (left.health_score !== right.health_score) {
+          return right.health_score - left.health_score;
+        }
+      } else if (left.health_score !== right.health_score) {
+        return right.health_score - left.health_score;
+      }
+      // Fallback: latency asc (smaller first), then name asc
+      const leftLatency = Number(left.avg_latency_ms || 0);
+      const rightLatency = Number(right.avg_latency_ms || 0);
+      if (leftLatency !== rightLatency) {
+        if (leftLatency <= 0) return 1;
+        if (rightLatency <= 0) return -1;
+        return leftLatency - rightLatency;
+      }
+      return String(left.name || '').localeCompare(String(right.name || ''));
+    });
+    return items;
+  }, [channelHealthData, channelSort]);
 
   const sortedModels = useMemo(() => {
     const items = Array.isArray(dashboard.top_models) ? [...dashboard.top_models] : [];
@@ -1070,7 +1208,7 @@ const AdminDashboard = () => {
       className='admin-dashboard-toolbar'
       breadcrumbs={[
         { key: 'admin', label: t('header.admin_workspace') },
-        { key: 'dashboard', label: t('header.system_overview') },
+        { key: 'dashboard', label: t('header.dashboard') },
         { key: activeSection, label: activeSectionTitle, active: true },
       ]}
       title={activeSectionTitle}
@@ -1225,104 +1363,43 @@ const AdminDashboard = () => {
           end={renderSectionControls()}
         />
       </div>
-      <div className='admin-dashboard-spending-flow'>
-        <strong>{t('dashboard.admin.spending.flow.title')}</strong>
-        <span>{t('dashboard.admin.spending.flow.summary')}</span>
-      </div>
-      <div className='admin-dashboard-kpi-grid'>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.metrics.consume')}
+      <div className='admin-dashboard-spending-headline'>
+        <div className='admin-dashboard-spending-headline-main'>
+          <div className='admin-dashboard-spending-headline-label'>
+            {t('dashboard.admin.spending.headline.net')}
           </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatUsd(dashboard.summary.spend_amount)}
+          <div
+            className={`admin-dashboard-spending-headline-value admin-dashboard-spending-headline-value-${spendingInsightData.net.tone}`}
+          >
+            {spendingInsightData.net.value}
           </div>
-        </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.metrics.topup')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatUsd(dashboard.summary.topup_amount)}
+          <div className='admin-dashboard-spending-headline-hint'>
+            {spendingInsightData.net.hint}
           </div>
         </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.metrics.net')}
+        <div className='admin-dashboard-spending-headline-side'>
+          <div className='admin-dashboard-spending-headline-row'>
+            <span>{t('dashboard.admin.metrics.consume')}</span>
+            <strong>{formatUsd(dashboard.summary.spend_amount)}</strong>
           </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatUsd(dashboard.summary.net_amount)}
+          <div className='admin-dashboard-spending-headline-row'>
+            <span>{t('dashboard.admin.metrics.topup')}</span>
+            <strong>{formatUsd(dashboard.summary.topup_amount)}</strong>
           </div>
-        </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.metrics.request_count')}
+          <div className='admin-dashboard-spending-headline-row'>
+            <span>{t('dashboard.admin.metrics.request_count')}</span>
+            <strong>{formatCount(dashboard.summary.request_count)}</strong>
           </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatCount(dashboard.summary.request_count)}
-          </div>
-        </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.metrics.active_user_count')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatCount(dashboard.summary.active_user_count)}
+          <div className='admin-dashboard-spending-headline-row'>
+            <span>{t('dashboard.admin.metrics.active_user_count')}</span>
+            <strong>{formatCount(dashboard.summary.active_user_count)}</strong>
           </div>
         </div>
       </div>
-      <div className='admin-dashboard-usage-rank'>
-        <div className='admin-dashboard-spending-overview-grid'>
-          <div className='admin-dashboard-spending-panel admin-dashboard-spending-panel-emphasis'>
-            <div className='admin-dashboard-spending-panel-label'>
-              {spendingInsightData.net.label}
-            </div>
-            <div
-              className={`admin-dashboard-spending-panel-value admin-dashboard-spending-panel-value-${spendingInsightData.net.tone}`}
-            >
-              {spendingInsightData.net.value}
-            </div>
-            <div className='admin-dashboard-spending-panel-hint'>
-              {spendingInsightData.net.hint}
-            </div>
-          </div>
-          <div className='admin-dashboard-spending-panel'>
-            <div className='admin-dashboard-spending-panel-label'>
-              {spendingInsightData.peakSpend.label}
-            </div>
-            <div className='admin-dashboard-spending-panel-value'>
-              {spendingInsightData.peakSpend.value}
-            </div>
-            <div className='admin-dashboard-spending-panel-hint'>
-              {spendingInsightData.peakSpend.hint}
-            </div>
-          </div>
-          <div className='admin-dashboard-spending-panel'>
-            <div className='admin-dashboard-spending-panel-label'>
-              {spendingInsightData.peakTopup.label}
-            </div>
-            <div className='admin-dashboard-spending-panel-value'>
-              {spendingInsightData.peakTopup.value}
-            </div>
-            <div className='admin-dashboard-spending-panel-hint'>
-              {spendingInsightData.peakTopup.hint}
-            </div>
-          </div>
-          <div className='admin-dashboard-spending-panel'>
-            <div className='admin-dashboard-spending-panel-label'>
-              {spendingInsightData.activeUsers.label}
-            </div>
-            <div className='admin-dashboard-spending-panel-value'>
-              {spendingInsightData.activeUsers.value}
-            </div>
-            <div className='admin-dashboard-spending-panel-hint'>
-              {spendingInsightData.activeUsers.hint}
-            </div>
-          </div>
-        </div>
-        <div className='admin-dashboard-subsection-header'>
+      <div className='admin-dashboard-trend-block'>
+        <div className='admin-dashboard-subsection-header admin-dashboard-trend-block-header'>
           <div className='admin-dashboard-subsection-header-main'>
-            <div className='admin-dashboard-subsection-title admin-dashboard-subsection-title-strong'>
+            <div className='admin-dashboard-subsection-title'>
               {t('dashboard.admin.sections.spending')}
             </div>
             <div className='admin-dashboard-subsection-description'>
@@ -1349,30 +1426,17 @@ const AdminDashboard = () => {
           <div className='chart-container'>
             <ResponsiveContainer width='100%' height={240}>
               <LineChart data={dashboard.trend}>
-                <CartesianGrid
-                  strokeDasharray='3 3'
-                  vertical={false}
-                  opacity={0.1}
-                />
+                <CartesianGrid {...chartGridStyle()} />
                 <XAxis
                   dataKey='bucket'
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: '#A3AED0' }}
+                  {...chartAxisStyle()}
                   minTickGap={8}
                 />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: '#A3AED0' }}
-                />
+                <YAxis {...chartAxisStyle()} />
                 <Tooltip
-                  contentStyle={{
-                    background: '#fff',
-                    border: 'none',
-                    borderRadius: '4px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  }}
+                  contentStyle={chartTooltipStyle()}
+                  labelStyle={chartTooltipLabelStyle()}
+                  itemStyle={chartTooltipItemStyle()}
                   formatter={(value) => [
                     trendFormatter(value),
                     t(`dashboard.admin.trend.metrics.${trendMetric}`),
@@ -1399,6 +1463,7 @@ const AdminDashboard = () => {
 
   const renderChannelsSection = () => (
     <AppSection className='admin-dashboard-section'>
+      <ChannelSectionTabs active='health' />
       <div className='admin-dashboard-subsection-header'>
         <div className='admin-dashboard-subsection-header-main'>
           <div className='admin-dashboard-subsection-title admin-dashboard-subsection-title-strong'>
@@ -1407,37 +1472,80 @@ const AdminDashboard = () => {
         </div>
         <AppToolbar
           className='admin-dashboard-section-toolbar'
-          end={renderSectionControls()}
+          end={renderSectionControls(
+            <AppSegmented
+              className='admin-dashboard-segmented'
+              options={channelSortOptions}
+              value={channelSort}
+              onChange={(e, { value }) => setChannelSort(value)}
+            />
+          )}
         />
       </div>
-      <div className='admin-dashboard-kpi-grid admin-dashboard-kpi-grid-compact'>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.metrics.channels')}
+      <div className='admin-dashboard-channel-bells'>
+        {[
+          {
+            key: 'active_circuit_breaker',
+            label: t('dashboard.admin.health.summary.active_circuit_breaker'),
+            value: Number(channelHealthSummary.active_circuit_breaker_count || 0),
+            tone: 'critical',
+          },
+          {
+            key: 'risk_count',
+            label: t('dashboard.admin.health.summary.risk_count'),
+            value: Number(channelHealthSummary.risk_count || 0),
+            tone: 'critical',
+          },
+          {
+            key: 'needs_retest',
+            label: t('dashboard.admin.health.summary.needs_retest'),
+            value: Number(channelHealthSummary.needs_retest || 0),
+            tone: 'warning',
+          },
+          {
+            key: 'high_latency',
+            label: t('dashboard.admin.health.summary.high_latency'),
+            value: Number(channelHealthSummary.high_latency_count || 0),
+            tone: 'warning',
+          },
+        ].map((bell) => (
+          <div
+            key={bell.key}
+            className={`admin-dashboard-channel-bell is-${bell.tone}${
+              bell.value > 0 ? ' is-active' : ''
+            }`}
+          >
+            <div className='admin-dashboard-channel-bell-value'>{bell.value}</div>
+            <div className='admin-dashboard-channel-bell-label'>{bell.label}</div>
           </div>
-          <div className='admin-dashboard-kpi-value'>
+        ))}
+        <div className='admin-dashboard-channel-bell is-meta'>
+          <div className='admin-dashboard-channel-bell-value'>
             {formatCount(dashboard.summary.channel_enabled)} / {formatCount(dashboard.summary.channel_total)}
           </div>
-        </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.metrics.channel_disabled')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatCount(dashboard.summary.channel_disabled)}
+          <div className='admin-dashboard-channel-bell-label'>
+            {t('dashboard.admin.metrics.channels')}
           </div>
         </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.health.summary.needs_retest')}
+        <div className='admin-dashboard-channel-bell is-meta'>
+          <div className='admin-dashboard-channel-bell-value'>
+            {formatPercent(channelHealthSummary.avg_pass_rate)}
           </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatCount(channelHealthSummary.needs_retest)}
+          <div className='admin-dashboard-channel-bell-label'>
+            {t('dashboard.admin.health.summary.avg_pass_rate')}
+          </div>
+        </div>
+        <div className='admin-dashboard-channel-bell is-meta'>
+          <div className='admin-dashboard-channel-bell-value'>
+            {`${Math.round(Number(channelHealthSummary.avg_latency_ms || 0))} ms`}
+          </div>
+          <div className='admin-dashboard-channel-bell-label'>
+            {t('dashboard.admin.health.summary.avg_latency')}
           </div>
         </div>
       </div>
       <div className='admin-dashboard-usage-rank'>
-        {channelHealthData.length === 0 ? (
+        {sortedChannelHealthData.length === 0 ? (
           <div className='admin-dashboard-empty'>
             {t('dashboard.admin.empty.channels')}
           </div>
@@ -1471,7 +1579,7 @@ const AdminDashboard = () => {
                   ))}
                 </div>
               </div>
-              {channelHealthData.map((item) => {
+              {sortedChannelHealthData.map((item) => {
                 const statusText = t(
                   `dashboard.admin.channel_status.${Number(item.status)}`,
                   {
@@ -1594,6 +1702,7 @@ const AdminDashboard = () => {
 
   const renderUsersSection = () => (
     <AppSection className='admin-dashboard-section'>
+      <UserSectionTabs active='analytics' />
       <div className='admin-dashboard-subsection-header'>
         <div className='admin-dashboard-subsection-header-main'>
           <div className='admin-dashboard-subsection-title admin-dashboard-subsection-title-strong'>
@@ -1607,6 +1716,7 @@ const AdminDashboard = () => {
           className='admin-dashboard-section-toolbar'
           end={
             <div className='admin-dashboard-section-controls'>
+              {renderPeriodControl()}
               <AppSegmented
                 className='admin-dashboard-segmented'
                 options={userGrowthGranularityOptions}
@@ -1643,6 +1753,95 @@ const AdminDashboard = () => {
             </div>
           </div>
         ))}
+      </div>
+      <div className='admin-dashboard-kpi-grid admin-dashboard-kpi-grid-compact'>
+        <div className='admin-dashboard-kpi-item'>
+          <div className='admin-dashboard-kpi-label'>
+            {t('dashboard.admin.users.summary.active_users')}
+          </div>
+          <div className='admin-dashboard-kpi-value'>
+            {formatCount(userGrowthKpis.active_users)}
+          </div>
+          <div className='admin-dashboard-kpi-hint'>
+            {t('dashboard.admin.users.summary.active_users_hint')}
+          </div>
+          <div
+            className={`admin-dashboard-kpi-delta admin-dashboard-kpi-delta-${deltaTone(
+              userGrowthKpis.active_users_comparison?.delta,
+            )}`}
+          >
+            <span>
+              {userGrowthComparisonLabel}{' '}
+              {formatSignedCount(userGrowthKpis.active_users_comparison?.delta)}
+            </span>
+            <span>{formatGrowthRate(userGrowthKpis.active_users_comparison)}</span>
+          </div>
+        </div>
+        <div className='admin-dashboard-kpi-item'>
+          <div className='admin-dashboard-kpi-label'>
+            {t('dashboard.admin.users.summary.topup_users')}
+          </div>
+          <div className='admin-dashboard-kpi-value'>
+            {formatCount(userGrowthKpis.topup_users)}
+          </div>
+          <div className='admin-dashboard-kpi-hint'>
+            {t('dashboard.admin.users.summary.topup_users_hint')}
+          </div>
+          <div
+            className={`admin-dashboard-kpi-delta admin-dashboard-kpi-delta-${deltaTone(
+              userGrowthKpis.topup_users_comparison?.delta,
+            )}`}
+          >
+            <span>
+              {userGrowthComparisonLabel}{' '}
+              {formatSignedCount(userGrowthKpis.topup_users_comparison?.delta)}
+            </span>
+            <span>{formatGrowthRate(userGrowthKpis.topup_users_comparison)}</span>
+          </div>
+        </div>
+        <div className='admin-dashboard-kpi-item'>
+          <div className='admin-dashboard-kpi-label'>
+            {t('dashboard.admin.users.summary.paid_conversion_rate')}
+          </div>
+          <div className='admin-dashboard-kpi-value'>
+            {formatPercent(userGrowthKpis.paid_conversion_rate)}
+          </div>
+          <div className='admin-dashboard-kpi-hint'>
+            {t('dashboard.admin.users.summary.paid_conversion_hint')}
+          </div>
+          <div
+            className={`admin-dashboard-kpi-delta admin-dashboard-kpi-delta-${deltaTone(
+              userGrowthKpis.paid_conversion_delta,
+            )}`}
+          >
+            <span>
+              {userGrowthComparisonLabel}{' '}
+              {formatSignedPercent(userGrowthKpis.paid_conversion_delta)}
+            </span>
+          </div>
+        </div>
+        <div className='admin-dashboard-kpi-item'>
+          <div className='admin-dashboard-kpi-label'>
+            {t('dashboard.admin.users.summary.arpu')}
+          </div>
+          <div className='admin-dashboard-kpi-value'>
+            {formatUsd(userGrowthKpis.arpu)}
+          </div>
+          <div className='admin-dashboard-kpi-hint'>
+            {t('dashboard.admin.users.summary.arpu_hint')}
+          </div>
+        </div>
+        <div className='admin-dashboard-kpi-item'>
+          <div className='admin-dashboard-kpi-label'>
+            {t('dashboard.admin.users.summary.user_balance_total')}
+          </div>
+          <div className='admin-dashboard-kpi-value'>
+            {formatUsd(userGrowthKpis.user_balance_total)}
+          </div>
+          <div className='admin-dashboard-kpi-hint'>
+            {t('dashboard.admin.users.summary.user_balance_hint')}
+          </div>
+        </div>
       </div>
       <div className='admin-dashboard-user-growth-panel'>
         <div className='admin-dashboard-user-growth-panel-header'>
@@ -1687,31 +1886,17 @@ const AdminDashboard = () => {
           <div className='chart-container'>
             <ResponsiveContainer width='100%' height={240}>
               <LineChart data={userGrowthTrendData}>
-                <CartesianGrid
-                  strokeDasharray='3 3'
-                  vertical={false}
-                  opacity={0.1}
-                />
+                <CartesianGrid {...chartGridStyle()} />
                 <XAxis
-                  dataKey='bucket'
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: '#A3AED0' }}
+                  dataKey='label'
+                  {...chartAxisStyle()}
                   minTickGap={8}
                 />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  allowDecimals={false}
-                  tick={{ fontSize: 12, fill: '#A3AED0' }}
-                />
+                <YAxis {...chartAxisStyle()} allowDecimals={false} />
                 <Tooltip
-                  contentStyle={{
-                    background: '#fff',
-                    border: 'none',
-                    borderRadius: '4px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  }}
+                  contentStyle={chartTooltipStyle()}
+                  labelStyle={chartTooltipLabelStyle()}
+                  itemStyle={chartTooltipItemStyle()}
                   formatter={(value, name) => {
                     const config = userGrowthLineConfig.find(
                       (item) => item.dataKey === name,
@@ -1799,7 +1984,6 @@ const AdminDashboard = () => {
               {t('dashboard.admin.usage_rank.description')}
             </div>
             <div className='admin-dashboard-usage-rank-filters'>
-              {renderPeriodControl()}
               <div className='router-list-toolbar-query router-list-toolbar-query-compact'>
                 <AppInput
                   className='admin-dashboard-usage-rank-search'
@@ -1851,6 +2035,7 @@ const AdminDashboard = () => {
 
   const renderModelsSection = () => (
     <AppSection className='admin-dashboard-section'>
+      <ModelSectionTabs active='operations' />
       <div className='admin-dashboard-subsection-header'>
         <div className='admin-dashboard-subsection-header-main'>
           <div className='admin-dashboard-subsection-title admin-dashboard-subsection-title-strong'>
@@ -1968,31 +2153,20 @@ const AdminDashboard = () => {
                       margin={{ top: 0, right: 12, left: 12, bottom: 0 }}
                     >
                       <CartesianGrid
-                        strokeDasharray='3 3'
+                        {...chartGridStyle()}
                         horizontal={false}
-                        opacity={0.08}
                       />
-                      <XAxis
-                        type='number'
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 12, fill: '#94a3b8' }}
-                      />
+                      <XAxis type='number' {...chartAxisStyle()} />
                       <YAxis
                         type='category'
                         dataKey='short_model'
                         width={128}
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 12, fill: '#475569' }}
+                        {...chartAxisStyle()}
                       />
                       <Tooltip
-                        contentStyle={{
-                          background: '#fff',
-                          border: 'none',
-                          borderRadius: '4px',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        }}
+                        contentStyle={chartTooltipStyle()}
+                        labelStyle={chartTooltipLabelStyle()}
+                        itemStyle={chartTooltipItemStyle()}
                         formatter={(value, _, payload) => [
                           payload?.payload?.display_value || value,
                           payload?.payload?.metric_label || '',
@@ -2158,9 +2332,12 @@ const AdminDashboard = () => {
   return (
     <div className='dashboard-container admin-dashboard-container'>
       {renderPageHeader()}
-      {activeSection === 'channels' ? renderChannelsSection() : null}
-      {activeSection === 'users' ? renderUsersSection() : null}
-      {activeSection === 'models' ? renderModelsSection() : null}
+      <AppSpin spinning={loading} className='admin-dashboard-content-spin'>
+        {activeSection === 'spending' ? renderSpendingSection() : null}
+        {activeSection === 'channels' ? renderChannelsSection() : null}
+        {activeSection === 'users' ? renderUsersSection() : null}
+        {activeSection === 'models' ? renderModelsSection() : null}
+      </AppSpin>
     </div>
   );
 };

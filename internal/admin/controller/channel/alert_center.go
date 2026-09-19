@@ -2,6 +2,7 @@ package channel
 
 import (
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -30,11 +31,45 @@ type channelAlertFeedItem struct {
 }
 
 type channelAlertFeedData struct {
-	Items    []channelAlertFeedItem `json:"items"`
-	Total    int                    `json:"total"`
-	Page     int                    `json:"page"`
-	PageSize int                    `json:"page_size"`
+	Items    []channelAlertFeedItem   `json:"items"`
+	Total    int                      `json:"total"`
+	Page     int                      `json:"page"`
+	PageSize int                      `json:"page_size"`
+	Summary  *channelAlertFeedSummary `json:"summary,omitempty"`
 }
+
+// channelAlertBucket is one slice of a categorical distribution (by type or by channel).
+type channelAlertBucket struct {
+	Key   string `json:"key"`
+	Label string `json:"label"`
+	Count int    `json:"count"`
+}
+
+// channelAlertTrendPoint is one time bucket of the alert-volume trend.
+type channelAlertTrendPoint struct {
+	Bucket int64 `json:"bucket"`
+	Count  int   `json:"count"`
+}
+
+// channelAlertFeedSummary aggregates the full filtered alert set (before pagination)
+// so the operator overview stays accurate regardless of the current page.
+type channelAlertFeedSummary struct {
+	Total               int                      `json:"total"`
+	ActiveTotal         int                      `json:"active_total"`
+	UnresolvedCritical  int                      `json:"unresolved_critical"`
+	Unacknowledged      int                      `json:"unacknowledged"`
+	Last24h             int                      `json:"last_24h"`
+	TypeDistribution    []channelAlertBucket     `json:"type_distribution"`
+	ChannelDistribution []channelAlertBucket     `json:"channel_distribution"`
+	Trend               []channelAlertTrendPoint `json:"trend"`
+}
+
+// channelAlertFeedScanLimit caps how many recent rows per source are scanned when the
+// client paginates. A stable window keeps total, distributions and the trend page-independent.
+const channelAlertFeedScanLimit = 500
+
+// channelAlertChannelDistributionLimit caps how many channels the by-channel distribution returns.
+const channelAlertChannelDistributionLimit = 8
 
 type acknowledgeChannelAlertRequest struct {
 	AlertType string `json:"alert_type"`
@@ -160,10 +195,8 @@ func GetRecentChannelAlerts(c *gin.Context) {
 	pageSize := parseAlertFeedPageSize(c)
 	limit := parseAlertFeedLimit(c)
 	if strings.TrimSpace(c.Query("page_size")) != "" {
-		limit = page * pageSize
-		if limit > 500 {
-			limit = 500
-		}
+		// Scan a stable recent window so pagination, total and the summary are page-independent.
+		limit = channelAlertFeedScanLimit
 	}
 	billingRows, err := model.ListRecentChannelBillingAlertEventsWithDB(model.DB, limit)
 	if err != nil {
@@ -223,6 +256,7 @@ func GetRecentChannelAlerts(c *gin.Context) {
 	}
 	items = filterChannelAlertFeedItems(items, filters)
 	total := len(items)
+	summary := buildChannelAlertFeedSummary(items, filters.Time)
 	items = paginateChannelAlertFeedItems(items, page, pageSize)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -232,6 +266,7 @@ func GetRecentChannelAlerts(c *gin.Context) {
 			Total:    total,
 			Page:     page,
 			PageSize: pageSize,
+			Summary:  &summary,
 		},
 	})
 }
@@ -539,4 +574,151 @@ func normalizeAlertFeedLevel(value string) string {
 	default:
 		return "info"
 	}
+}
+
+func buildChannelAlertFeedSummary(items []channelAlertFeedItem, timeFilter string) channelAlertFeedSummary {
+	now := unixNow()
+	dayStart := now - 24*60*60
+	typeCounts := map[string]int{}
+	channelCounts := map[string]int{}
+	trendBuckets := map[int64]int{}
+	summary := channelAlertFeedSummary{
+		Total: len(items),
+	}
+	for _, item := range items {
+		status := strings.TrimSpace(strings.ToLower(item.Status))
+		isResolved := status == model.ChannelAlertStatusResolved
+		if !isResolved {
+			summary.ActiveTotal++
+		}
+		if !isResolved && normalizeAlertFeedLevel(item.Level) == "critical" {
+			summary.UnresolvedCritical++
+		}
+		if status == "" || status == model.ChannelAlertStatusActive {
+			summary.Unacknowledged++
+		}
+		if item.CreatedAt >= dayStart {
+			summary.Last24h++
+		}
+		typeKey := strings.TrimSpace(item.Type)
+		if typeKey == "" {
+			typeKey = "unknown"
+		}
+		typeCounts[typeKey]++
+		channelKey := strings.TrimSpace(item.ChannelID)
+		if channelKey == "" {
+			channelKey = "__unassigned__"
+		}
+		channelCounts[channelKey]++
+		bucket := (item.CreatedAt / 3600) * 3600
+		trendBuckets[bucket]++
+	}
+	summary.TypeDistribution = sortedAlertDistributionBuckets(typeCounts, alertTypeLabel)
+	summary.ChannelDistribution = topAlertChannelDistribution(channelCounts, items, channelAlertChannelDistributionLimit)
+	summary.Trend = sortedAlertTrendPoints(trendBuckets, timeFilter, now)
+	return summary
+}
+
+func alertTypeLabel(typeKey string) string {
+	switch typeKey {
+	case model.ChannelAlertTypeBilling:
+		return "billing"
+	case model.ChannelAlertTypeCircuitBreaker:
+		return "circuit"
+	case model.ChannelAlertTypeModelDisabled:
+		return "model_disabled"
+	case model.ChannelAlertTypeEndpointDisabled:
+		return "endpoint_disabled"
+	default:
+		return typeKey
+	}
+}
+
+func sortedAlertDistributionBuckets(counts map[string]int, labelOf func(string) string) []channelAlertBucket {
+	buckets := make([]channelAlertBucket, 0, len(counts))
+	for key, count := range counts {
+		buckets = append(buckets, channelAlertBucket{
+			Key:   key,
+			Label: labelOf(key),
+			Count: count,
+		})
+	}
+	sort.Slice(buckets, func(i, j int) bool {
+		if buckets[i].Count != buckets[j].Count {
+			return buckets[i].Count > buckets[j].Count
+		}
+		return buckets[i].Key < buckets[j].Key
+	})
+	return buckets
+}
+
+func topAlertChannelDistribution(counts map[string]int, items []channelAlertFeedItem, limit int) []channelAlertBucket {
+	if limit <= 0 || len(counts) == 0 {
+		return []channelAlertBucket{}
+	}
+	channelNameByID := map[string]string{}
+	for _, item := range items {
+		id := strings.TrimSpace(item.ChannelID)
+		if id == "" {
+			continue
+		}
+		if name := strings.TrimSpace(item.ChannelName); name != "" {
+			channelNameByID[id] = name
+		}
+	}
+	buckets := make([]channelAlertBucket, 0, len(counts))
+	for key, count := range counts {
+		label := channelNameByID[key]
+		if label == "" {
+			if key == "__unassigned__" {
+				label = "未指派"
+			} else {
+				label = key
+			}
+		}
+		buckets = append(buckets, channelAlertBucket{Key: key, Label: label, Count: count})
+	}
+	sort.Slice(buckets, func(i, j int) bool {
+		if buckets[i].Count != buckets[j].Count {
+			return buckets[i].Count > buckets[j].Count
+		}
+		return buckets[i].Key < buckets[j].Key
+	})
+	if len(buckets) > limit {
+		buckets = buckets[:limit]
+	}
+	return buckets
+}
+
+func sortedAlertTrendPoints(buckets map[int64]int, timeFilter string, now int64) []channelAlertTrendPoint {
+	if len(buckets) == 0 {
+		return []channelAlertTrendPoint{}
+	}
+	points := make([]channelAlertTrendPoint, 0, len(buckets))
+	for bucket, count := range buckets {
+		points = append(points, channelAlertTrendPoint{Bucket: bucket, Count: count})
+	}
+	sort.Slice(points, func(i, j int) bool {
+		return points[i].Bucket < points[j].Bucket
+	})
+	// Trim to the same time window the operator chose, so the chart stays compact.
+	earliest := int64(0)
+	switch timeFilter {
+	case "24h":
+		earliest = now - 24*60*60
+	case "7d":
+		earliest = now - 7*24*60*60
+	case "30d":
+		earliest = now - 30*24*60*60
+	}
+	if earliest > 0 {
+		trimmed := make([]channelAlertTrendPoint, 0, len(points))
+		for _, point := range points {
+			if point.Bucket >= earliest {
+				trimmed = append(trimmed, point)
+			}
+		}
+		points = trimmed
+	}
+	return points
 }

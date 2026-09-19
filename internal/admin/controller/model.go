@@ -117,6 +117,7 @@ type UserModelStatusItem struct {
 	HealthScore         int                    `json:"health_score"`
 	HealthSource        string                 `json:"health_source"`
 	ChannelCount        int                    `json:"channel_count"`
+	ChannelIDs          []string               `json:"channel_ids"`
 	TestedChannelCount  int                    `json:"tested_channel_count"`
 	TestedEndpointCount int                    `json:"tested_endpoint_count"`
 	SupportedCount      int                    `json:"supported_count"`
@@ -1006,12 +1007,17 @@ func buildUserModelStatusPayload(c *gin.Context) (UserModelStatusPayload, error)
 		latencyCount := int64(0)
 		testedChannels := make(map[string]struct{})
 		testedEndpoints := make(map[string]struct{})
+		// Reuse the same normalized (deduped, order-preserving) channel id list
+		// for both the count and the exposed list so they never disagree. The
+		// list lets the frontend deep-link from a model to its channels.
+		modelChannelIDs := model.NormalizeChannelModelIDsPreserveOrder(channelIDsByModel[modelName])
 		item := UserModelStatusItem{
 			Model:              modelName,
 			Provider:           model.ResolveProviderFromModelMap(providerByModel, modelName),
 			Tags:               tagsByModel[modelName],
 			SupportedEndpoints: sortModelEndpoints(endpointsByModel[modelName]),
-			ChannelCount:       len(model.NormalizeChannelModelIDsPreserveOrder(channelIDsByModel[modelName])),
+			ChannelCount:       len(modelChannelIDs),
+			ChannelIDs:         modelChannelIDs,
 			HealthLevel:        userModelHealthLevelUnknown,
 			HealthSource:       "none",
 			Status:             userModelStatusUnknown,

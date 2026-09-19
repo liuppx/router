@@ -21,6 +21,9 @@
     "system_overview": "概览",
     "model": "模型",
     "operation": "运营",
+    "supply": "供给",
+    "customers": "产品与客户",
+    "system": "系统",
     "billing": "计费",
     "finance": "财务",
     "config": "配置",
@@ -71,12 +74,22 @@
       "user_task_failed_title": "任务失败",
       "user_task_running_title": "任务进行中",
       "user_task_failed_summary": "请查看任务详情",
-      "user_task_running_summary": "结果生成中"
+      "user_task_running_summary": "结果生成中",
+      "unread_badge": "{count} 条未读消息"
     },
     "get_started": "开通服务",
     "login": "登录",
     "logout": "退出",
-    "register": "注册"
+    "register": "注册",
+    "menu": {
+      "open": "打开菜单",
+      "close": "关闭菜单",
+      "language": "切换语言"
+    },
+    "theme": {
+      "switch_to_dark": "切换到暗黑模式",
+      "switch_to_light": "切换到亮色模式"
+    }
   },
   "topup": {
     "title": "充值中心",
@@ -508,9 +521,15 @@
   },
   "channel": {
     "title": "管理渠道",
+    "error": {
+      "id_invalid": "渠道 ID 无效"
+    },
     "tabs": {
       "channels": "渠道管理",
-      "providers": "厂家"
+      "providers": "厂家",
+      "list": "列表",
+      "health": "健康",
+      "alerts": "告警"
     },
     "search": "搜索渠道标识...",
     "table": {
@@ -1823,6 +1842,9 @@
       "copy_failed": "无法复制到剪贴板，请手动复制。",
       "chat_open_failed": "无法打开 Chat，请检查聊天页面链接或令牌是否完整。",
       "operation_success": "操作成功完成！"
+    },
+    "created": {
+      "title": "令牌已创建"
     }
   },
   "common": {
@@ -1832,6 +1854,7 @@
     "view": "查看",
     "back": "返回",
     "download": "下载",
+    "export_csv": "导出 CSV",
     "basic_info": "基础信息",
     "cancel": "取消",
     "confirm": "确认",
@@ -1843,6 +1866,7 @@
     "operation": "操作",
     "save": "保存",
     "clear": "清空",
+    "operation_success": "操作成功",
     "unlimited": "不限额",
     "day": "天",
     "never": "永久",
@@ -1853,7 +1877,14 @@
       "display_short": "${{amount}}",
       "unit": "$"
     },
-    "delete": "删除"
+    "delete": "删除",
+    "session_expired": "登录已过期，请重新登录",
+    "rate_limit": "请求次数过多，请稍后再试",
+    "server_error": "服务器内部错误，请联系管理员",
+    "demo_only": "本站仅作演示之用，无服务端",
+    "server_unreachable": "无法正常连接至服务器",
+    "new_version_notice": "新版本可用：{version}，请使用快捷键 Shift + F5 刷新页面",
+    "workspace_entry_load_failed": "无法加载账户信息，请稍后重试"
   },
   "redemption": {
     "title": "兑换管理",
@@ -1935,6 +1966,15 @@
       "face_value_invalid": "面值必须大于 0",
       "code_validity_invalid": "兑换码有效期必须大于或等于 0",
       "credit_validity_invalid": "到账额度有效期必须大于或等于 0"
+    },
+    "error": {
+      "select_entitlement": "请选择充值权益"
+    },
+    "placeholder": {
+      "select_entitlement": "请选择充值权益"
+    },
+    "record": {
+      "title": "兑换记录"
     }
   },
   "log": {
@@ -2317,6 +2357,10 @@
   },
   "user": {
     "title": "用户管理",
+    "tabs": {
+      "list": "列表",
+      "analytics": "转化分析"
+    },
     "detail": {
       "title": "用户详情",
       "user_id": "用户 ID",
@@ -2494,7 +2538,8 @@
       "edit": "编辑",
       "promote": "提升",
       "demote": "降级"
-    }
+    },
+    "no_email": "未绑定邮箱地址"
   },
   "dashboard": {
     "statistics": {
@@ -2675,11 +2720,15 @@
     "admin": {
       "title": "管理员总览",
       "nav": {
-        "spending": "收支",
-        "channels": "渠道",
-        "users": "用户",
-        "models": "模型",
+        "spending": "经营总览",
+        "channels": "渠道健康",
+        "users": "用户分析",
+        "models": "模型经营",
         "alerts": "告警"
+      },
+      "model_tabs": {
+        "catalog": "可用模型",
+        "operations": "经营"
       },
       "period": {
         "label": "统计周期"
@@ -2759,6 +2808,13 @@
           "latency": "延迟异常渠道",
           "latency_hint": "当前平均延迟达到 8 秒及以上的渠道。"
         },
+        "sort": {
+          "label": "排序",
+          "health": "健康优先",
+          "pass_rate": "通过率优先",
+          "latency": "延迟优先",
+          "requests": "调用量优先"
+        },
         "history": {
           "title": "最近调用健康",
           "hint": "优先展示熔断、风险、待补测和高用量渠道；每个格子代表 5 分钟调用窗口，灰色表示该窗口没有调用样本。",
@@ -2795,6 +2851,24 @@
         "description": "汇总渠道账务异常、熔断事件以及模型/端点运行时禁用，集中进入处理流程。",
         "empty": "当前没有告警",
         "page_count": "当前页 {{page_count}} 条 / 共 {{total_count}} 条",
+        "kpis": {
+          "active_total": "活跃告警",
+          "active_total_hint": "未恢复的告警总数",
+          "unresolved_critical": "未恢复严重告警",
+          "unresolved_critical_hint": "严重且尚未恢复",
+          "unacknowledged": "未确认告警",
+          "unacknowledged_hint": "等待运营处理",
+          "last_24h": "近 24 小时新增",
+          "last_24h_hint": "按当前过滤范围内的发生时间",
+          "resolved_24h": "近 24 小时已恢复",
+          "resolved_24h_hint": "已关闭告警的回流速度"
+        },
+        "distribution": {
+          "by_type": "按告警类型分布",
+          "by_channel": "按渠道分布（Top {{limit}}）",
+          "trend_title": "告警量趋势",
+          "trend_hint": "每个点代表 1 小时窗口的告警数量"
+        },
         "dialog": {
           "acknowledge_title": "确认告警",
           "resolve_title": "恢复告警",
@@ -2888,6 +2962,9 @@
           "title": "收支口径",
           "summary": "支付/充值是用户侧收入与现金流；请求消耗是用户权益的使用结果；渠道采购是上游成本，最终在财务模块总览中与收入匹配计算毛利。"
         },
+        "headline": {
+          "net": "本期净额"
+        },
         "insights": {
           "net_positive": "净流入为正",
           "net_positive_hint": "当前周期内充值大于消费，收支保持正向。",
@@ -2905,8 +2982,8 @@
           "description": "新增、活跃、充值用户的周期变化。",
           "trend_title": "增长趋势",
           "current_period": "当前周期：{{range}}",
-          "previous_period": "上一周期：{{range}}",
           "no_baseline": "无上期基准",
+          "previous_period": "上一周期：{{range}}",
           "period_labels": {
             "current_week": "本周",
             "previous_week": "上周",
@@ -2931,6 +3008,16 @@
           }
         },
         "summary": {
+          "active_users": "活跃用户",
+          "active_users_hint": "本周期内有调用或充值记录的用户",
+          "topup_users": "充值用户",
+          "topup_users_hint": "本周期内发生充值的用户",
+          "paid_conversion_rate": "付费转化率",
+          "paid_conversion_hint": "充值用户 / 活跃用户",
+          "arpu": "ARPU",
+          "arpu_hint": "周期消费 / 活跃用户",
+          "user_balance_total": "用户余额合计（平台负债）",
+          "user_balance_hint": "当前命中用户余额总计",
           "user_count": "命中用户数",
           "request_count": "命中请求数",
           "total_tokens": "命中总 Tokens",
@@ -3064,7 +3151,10 @@
           "avg_pass_rate": "平均通过率",
           "avg_coverage_rate": "平均覆盖率",
           "avg_latency": "平均延迟",
-          "needs_retest": "待补测渠道"
+          "needs_retest": "待补测渠道",
+          "risk_count": "风险渠道",
+          "active_circuit_breaker": "熔断打开",
+          "high_latency": "高延迟渠道"
         },
         "chart": {
           "health_score": "健康分",
@@ -3257,7 +3347,9 @@
         "qrcode_placeholder": "输入一个图片链接",
         "buttons": {
           "save": "保存 WeChat Server 设置"
-        }
+        },
+        "scan_tip": "扫码关注微信公众号，输入「验证码」获取验证码（三分钟内有效）",
+        "code_placeholder": "验证码"
       },
       "turnstile": {
         "title": "配置 Turnstile",
@@ -3321,9 +3413,8 @@
       },
       "retry": {
         "title": "失败重试",
-        "description": "配置请求失败后的重试策略。",
-        "description_title": "同次请求失败后的处理",
         "description": "控制一次请求失败后是否继续尝试其他可用渠道。",
+        "description_title": "同次请求失败后的处理",
         "description_effective": "启用后，只要错误允许重试、没有指定具体渠道，并且还有未尝试的候选渠道，系统就会继续依次尝试。",
         "description_disabled": "关闭后首次失败会直接返回。启用时，同一次请求里已经失败过的渠道不会重复尝试，直到全部失败或其中一次成功。",
         "limit": "重试策略",
@@ -3477,7 +3568,10 @@
         },
         "about": {
           "title": "关于",
-          "placeholder": "在此输入新的关于内容，支持 Markdown & HTML 代码。如果输入的是一个链接，则会使用该链接作为 iframe 的 src 属性，这允许你设置任意网页作为关于页面。"
+          "placeholder": "在此输入新的关于内容，支持 Markdown & HTML 代码。如果输入的是一个链接，则会使用该链接作为 iframe 的 src 属性，这允许你设置任意网页作为关于页面。",
+          "description": "在此输入新的关于内容，支持 Markdown & HTML 代码。如果输入的是一个链接，则会使用该链接作为 iframe 的 src 属性，这允许你设置任意网页作为关于页面。",
+          "repository": "开源仓库",
+          "loading_failed": "加载失败"
         },
         "footer": {
           "title": "页脚",
@@ -3534,8 +3628,23 @@
       "title": "利润",
       "load_failed": "利润数据加载失败",
       "group_placeholder": "筛选分组",
+      "channel_placeholder": "筛选渠道",
+      "model_placeholder": "筛选模型",
       "note": "默认展示最近 7 天有请求的模型。正式毛利只基于真实或明确零成本，成本覆盖不足的模型不会被判定为正常盈利。",
       "empty": "暂无模型财务数据",
+      "summary": {
+        "models": "模型数",
+        "loss_models": "亏损模型数",
+        "low_margin_models": "低毛利模型数",
+        "total_revenue": "计费收入合计",
+        "total_cost": "采购成本合计",
+        "total_profit": "毛利合计",
+        "avg_margin": "加权毛利率"
+      },
+      "distribution": {
+        "title": "利润状态分布",
+        "hint": "基于状态分桶后的模型数。"
+      },
       "states": {
         "healthy": "正常",
         "low_margin": "低毛利",
@@ -3592,6 +3701,14 @@
         "warning": "关注",
         "critical": "处理",
         "empty": "无数据"
+      },
+      "headline": {
+        "profit": "本期毛利",
+        "margin": "毛利率 {{margin}}",
+        "revenue": "计费收入",
+        "cost": "采购成本",
+        "unconfigured": "未配置成本请求",
+        "requests": "请求数"
       },
       "overview_table": {
         "title": "多维经营总览",
@@ -3685,8 +3802,12 @@
       },
       "priority": {
         "title": "优先处理事项",
+        "empty": "当前范围无优先处理事项",
         "scope_note": "运营风险遵循当前筛选范围；配置风险为全局健康状态",
-        "sources": { "operating": "运营", "configuration": "配置" },
+        "sources": {
+          "operating": "运营",
+          "configuration": "配置"
+        },
         "columns": {
           "source": "来源",
           "level": "级别",
@@ -3703,8 +3824,18 @@
         "title": "财务一致性明细",
         "summary": "当前范围 {{count}} 项异常",
         "empty": "当前范围未发现财务一致性异常",
-        "columns": { "type": "问题类型", "request": "请求日志", "created_at": "发生时间", "prompt_tokens": "输入 Token", "completion_tokens": "输出 Token" },
-        "types": { "missing_settlement": "缺失结算", "missing_attribution": "缺失采购归因", "settlement_mismatch": "结算快照不一致" }
+        "columns": {
+          "type": "问题类型",
+          "request": "请求日志",
+          "created_at": "发生时间",
+          "prompt_tokens": "输入 Token",
+          "completion_tokens": "输出 Token"
+        },
+        "types": {
+          "missing_settlement": "缺失结算",
+          "missing_attribution": "缺失采购归因",
+          "settlement_mismatch": "结算快照不一致"
+        }
       },
       "channel_placeholder": "筛选渠道",
       "model_placeholder": "筛选模型"
@@ -3713,18 +3844,22 @@
       "nav": "采购",
       "title": "采购",
       "empty": "暂无采购数据",
-      "management": { "title": "采购管理" },
+      "management": {
+        "title": "采购管理"
+      },
       "health": {
         "status": {
           "ok": "财务健康",
           "warning": "财务存在风险",
-          "critical": "财务需要处理"
+          "critical": "财务需要处理",
+          "unknown": "健康检查暂不可用"
         },
         "level": {
           "critical": "严重",
           "warning": "提醒"
         },
         "summary": "严重 {{critical}} 项，提醒 {{warning}} 项",
+        "summary_unknown": "财务健康检查暂不可用",
         "no_issue": "未发现影响财务判断的配置风险",
         "load_failed": "财务健康检查加载失败",
         "load_failed_hint": "无法加载财务健康检查，请稍后刷新页面。"
@@ -3741,7 +3876,8 @@
       "filters": {
         "group": "筛选分组",
         "provider": "筛选供应商",
-        "model": "筛选模型"
+        "model": "筛选模型",
+        "channel": "选择渠道录入采购"
       },
       "summary": {
         "request_count": "请求数",
@@ -3783,6 +3919,22 @@
       "actions": {
         "configure_cost": "打开采购配置"
       },
+      "analytics": {
+        "by_provider_title": "成本按供应商占比",
+        "by_provider_hint": "基于当前列表中各维度的采购成本合计，按供应商聚合取前 8。",
+        "margin_distribution_title": "毛利率分布",
+        "margin_distribution_hint": "把维度按毛利率分桶，红色为亏损。",
+        "loss_leaderboard_title": "亏损维度排行（Top 10）",
+        "loss_leaderboard_hint": "毛利 < 0 的维度按亏损金额降序。",
+        "advanced_toggle": "更多分析（供应商占比 / 毛利率分布）",
+        "margin_bucket": {
+          "loss": "亏损 (<0%)",
+          "low": "低毛利 (0~10%)",
+          "ok": "正常 (10~30%)",
+          "high": "高毛利 (≥30%)",
+          "unknown": "未配置"
+        }
+      },
       "retry": {
         "title": "采购重试",
         "empty": "暂无需要重试的采购成本记录",
@@ -3816,7 +3968,7 @@
     "mit": "MIT 协议"
   },
   "workspace_models": {
-    "title": "模型",
+    "title": "可用模型",
     "refresh": "刷新模型状态",
     "search_placeholder": "搜索模型、厂家、端点或能力",
     "generated_at": "更新时间：{{time}}",
@@ -3939,7 +4091,8 @@
       "wechat": {
         "scan_tip": "微信扫码关注公众号，输入「验证码」获取验证码（三分钟内有效）",
         "code_placeholder": "验证码"
-      }
+      },
+      "wallet_not_detected": "未检测到钱包插件，请安装或启用钱包插件后重试"
     },
     "register": {
       "title": "新用户注册",
@@ -3990,5 +4143,50 @@
     "notice": {
       "password_copied": "新密码已复制到剪贴板：{{password}}"
     }
+  },
+  "entitlement": {
+    "metrics": {
+      "yyc": "YYC 额度"
+    },
+    "placeholder": {
+      "search": "搜索名称、说明、分组"
+    },
+    "request_count": "请求次数",
+    "enabled": "启用",
+    "disabled": "停用",
+    "add_title": "新增权益",
+    "delete_title": "删除权益",
+    "confirm_delete": "确认删除 {name}？",
+    "type": "权益类型"
+  },
+  "personal_setting": {
+    "unset": "未设置",
+    "set": "已设置",
+    "section": {
+      "account_info": "账户信息"
+    },
+    "placeholder": {
+      "email": "请输入邮箱地址"
+    },
+    "error": {
+      "user_missing": "用户信息不存在",
+      "email_required": "请输入邮箱地址",
+      "current_password_required": "请输入当前密码"
+    },
+    "avatar": {
+      "alt": "用户头像"
+    }
+  },
+  "wallet": {
+    "not_detected": "未检测到钱包，请安装 MetaMask 或开启浏览器钱包",
+    "plugin_missing": "未检测到钱包插件，请安装或启用钱包插件后重试",
+    "retry_prompt": "出现错误，第 {count} 次重试中..."
+  },
+  "oauth": {
+    "bind_success": "绑定成功！"
+  },
+  "not_found": {
+    "title": "页面不存在",
+    "description": "请检查你的浏览器地址是否正确"
   }
 }

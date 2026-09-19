@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import i18n from './i18n.jsx';
 import Loading from './components/Loading';
 import { PrivateRoute } from './components/PrivateRoute';
 import NotFound from './pages/NotFound';
@@ -11,6 +12,8 @@ import {
   showError,
   showNotice,
 } from './helpers';
+import { applyChartThemeToDocument } from './router-ui';
+import { resolveInitialThemeMode, applyThemeMode } from './router-ui/theme/store';
 import { UserContext } from './context/User';
 import { StatusContext } from './context/Status';
 import { WEB3_TOKEN_STORAGE_KEY } from './helpers/web3';
@@ -20,6 +23,7 @@ import {
   restoreWalletSession,
 } from './services/web3Auth';
 import { useWalletProviderStatus } from './hooks/useWalletProviderStatus';
+import { useCanManageUsers, useIsAdmin } from './hooks/useAuth';
 import AdminLayout from './layouts/AdminLayout';
 import UserLayout from './layouts/UserLayout';
 import UserWorkspaceLayout from './layouts/UserWorkspaceLayout';
@@ -33,17 +37,20 @@ import Log from './pages/Log';
 import LogDetail from './pages/Log/Detail';
 import Group from './pages/Group';
 import PackageDetail from './pages/Package/Detail';
-import Setting from './pages/Setting';
+import WorkspaceSetting from './pages/Setting/Workspace';
+import AdminSetting from './pages/Setting/Admin';
 import Redemption from './pages/Redemption';
 import EditRedemption from './pages/Redemption/EditRedemption';
 import RedemptionDetail from './pages/Redemption/RedemptionDetail';
 import TopupPlanDetail from './pages/AdminTopup/Detail';
 import Entitlement from './pages/Entitlement';
-import AdminChannelTaskPage from './pages/Task/AdminChannelTaskPage';
 import AdminChannelTaskDetailPage from './pages/Task/AdminChannelTaskDetailPage';
-import AdminUserTaskPage from './pages/Task/AdminUserTaskPage';
 import AdminUserTaskDetailPage from './pages/Task/AdminUserTaskDetailPage';
-import WorkspaceTaskPage from './pages/Task/WorkspaceTaskPage';
+import Task, {
+  TASK_PAGE_KIND_ADMIN_SYSTEM,
+  TASK_PAGE_KIND_ADMIN_USER,
+  TASK_PAGE_KIND_WORKSPACE_USER,
+} from './pages/Task';
 import WorkspaceTaskDetailPage from './pages/Task/WorkspaceTaskDetailPage';
 import RecordListPage from './pages/Records/RecordListPage';
 import PaymentRecordDetail from './pages/Records/PaymentRecordDetail';
@@ -51,9 +58,7 @@ import RedemptionRecordDetail from './pages/Records/RedemptionRecordDetail';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminAlerts from './pages/AdminAlerts';
 import Providers from './pages/Providers';
-import BillingProcurementReport from './pages/BillingProcurementReport';
-import BillingOverview from './pages/BillingOverview';
-import BillingPricingAnalysis from './pages/BillingPricingAnalysis';
+import BillingFinance from './pages/BillingFinance';
 
 const RegisterForm = lazy(() => import('./components/RegisterForm'));
 const LoginForm = lazy(() => import('./components/LoginForm'));
@@ -80,9 +85,15 @@ const WorkspaceStart = lazy(() => import('./pages/WorkspaceStart'));
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '';
 
 function AdminOnlyRoute({ children }) {
-  if (!isAdmin()) {
-    return <Navigate to='/workspace/entry' replace />;
-  }
+  // Trust the in-memory UserContext (populated by /api/v1/user/self), not
+  // localStorage. While UserContext is bootstrapping, show a Loading shell
+  // instead of bouncing to /workspace/entry — otherwise a slow self-fetch
+  // makes the admin layout look inaccessible.
+  const [userState] = useContext(UserContext);
+  const hasUser = Boolean(userState?.user);
+  const isAdminUser = useIsAdmin();
+  if (!hasUser) return <Loading />;
+  if (!isAdminUser) return <Navigate to='/workspace/entry' replace />;
   return children;
 }
 
@@ -134,6 +145,7 @@ function UserWorkspaceEntryRedirect() {
         if (!active) {
           return;
         }
+        showError(error?.message || i18n.t('common.workspace_entry_load_failed'));
         setTargetPath('/workspace/service/pricing');
       }
     };
@@ -288,14 +300,16 @@ function App() {
         // Ignore wallet SDK logout errors while clearing a stale session.
       }
       userDispatch({ type: 'logout' });
+      statusDispatch({ type: 'unset' });
       localStorage.removeItem('user');
       localStorage.removeItem(WEB3_TOKEN_STORAGE_KEY);
       localStorage.removeItem('wallet_token_expires_at');
+      localStorage.removeItem('status');
       if (location.pathname !== '/login') {
         navigate(buildLoginPath(location), { replace: true });
       }
     },
-    [location, navigate, userDispatch],
+    [location, navigate, statusDispatch, userDispatch],
   );
 
   const isWalletSessionActive = useCallback(() => {
@@ -430,16 +444,35 @@ function App() {
           APP_VERSION !== ''
         ) {
           showNotice(
-            `新版本可用：${data.version}，请使用快捷键 Shift + F5 刷新页面`,
+            i18n.t('common.new_version_notice', { version: data.version }),
           );
         }
       } else {
-        showError(message || '无法正常连接至服务器！');
+        showError(message || i18n.t('common.server_unreachable'));
       }
     } catch (error) {
-      showError(error.message || '无法正常连接至服务器！');
+      showError(error.message || i18n.t('common.server_unreachable'));
     }
   }, [statusDispatch]);
+
+  useEffect(() => {
+    // Resolve the active theme (stored > system > default) and commit it to
+    // the DOM before any chart renders. The MutationObserver below then
+    // re-applies chart CSS vars whenever the user (or system) flips the mode.
+    applyThemeMode(resolveInitialThemeMode());
+    applyChartThemeToDocument();
+    if (typeof MutationObserver === 'undefined') return undefined;
+    const observer = new MutationObserver(() => applyChartThemeToDocument());
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'class'],
+    });
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'class'],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     loadUser();
@@ -532,10 +565,6 @@ function App() {
               <PasswordResetConfirm />
             </Suspense>
           }
-        />
-        <Route
-          path='/workspace/about'
-          element={<Navigate to='/workspace/entry' replace />}
         />
       </Route>
 
@@ -655,7 +684,7 @@ function App() {
           path='/workspace/task'
           element={
             <Suspense fallback={<Loading />}>
-              <WorkspaceTaskPage />
+              <Task pageKind={TASK_PAGE_KIND_WORKSPACE_USER} />
             </Suspense>
           }
         />
@@ -696,10 +725,6 @@ function App() {
           }
         />
         <Route
-          path='/workspace/service/help'
-          element={<Navigate to='/workspace/service/router-guide' replace />}
-        />
-        <Route
           path='/workspace/service/router-guide'
           element={
             <Suspense fallback={<Loading />}>
@@ -717,7 +742,7 @@ function App() {
         />
         <Route
           path='/workspace/setting'
-          element={<Setting />}
+          element={<WorkspaceSetting />}
         />
       </Route>
 
@@ -736,7 +761,7 @@ function App() {
         />
         <Route
           path='/admin/channel/tasks'
-          element={<AdminChannelTaskPage />}
+          element={<Task pageKind={TASK_PAGE_KIND_ADMIN_SYSTEM} />}
         />
         <Route
           path='/admin/channel/tasks/:id'
@@ -846,18 +871,7 @@ function App() {
           path='/admin/alerts'
           element={<AdminAlerts />}
         />
-        <Route
-          path='/admin/finance/overview'
-          element={<BillingOverview />}
-        />
-        <Route
-          path='/admin/finance/profit'
-          element={<BillingPricingAnalysis />}
-        />
-        <Route
-          path='/admin/finance/procurement'
-          element={<BillingProcurementReport />}
-        />
+        <Route path='/admin/finance/*' element={<BillingFinance />} />
         <Route
           path='/admin/log'
           element={<Log />}
@@ -868,7 +882,7 @@ function App() {
         />
         <Route
           path='/admin/task'
-          element={<AdminUserTaskPage />}
+          element={<Task pageKind={TASK_PAGE_KIND_ADMIN_USER} />}
         />
         <Route
           path='/admin/task/:id'
@@ -876,7 +890,7 @@ function App() {
         />
         <Route
           path='/admin/setting'
-          element={<Setting />}
+          element={<AdminSetting />}
         />
       </Route>
 

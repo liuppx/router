@@ -1,15 +1,19 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { AppAlert } from '../../router-ui';
 
-const NotFound = () => (
-  <div className='router-not-found'>
-    <AppAlert
-      type='error'
-      title='页面不存在'
-      description='请检查你的浏览器地址是否正确'
-      showIcon
-    />
-  </div>
-);
+const NotFound = () => {
+  const { t } = useTranslation();
+  return (
+    <div className='router-not-found'>
+      <AppAlert
+        type='error'
+        title={t('not_found.title')}
+        description={t('not_found.description')}
+        showIcon
+      />
+    </div>
+  );
+};
 
 export default NotFound;

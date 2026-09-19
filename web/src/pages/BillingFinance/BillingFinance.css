@@ -1,0 +1,11 @@
+.billing-finance-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.billing-finance-loading {
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

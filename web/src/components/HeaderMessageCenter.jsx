@@ -356,7 +356,7 @@ function HeaderMessageCenter() {
       >
         <AppIcon name='comments' className='router-header-trigger-icon' />
         {unreadCount > 0 ? (
-          <span className='router-header-message-badge'>
+          <span className='router-header-message-badge' aria-label={t('header.messages.unread_badge', { count: unreadCount })}>
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         ) : null}

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import LogsTable from '../../components/LogsTable';
 import { API, showError, timestamp2string } from '../../helpers';
 import { AppButton, AppSection, AppSegmented, AppTable, AppTag } from '../../router-ui';
@@ -15,13 +16,22 @@ const GROUP_OPTIONS = [
 const formatCount = (value) => Number(value || 0).toLocaleString();
 const formatPercent = (value) => `${(Number(value || 0) * 100).toFixed(1)}%`;
 
-const Log = () => {
+const Log = ({ embedded = false }) => {
   const { t } = useTranslation();
+  const location = useLocation();
+  // The route-anomaly ranking is a global operator view served by an admin-only
+  // endpoint, so it belongs strictly to the admin-scoped path (/admin/log) —
+  // the same scope switch LogsTable uses. On /workspace/log and inside the
+  // personal usage hub (embedded), we only show the user's own call log.
+  const showRouteAnomalies = location.pathname.startsWith('/admin/');
   const [groupBy, setGroupBy] = useState('model');
   const [loadingAnomalies, setLoadingAnomalies] = useState(false);
   const [anomalies, setAnomalies] = useState([]);
 
   const loadAnomalies = useCallback(async () => {
+    if (!showRouteAnomalies) {
+      return;
+    }
     setLoadingAnomalies(true);
     try {
       const response = await API.get('/api/v1/admin/log/route/anomalies', {
@@ -47,7 +57,7 @@ const Log = () => {
     } finally {
       setLoadingAnomalies(false);
     }
-  }, [groupBy, t]);
+  }, [groupBy, showRouteAnomalies, t]);
 
   useEffect(() => {
     loadAnomalies().then();
@@ -110,38 +120,40 @@ const Log = () => {
   ];
 
   return (
-    <div className='dashboard-container log-page'>
-      <AppSection className='log-route-anomalies-section'>
-        <div className='log-route-anomalies-header'>
-          <div>
-            <h2>{t('log.route_anomalies.title')}</h2>
-            <p>{t('log.route_anomalies.summary')}</p>
+    <div className={`log-page${embedded ? ' log-page-embedded' : ' dashboard-container'}`}>
+      {showRouteAnomalies ? (
+        <AppSection className='log-route-anomalies-section'>
+          <div className='log-route-anomalies-header'>
+            <div>
+              <h2>{t('log.route_anomalies.title')}</h2>
+              <p>{t('log.route_anomalies.summary')}</p>
+            </div>
+            <div className='log-route-anomalies-actions'>
+              <AppSegmented
+                options={GROUP_OPTIONS.map((item) => ({
+                  value: item.value,
+                  label: t(`log.route_anomalies.group_by.${item.value}`),
+                }))}
+                value={groupBy}
+                onChange={(e, { value }) => setGroupBy(value)}
+              />
+              <AppButton loading={loadingAnomalies} onClick={() => loadAnomalies().then()}>
+                {t('common.refresh')}
+              </AppButton>
+            </div>
           </div>
-          <div className='log-route-anomalies-actions'>
-            <AppSegmented
-              options={GROUP_OPTIONS.map((item) => ({
-                value: item.value,
-                label: t(`log.route_anomalies.group_by.${item.value}`),
-              }))}
-              value={groupBy}
-              onChange={(e, { value }) => setGroupBy(value)}
-            />
-            <AppButton loading={loadingAnomalies} onClick={() => loadAnomalies().then()}>
-              {t('common.refresh')}
-            </AppButton>
-          </div>
-        </div>
-        <AppTable
-          className='router-detail-table router-table-fit-page log-route-anomalies-table'
-          rowKey={(row) => [groupBy, row.model, row.channel_id, row.endpoint, row.error_type, row.error_code].join(':')}
-          dataSource={anomalies}
-          columns={anomalyColumns}
-          pagination={false}
-          loading={loadingAnomalies}
-          scroll={{ x: 1210 }}
-          locale={{ emptyText: loadingAnomalies ? t('common.loading') : t('log.route_anomalies.empty') }}
-        />
-      </AppSection>
+          <AppTable
+            className='router-detail-table router-table-fit-page log-route-anomalies-table'
+            rowKey={(row) => [groupBy, row.model, row.channel_id, row.endpoint, row.error_type, row.error_code].join(':')}
+            dataSource={anomalies}
+            columns={anomalyColumns}
+            pagination={false}
+            loading={loadingAnomalies}
+            scroll={{ x: 1210 }}
+            locale={{ emptyText: loadingAnomalies ? t('common.loading') : t('log.route_anomalies.empty') }}
+          />
+        </AppSection>
+      ) : null}
       <LogsTable />
     </div>
   );

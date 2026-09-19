@@ -1,91 +1,103 @@
-import { routerTokens } from './tokens';
+import { routerTokens, routerTokensDark } from './tokens';
+import { chartStatusPalette } from './charts';
 
-export const antdTheme = {
+// antd components consume the same status hues the charts do, so a warning
+// pill in a chart legend and a warning antd Tag render with the same color.
+// colorPrimary stays at the antd default blue (#1677ff) — it is the brand
+// accent and would be jarring if it diverged from antd's own conventions.
+
+const buildAntdTheme = (tokens) => ({
   token: {
-    colorPrimary: routerTokens.colorPrimary,
-    colorSuccess: routerTokens.colorSuccess,
-    colorWarning: routerTokens.colorWarning,
-    colorError: routerTokens.colorError,
-    colorText: routerTokens.colorText,
-    colorTextSecondary: routerTokens.colorTextSecondary,
-    colorBorder: routerTokens.colorBorder,
-    colorBgContainer: routerTokens.colorBgContainer,
-    borderRadius: routerTokens.borderRadius,
-    borderRadiusSM: routerTokens.borderRadiusSM,
-    borderRadiusLG: routerTokens.borderRadiusLG,
-    controlHeight: routerTokens.controlHeight,
-    controlHeightSM: routerTokens.controlHeightSM,
-    controlHeightLG: routerTokens.controlHeightLG,
-    fontFamily: routerTokens.fontFamily,
-    fontSize: routerTokens.fontSize,
+    colorPrimary: tokens.colorPrimary,
+    colorSuccess: chartStatusPalette.success,
+    colorWarning: chartStatusPalette.warning,
+    colorError: chartStatusPalette.danger,
+    colorText: tokens.colorText,
+    colorTextSecondary: tokens.colorTextSecondary,
+    colorBorder: tokens.colorBorder,
+    colorBgContainer: tokens.colorBgContainer,
+    borderRadius: tokens.borderRadius,
+    borderRadiusSM: tokens.borderRadiusSM,
+    borderRadiusLG: tokens.borderRadiusLG,
+    controlHeight: tokens.controlHeight,
+    controlHeightSM: tokens.controlHeightSM,
+    controlHeightLG: tokens.controlHeightLG,
+    fontFamily: tokens.fontFamily,
+    fontSize: tokens.fontSize,
   },
   components: {
     Button: {
-      borderRadius: routerTokens.borderRadius,
-      controlHeight: routerTokens.controlHeight,
+      borderRadius: tokens.borderRadius,
+      controlHeight: tokens.controlHeight,
       fontWeight: 500,
     },
     Descriptions: {
-      labelBg: '#fafafa',
-      titleMarginBottom: routerTokens.spaceSM,
+      labelBg: tokens.descriptionsLabelBg,
+      titleMarginBottom: tokens.spaceSM,
     },
     Input: {
-      activeBorderColor: routerTokens.colorPrimary,
-      hoverBorderColor: routerTokens.colorPrimary,
+      activeBorderColor: tokens.colorPrimary,
+      hoverBorderColor: tokens.colorPrimary,
     },
     Select: {
-      optionSelectedBg: '#e6f4ff',
-      optionActiveBg: '#f5f6f7',
+      optionSelectedBg: tokens.optionSelectedBg,
+      optionActiveBg: tokens.optionActiveBg,
     },
     Segmented: {
-      trackBg: '#f5f6f7',
-      itemColor: '#667085',
-      itemHoverColor: '#1f2329',
-      itemHoverBg: '#ffffff',
-      itemSelectedBg: '#ffffff',
-      itemSelectedColor: routerTokens.colorPrimary,
-      itemActiveBg: '#ffffff',
+      trackBg: tokens.segmentedTrackBg,
+      itemColor: tokens.colorTextSecondary,
+      itemHoverColor: tokens.colorText,
+      itemHoverBg: tokens.colorBgContainer,
+      itemSelectedBg: tokens.colorBgContainer,
+      itemSelectedColor: tokens.colorPrimary,
+      itemActiveBg: tokens.colorBgContainer,
       trackPadding: 4,
       borderRadius: 10,
     },
     Switch: {
-      colorPrimary: routerTokens.colorPrimary,
-      colorPrimaryHover: '#4096ff',
+      colorPrimary: tokens.colorPrimary,
+      colorPrimaryHover: tokens.colorPrimaryHover,
       handleBg: '#ffffff',
       trackHeight: 22,
       trackMinWidth: 42,
       trackPadding: 2,
     },
     Modal: {
-      borderRadiusLG: routerTokens.borderRadiusLG,
+      borderRadiusLG: tokens.borderRadiusLG,
     },
     Layout: {
-      siderBg: '#f8fafc',
-      triggerBg: '#f8fafc',
-      triggerColor: routerTokens.colorText,
+      siderBg: tokens.layoutSiderBg,
+      triggerBg: tokens.layoutSiderBg,
+      triggerColor: tokens.colorText,
     },
     Menu: {
       itemBg: 'transparent',
       subMenuItemBg: 'transparent',
-      itemColor: '#475569',
-      itemHoverColor: '#1677ff',
-      itemSelectedColor: '#1677ff',
-      itemSelectedBg: '#eaf3ff',
-      itemHoverBg: '#f1f5f9',
+      itemColor: tokens.menuItemColor,
+      itemHoverColor: tokens.colorPrimary,
+      itemSelectedColor: tokens.colorPrimary,
+      itemSelectedBg: tokens.menuItemSelectedBg,
+      itemHoverBg: tokens.menuItemHoverBg,
       activeBarWidth: 0,
       collapsedIconSize: 16,
-      groupTitleColor: '#94a3b8',
+      groupTitleColor: tokens.menuGroupTitleColor,
     },
     Table: {
-      headerBg: '#fafafa',
-      rowHoverBg: '#f8fbff',
+      headerBg: tokens.tableHeaderBg,
+      rowHoverBg: tokens.tableRowHoverBg,
     },
     Tabs: {
-      itemSelectedColor: routerTokens.colorPrimary,
-      itemHoverColor: routerTokens.colorPrimary,
-      inkBarColor: routerTokens.colorPrimary,
+      itemSelectedColor: tokens.colorPrimary,
+      itemHoverColor: tokens.colorPrimary,
+      inkBarColor: tokens.colorPrimary,
     },
   },
-};
+});
+
+export const antdTheme = buildAntdTheme(routerTokens);
+
+export const antdThemeDark = buildAntdTheme(routerTokensDark);
+
+export const antdThemeByMode = (mode) => (mode === 'dark' ? antdThemeDark : antdTheme);
 
 export default antdTheme;

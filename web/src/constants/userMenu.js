@@ -20,70 +20,24 @@ export const isUserRouteActive = (location, to) => {
 };
 
 export const buildUserWorkspaceMenuItems = () => {
-  const items = [
+  // Normal-user workspace: a flat list of the day-to-day functional entries.
+  // Secondary personal entries (account / logs / guides) live in the header
+  // avatar dropdown, mirroring the admin console.
+  return [
     {
-      key: 'overview',
-      type: 'group',
-      name: 'header.system_overview',
-      icon: 'chart bar',
-      items: [
-        {
-          name: 'workspace_models.title',
-          to: '/workspace/service/models',
-          icon: 'cube',
-        },
-      ],
+      name: 'workspace_models.title',
+      to: '/workspace/service/models',
+      icon: 'cube',
+    },
+    {
+      name: 'header.token',
+      to: '/workspace/token',
+      icon: 'key',
+    },
+    {
+      name: 'topup.mine.quota',
+      to: '/workspace/topup?tab=quota',
+      icon: 'credit card',
     },
   ];
-
-  items.push(
-    {
-      key: 'mine',
-      type: 'group',
-      name: 'header.mine',
-      icon: 'user circle',
-      items: [
-        {
-          name: 'topup.mine.quota',
-          to: '/workspace/topup?tab=quota',
-          icon: 'credit card',
-        },
-        {
-          name: 'header.token',
-          to: '/workspace/token',
-          icon: 'key',
-        },
-        {
-          name: 'header.account',
-          to: '/workspace/setting',
-          icon: 'setting',
-        },
-        {
-          name: 'header.log',
-          to: '/workspace/log',
-          icon: 'book',
-        },
-      ],
-    },
-    {
-      key: 'help',
-      type: 'group',
-      name: 'header.help',
-      icon: 'book',
-      items: [
-        {
-          name: 'header.router_guide',
-          to: '/workspace/service/router-guide',
-          icon: 'sitemap',
-        },
-        {
-          name: 'header.cli_guide',
-          to: '/workspace/service/cli-guide',
-          icon: 'file alternate outline',
-        },
-      ],
-    }
-  );
-
-  return items;
 };

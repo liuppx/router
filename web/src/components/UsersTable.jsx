@@ -14,6 +14,7 @@ import {
 } from '../helpers';
 import { useTranslation } from 'react-i18next';
 import UnitDropdown from './UnitDropdown';
+import UserSectionTabs from './UserSectionTabs';
 
 import { ITEMS_PER_PAGE } from '../constants';
 import {
@@ -41,6 +42,7 @@ import {
   AppModal,
   AppPagination,
   AppSelect,
+  AppSpin,
   AppTable,
   AppTableActionButton,
   AppTag,
@@ -763,6 +765,8 @@ const UsersTable = () => {
         }
       />
 
+      {isAdminScope ? <UserSectionTabs active='list' /> : null}
+
       {isFocusMode ? (
         <div className='router-user-focus-summary'>
           <div className='router-user-focus-summary-main'>
@@ -787,15 +791,16 @@ const UsersTable = () => {
       ) : null}
 
       <div className='router-table-scroll-x'>
-        <AppTable
-          className='router-hover-table router-list-table router-table-fit-page router-user-list-table'
-          pagination={false}
-          scroll={{ x: USER_LIST_TABLE_MIN_WIDTH }}
-          rowKey={(user) => user.id}
-          rowSelection={userRowSelection}
-          onChange={handleTableChange}
-          dataSource={users
-            .slice(
+        <AppSpin spinning={loading}>
+          <AppTable
+            className='router-hover-table router-list-table router-table-fit-page router-user-list-table'
+            pagination={false}
+            scroll={{ x: USER_LIST_TABLE_MIN_WIDTH }}
+            rowKey={(user) => user.id}
+            rowSelection={userRowSelection}
+            onChange={handleTableChange}
+            dataSource={users
+              .slice(
               (activePage - 1) * ITEMS_PER_PAGE,
               activePage * ITEMS_PER_PAGE,
             )
@@ -834,7 +839,7 @@ const UsersTable = () => {
                 title={
                   <div>
                     <div>{user.username}</div>
-                    <div>{user.email ? user.email : '未绑定邮箱地址'}</div>
+                    <div>{user.email ? user.email : t('user.no_email')}</div>
                   </div>
                 }
               >
@@ -1037,7 +1042,8 @@ const UsersTable = () => {
             },
           },
           ]}
-        />
+          />
+        </AppSpin>
       </div>
       <div className='router-pagination-wrap'>
         <AppPagination

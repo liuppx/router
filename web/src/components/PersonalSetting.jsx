@@ -89,7 +89,7 @@ const PersonalSetting = () => {
       return;
     }
     if (!currentUser?.username) {
-      showError('用户信息不存在');
+      showError(t('personal_setting.error.user_missing'));
       return;
     }
     setProfileSubmitting(true);
@@ -119,7 +119,7 @@ const PersonalSetting = () => {
   const submitEmail = async () => {
     const trimmedEmail = (email || '').trim();
     if (!trimmedEmail) {
-      showError('请输入邮箱地址');
+      showError(t('personal_setting.error.email_required'));
       return;
     }
     setProfileSubmitting(true);
@@ -174,7 +174,7 @@ const PersonalSetting = () => {
     const confirmPassword = passwordModal.confirmPassword || '';
 
     if (isModify && currentPassword.length < 8) {
-      showError('请输入当前密码');
+      showError(t('personal_setting.error.current_password_required'));
       return;
     }
     if (newPassword.length < 8) {
@@ -216,7 +216,7 @@ const PersonalSetting = () => {
 
   return (
     <div className='router-page-stack'>
-      <AppSection title='账户信息'>
+      <AppSection title={t('personal_setting.section.account_info')}>
         <div className='router-page-stack'>
           <AppField label='钱包地址'>
             <AppInput
@@ -230,7 +230,7 @@ const PersonalSetting = () => {
               {avatarURL ? (
                 <img
                   src={avatarURL}
-                  alt='用户头像'
+                  alt={t('personal_setting.avatar.alt')}
                   style={{
                     width: 40,
                     height: 40,
@@ -242,7 +242,7 @@ const PersonalSetting = () => {
               ) : null}
               <AppInput
                 className='router-section-input'
-                value={avatarURL || '未设置'}
+                value={avatarURL || t('personal_setting.unset')}
                 readOnly
               />
             </div>
@@ -266,7 +266,7 @@ const PersonalSetting = () => {
                       onClick={cancelUsernameEdit}
                       disabled={profileSubmitting}
                     >
-                      {t('common.cancel', '取消')}
+                      {t('common.cancel')}
                     </AppButton>
                     <AppButton
                       className='router-section-button'
@@ -296,7 +296,7 @@ const PersonalSetting = () => {
               <AppInput
                 className='router-section-input'
                 type='email'
-                placeholder='请输入邮箱地址'
+                placeholder={t('personal_setting.placeholder.email')}
                 value={email}
                 readOnly={!isEditingEmail}
                 onChange={(e, { value }) => setEmail(value)}
@@ -310,7 +310,7 @@ const PersonalSetting = () => {
                       onClick={cancelEmailEdit}
                       disabled={profileSubmitting}
                     >
-                      {t('common.cancel', '取消')}
+                      {t('common.cancel')}
                     </AppButton>
                     <AppButton
                       className='router-section-button'
@@ -343,7 +343,7 @@ const PersonalSetting = () => {
             <div className='router-setting-inline-row'>
               <AppInput
                 className='router-section-input'
-                value={hasPassword ? '已设置' : '未设置'}
+                value={hasPassword ? t('personal_setting.set') : t('personal_setting.unset')}
                 readOnly
               />
               <div className='router-setting-inline-actions'>
@@ -368,7 +368,7 @@ const PersonalSetting = () => {
         title={passwordModal.mode === 'modify' ? '修改密码' : '设置密码'}
         footer={[
           <AppButton key='cancel' className='router-modal-button' onClick={closePasswordModal}>
-            {t('common.cancel', '取消')}
+            {t('common.cancel')}
           </AppButton>,
           <AppButton
             key='confirm'

@@ -1,6 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { API } from '../helpers/api';
 import {
   AppButton,
@@ -11,10 +22,37 @@ import {
   AppModal,
   AppPagination,
   AppSelect,
+  AppSpin,
   AppTag,
   AppTable,
   AppTextarea,
+  chartAxisStyle,
+  chartCategoricalPalette,
+  chartGridStyle,
+  chartNeutralColor,
+  chartStatusPalette,
+  chartTooltipStyle,
 } from '../router-ui';
+
+// Type-distribution swatches use the validated categorical palette so they
+// stay in lockstep with the rest of the dashboard charts. `unknown` falls
+// back to theme-muted ink.
+const ALERT_DISTRIBUTION_COLORS = {
+  billing: chartCategoricalPalette[0],
+  circuit: chartCategoricalPalette[1],
+  model_disabled: chartCategoricalPalette[3],
+  endpoint_disabled: chartCategoricalPalette[4],
+  unknown: chartNeutralColor(),
+};
+
+const formatAlertTrendLabel = (timestamp) => {
+  if (!Number.isFinite(Number(timestamp)) || Number(timestamp) <= 0) return '';
+  const date = new Date(Number(timestamp) * 1000);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hour = String(date.getHours()).padStart(2, '0');
+  return `${month}-${day} ${hour}:00`;
+};
 
 const ALERT_LEVEL_COLORS = {
   critical: 'red',
@@ -52,6 +90,7 @@ function AdminChannelAlertsPanel() {
   const navigate = useNavigate();
   const [alertItems, setAlertItems] = useState([]);
   const [total, setTotal] = useState(0);
+  const [alertSummary, setAlertSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [acknowledgingAlertID, setAcknowledgingAlertID] = useState('');
   const [resolvingAlertID, setResolvingAlertID] = useState('');
@@ -96,10 +135,12 @@ function AdminChannelAlertsPanel() {
           : [];
       setAlertItems(nextItems);
       setTotal(Number(response?.data?.data?.total || 0));
+      setAlertSummary(response?.data?.data?.summary || null);
     } catch (error) {
       console.error('Failed to load channel alerts:', error);
       setAlertItems([]);
       setTotal(0);
+      setAlertSummary(null);
     } finally {
       setLoading(false);
     }
@@ -633,6 +674,260 @@ function AdminChannelAlertsPanel() {
     total_count: total,
   });
 
+  const alertKpiCards = useMemo(() => {
+    const summary = alertSummary || {};
+    return [
+      {
+        key: 'unresolved_critical',
+        label: t('dashboard.admin.alerts.kpis.unresolved_critical'),
+        hint: t('dashboard.admin.alerts.kpis.unresolved_critical_hint'),
+        value: Number(summary.unresolved_critical || 0),
+        danger: Number(summary.unresolved_critical || 0) > 0,
+      },
+      {
+        key: 'unacknowledged',
+        label: t('dashboard.admin.alerts.kpis.unacknowledged'),
+        hint: t('dashboard.admin.alerts.kpis.unacknowledged_hint'),
+        value: Number(summary.unacknowledged || 0),
+        danger: false,
+      },
+      {
+        key: 'active_total',
+        label: t('dashboard.admin.alerts.kpis.active_total'),
+        hint: t('dashboard.admin.alerts.kpis.active_total_hint'),
+        value: Number(summary.active_total || 0),
+        danger: false,
+      },
+      {
+        key: 'resolved_24h',
+        label: t('dashboard.admin.alerts.kpis.resolved_24h'),
+        hint: t('dashboard.admin.alerts.kpis.resolved_24h_hint'),
+        value: Number(summary.resolved_24h || 0),
+        danger: false,
+      },
+      {
+        key: 'last_24h',
+        label: t('dashboard.admin.alerts.kpis.last_24h'),
+        hint: t('dashboard.admin.alerts.kpis.last_24h_hint'),
+        value: Number(summary.last_24h || 0),
+        danger: false,
+      },
+    ];
+  }, [alertSummary, t]);
+
+  const alertTypeDistribution = useMemo(() => {
+    const buckets = Array.isArray(alertSummary?.type_distribution)
+      ? alertSummary.type_distribution
+      : [];
+    const totalCount = buckets.reduce(
+      (sum, item) => sum + Number(item?.count || 0),
+      0,
+    );
+    return buckets.map((item) => {
+      const label = String(item?.label || item?.key || '').trim();
+      const count = Number(item?.count || 0);
+      return {
+        key: item?.key || label,
+        label: t(`dashboard.admin.alerts.type_labels.${label}`, {
+          defaultValue: label || '-',
+        }),
+        count,
+        percent: totalCount > 0 ? (count / totalCount) * 100 : 0,
+        color: ALERT_DISTRIBUTION_COLORS[label] || ALERT_DISTRIBUTION_COLORS.unknown,
+      };
+    });
+  }, [alertSummary, t]);
+
+  const alertChannelDistribution = useMemo(() => {
+    const buckets = Array.isArray(alertSummary?.channel_distribution)
+      ? alertSummary.channel_distribution
+      : [];
+    const maxCount = buckets.reduce(
+      (max, item) => Math.max(max, Number(item?.count || 0)),
+      0,
+    );
+    return buckets.map((item) => {
+      const count = Number(item?.count || 0);
+      return {
+        key: item?.key || item?.label,
+        label: String(item?.label || item?.key || '-').trim() || '-',
+        count,
+        percent: maxCount > 0 ? (count / maxCount) * 100 : 0,
+      };
+    });
+  }, [alertSummary]);
+
+  const alertTrendData = useMemo(() => {
+    const points = Array.isArray(alertSummary?.trend) ? alertSummary.trend : [];
+    return points.map((item) => ({
+      bucket: Number(item?.bucket || 0),
+      count: Number(item?.count || 0),
+      label: formatAlertTrendLabel(item?.bucket),
+    }));
+  }, [alertSummary]);
+
+  // Pull the active theme once per render so both Bar and Line variants of the
+  // trend chart share the same axis/tooltip styling and pick the categorical
+  // blue instead of an ad-hoc hex.
+  const trendAxisStyle = useMemo(() => chartAxisStyle(), []);
+  const trendGridStyle = useMemo(() => chartGridStyle(), []);
+  const trendTooltipStyle = useMemo(() => chartTooltipStyle(), []);
+  const trendSeriesColor = useMemo(
+    () => chartCategoricalPalette[0] || chartStatusPalette.info,
+    [],
+  );
+  const channelDistributionFill = useMemo(
+    () => chartStatusPalette.warning,
+    [],
+  );
+
+  const renderTrendChart = () => {
+    if (alertTrendData.length === 0) return null;
+    if (alertTrendData.length === 1) {
+      return (
+        <BarChart data={alertTrendData}>
+          <CartesianGrid {...trendGridStyle} />
+          <XAxis dataKey='label' {...trendAxisStyle} minTickGap={8} />
+          <YAxis {...trendAxisStyle} allowDecimals={false} />
+          <Tooltip contentStyle={trendTooltipStyle} />
+          <Bar dataKey='count' fill={trendSeriesColor} radius={[4, 4, 0, 0]} />
+        </BarChart>
+      );
+    }
+    return (
+      <LineChart data={alertTrendData}>
+        <CartesianGrid {...trendGridStyle} />
+        <XAxis dataKey='label' {...trendAxisStyle} minTickGap={8} />
+        <YAxis {...trendAxisStyle} allowDecimals={false} />
+        <Tooltip contentStyle={trendTooltipStyle} />
+        <Line
+          type='monotone'
+          dataKey='count'
+          stroke={trendSeriesColor}
+          strokeWidth={2}
+          dot={false}
+          activeDot={{ r: 4 }}
+        />
+      </LineChart>
+    );
+  };
+
+  const channelDistributionLimit =
+    Array.isArray(alertSummary?.channel_distribution) &&
+    alertSummary.channel_distribution.length > 0
+      ? alertSummary.channel_distribution.length
+      : 8;
+
+  const summaryPanel =
+    alertSummary && Number(alertSummary.total || 0) > 0 ? (
+      <div className='admin-dashboard-alert-summary'>
+        <div className='admin-dashboard-alert-kpi-grid'>
+          {alertKpiCards.map((card) => (
+            <div
+              key={card.key}
+              className={`admin-dashboard-alert-kpi-card${
+                card.danger ? ' is-danger' : ''
+              }`}
+            >
+              <div className='admin-dashboard-alert-kpi-label'>{card.label}</div>
+              <div className='admin-dashboard-alert-kpi-value'>{card.value}</div>
+              <div className='admin-dashboard-alert-kpi-hint'>{card.hint}</div>
+            </div>
+          ))}
+        </div>
+        <div className='admin-dashboard-alert-analytics'>
+          <div className='admin-dashboard-alert-analytics-card'>
+            <div className='admin-dashboard-card-title'>
+              {t('dashboard.admin.alerts.distribution.by_type')}
+            </div>
+            {alertTypeDistribution.length === 0 ? (
+              <div className='admin-dashboard-empty'>
+                {t('dashboard.admin.alerts.empty')}
+              </div>
+            ) : (
+              <div className='admin-dashboard-alert-dist-list'>
+                {alertTypeDistribution.map((item) => (
+                  <div key={item.key} className='admin-dashboard-alert-dist-row'>
+                    <span className='admin-dashboard-alert-dist-label'>
+                      {item.label}
+                    </span>
+                    <span className='admin-dashboard-alert-dist-bar'>
+                      <span
+                        className='admin-dashboard-alert-dist-bar-fill'
+                        style={{
+                          width: `${Math.max(item.percent, 4)}%`,
+                          background: item.color,
+                        }}
+                      />
+                    </span>
+                    <span className='admin-dashboard-alert-dist-count'>
+                      {item.count}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className='admin-dashboard-alert-analytics-card'>
+            <div className='admin-dashboard-card-title'>
+              {t('dashboard.admin.alerts.distribution.by_channel', {
+                limit: channelDistributionLimit,
+              })}
+            </div>
+            {alertChannelDistribution.length === 0 ? (
+              <div className='admin-dashboard-empty'>
+                {t('dashboard.admin.alerts.empty')}
+              </div>
+            ) : (
+              <div className='admin-dashboard-alert-dist-list'>
+                {alertChannelDistribution.map((item) => (
+                  <div key={item.key} className='admin-dashboard-alert-dist-row'>
+                    <span
+                      className='admin-dashboard-alert-dist-label'
+                      title={item.label}
+                    >
+                      {item.label}
+                    </span>
+                    <span className='admin-dashboard-alert-dist-bar'>
+                      <span
+                        className='admin-dashboard-alert-dist-bar-fill'
+                        style={{
+                          width: `${Math.max(item.percent, 4)}%`,
+                          background: channelDistributionFill,
+                        }}
+                      />
+                    </span>
+                    <span className='admin-dashboard-alert-dist-count'>
+                      {item.count}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className='admin-dashboard-alert-analytics-card admin-dashboard-alert-analytics-trend'>
+            <div className='admin-dashboard-card-title'>
+              {t('dashboard.admin.alerts.distribution.trend_title')}
+            </div>
+            <div className='admin-dashboard-alert-dist-hint'>
+              {t('dashboard.admin.alerts.distribution.trend_hint')}
+            </div>
+            {alertTrendData.length === 0 ? (
+              <div className='admin-dashboard-empty'>
+                {t('dashboard.admin.alerts.empty')}
+              </div>
+            ) : (
+              <div className='chart-container'>
+                <ResponsiveContainer width='100%' height={200}>
+                  {renderTrendChart()}
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    ) : null;
+
   const content = (
     <div className='admin-dashboard-alerts-list'>
       <AppFilterHeader
@@ -642,6 +937,7 @@ function AdminChannelAlertsPanel() {
         picker={selectorControls}
         end={searchControls}
       />
+      {summaryPanel}
       {loading ? (
         <div className='admin-dashboard-empty'>{t('common.loading')}</div>
       ) : displayAlertItems.length === 0 ? (
@@ -650,19 +946,21 @@ function AdminChannelAlertsPanel() {
         </div>
       ) : (
         <div className='router-table-scroll-x'>
-          <AppTable
-            className='router-hover-table router-list-table router-table-fit-page admin-dashboard-alert-table'
-            columns={alertColumns}
-            dataSource={sortedAlertItems}
-            pagination={false}
-            rowKey='id'
-            onChange={handleTableChange}
-            onRow={(record) => ({
-              className: 'router-row-clickable',
-              onClick: () => openDetailDrawer(record),
-            })}
-            scroll={{ x: 1040 }}
-          />
+          <AppSpin spinning={loading}>
+            <AppTable
+              className='router-hover-table router-list-table router-table-fit-page admin-dashboard-alert-table'
+              columns={alertColumns}
+              dataSource={sortedAlertItems}
+              pagination={false}
+              rowKey='id'
+              onChange={handleTableChange}
+              onRow={(record) => ({
+                className: 'router-row-clickable',
+                onClick: () => openDetailDrawer(record),
+              })}
+              scroll={{ x: 1040 }}
+            />
+          </AppSpin>
         </div>
       )}
       {totalPages > 1 ? (

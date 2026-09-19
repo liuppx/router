@@ -1,6 +1,7 @@
 import { toast } from 'react-toastify';
 import { toastConstants } from '../constants';
 import React from 'react';
+import i18n from '../i18n.jsx';
 import { API } from './api';
 import { buildLoginPath } from './authRedirect';
 
@@ -9,18 +10,37 @@ const HTMLToastContent = ({ htmlContent }) => {
 };
 export default HTMLToastContent;
 
+// Synchronous localStorage helpers. Prefer `useIsAdmin()` from
+// `hooks/useAuth` for any decision that gates UI or routing — it reads
+// the in-memory UserContext and is fed by the server's /api/v1/user/self
+// response. These helpers exist for the very first render before
+// UserContext is bootstrapped and for legacy callers; they must NOT be
+// the only gate on an admin endpoint.
+const ADMIN_ROLE_FLOOR = 10;
+const ROOT_ROLE_FLOOR = 100;
+
+function readUserFromStorage() {
+  if (typeof localStorage === 'undefined') return null;
+  const raw = localStorage.getItem('user');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    return null;
+  }
+}
+
 export function isAdmin() {
-  let user = localStorage.getItem('user');
+  const user = readUserFromStorage();
   if (!user) return false;
-  user = JSON.parse(user);
-  return user.role >= 10;
+  return Number(user.role || 0) >= ADMIN_ROLE_FLOOR;
 }
 
 export function canManageUsers() {
-  let user = localStorage.getItem('user');
+  const user = readUserFromStorage();
   if (!user) return false;
-  user = JSON.parse(user);
-  return user.can_manage_users === true;
+  if (user.can_manage_users === true) return true;
+  return Number(user.role || 0) >= ROOT_ROLE_FLOOR;
 }
 
 export function isRoot() {
@@ -86,7 +106,7 @@ export function showError(error, options = {}) {
     if (error.name === 'AxiosError') {
       switch (error.response.status) {
         case 401:
-          // toast.error('错误：未登录或登录已过期，请重新登录！', showErrorOptions);
+          toast.error(i18n.t('common.session_expired'), mergedErrorOptions);
           {
             const loginPath = buildLoginPath(window.location);
             window.location.href = `${loginPath}${
@@ -95,13 +115,13 @@ export function showError(error, options = {}) {
           }
           break;
         case 429:
-          toast.error('请求次数过多，请稍后再试！', mergedErrorOptions);
+          toast.error(i18n.t('common.rate_limit'), mergedErrorOptions);
           break;
         case 500:
-          toast.error('服务器内部错误，请联系管理员！', mergedErrorOptions);
+          toast.error(i18n.t('common.server_error'), mergedErrorOptions);
           break;
         case 405:
-          toast.info('本站仅作演示之用，无服务端！');
+          toast.info(i18n.t('common.demo_only'));
           break;
         default:
           toast.error(error.message, mergedErrorOptions);

@@ -1,3 +1,4 @@
+import i18n from '../i18n.jsx';
 import {
   clearAccessToken as sdkClearAccessToken,
   focusPendingApproval,
@@ -102,7 +103,7 @@ function waitForWalletProviderReconnect(timeoutMs = WALLET_RECONNECT_TIMEOUT_MS)
 export async function requireWalletProvider() {
   const provider = await getProvider();
   if (!provider) {
-    throw new Error('未检测到钱包，请安装 MetaMask 或开启浏览器钱包');
+    throw new Error(i18n.t('wallet.not_detected'));
   }
   return provider;
 }

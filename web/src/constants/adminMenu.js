@@ -4,9 +4,19 @@ import { buildUserWorkspaceMenuItems } from './userMenu';
 export const ADMIN_MENU_GROUPS = [
   {
     key: 'dashboard',
-    name: 'header.system_overview',
+    name: 'header.dashboard',
     icon: 'chart bar',
     items: [
+      {
+        name: 'dashboard.admin.nav.spending',
+        to: '/admin/dashboard?section=spending',
+        icon: 'chart line',
+      },
+      {
+        name: 'dashboard.admin.nav.models',
+        to: '/admin/dashboard?section=models',
+        icon: 'cube',
+      },
       {
         name: 'dashboard.admin.nav.channels',
         to: '/admin/dashboard?section=channels',
@@ -17,16 +27,11 @@ export const ADMIN_MENU_GROUPS = [
         to: '/admin/dashboard?section=users',
         icon: 'users',
       },
-      {
-        name: 'dashboard.admin.nav.alerts',
-        to: '/admin/alerts',
-        icon: 'heartbeat',
-      },
     ],
   },
   {
-    key: 'model',
-    name: 'header.model',
+    key: 'supply',
+    name: 'header.supply',
     icon: 'cube',
     items: [
       {
@@ -45,15 +50,22 @@ export const ADMIN_MENU_GROUPS = [
         icon: 'group',
       },
       {
-        name: 'header.entitlement',
-        to: '/admin/entitlement',
-        icon: 'ticket',
+        // The model catalog is a supply-side artifact (published models backed
+        // by providers/channels), so it belongs with供给 rather than客户.
+        name: 'header.model',
+        to: '/workspace/service/models',
+        icon: 'cube',
+      },
+      {
+        name: 'dashboard.admin.nav.alerts',
+        to: '/admin/alerts',
+        icon: 'bell',
       },
     ],
   },
   {
-    key: 'business',
-    name: 'header.operation',
+    key: 'customers',
+    name: 'header.customers',
     icon: 'users',
     items: [
       {
@@ -67,14 +79,9 @@ export const ADMIN_MENU_GROUPS = [
         icon: 'dollar sign',
       },
       {
-        name: 'header.log',
-        to: '/admin/log',
-        icon: 'book',
-      },
-      {
-        name: 'header.task',
-        to: '/admin/task',
-        icon: 'tasks',
+        name: 'header.entitlement',
+        to: '/admin/entitlement',
+        icon: 'ticket',
       },
     ],
   },
@@ -84,19 +91,36 @@ export const ADMIN_MENU_GROUPS = [
     icon: 'money bill alternate outline',
     items: [
       {
-        name: 'billing.overview.nav',
+        name: 'billing.overview.title',
         to: '/admin/finance/overview',
         icon: 'chart pie',
       },
       {
-        name: 'billing.pricing_analysis.nav',
+        name: 'billing.pricing_analysis.title',
         to: '/admin/finance/profit',
-        icon: 'line chart',
+        icon: 'chart line',
       },
       {
-        name: 'billing.procurement_report.nav',
+        name: 'billing.procurement_report.title',
         to: '/admin/finance/procurement',
-        icon: 'exchange',
+        icon: 'shopping cart',
+      },
+    ],
+  },
+  {
+    key: 'system',
+    name: 'header.system',
+    icon: 'cog',
+    items: [
+      {
+        name: 'header.task',
+        to: '/admin/task',
+        icon: 'tasks',
+      },
+      {
+        name: 'header.log',
+        to: '/admin/log',
+        icon: 'book',
       },
     ],
   },
@@ -106,53 +130,49 @@ export const ADMIN_MENU_GROUPS = [
     icon: 'setting',
     items: [
       {
-        name: 'setting.groups.basic',
+        name: 'header.setting',
         to: '/admin/setting?tab=basic&section=general',
         icon: 'sliders horizontal',
-      },
-      {
-        name: 'setting.groups.payment',
-        to: '/admin/setting?tab=payment&section=currency',
-        icon: 'credit card outline',
-      },
-      {
-        name: 'setting.groups.billing',
-        to: '/admin/setting?tab=billing&section=balance',
-        icon: 'money bill alternate outline',
-      },
-      {
-        name: 'setting.groups.content',
-        to: '/admin/setting?tab=content&section=notice',
-        icon: 'file alternate outline',
       },
     ],
   },
 ];
 
+// Admin operators are end users too: give their own quota/tokens a dedicated
+// "personal" group pinned to the bottom of the admin sidebar, so seeing your
+// own usage no longer means digging into the header avatar dropdown. The items
+// point at the shared /workspace/* surfaces (isUserRouteActive handles them).
+export const PERSONAL_WORKSPACE_MENU_GROUP = {
+  key: 'personal',
+  name: 'header.mine',
+  icon: 'user',
+  items: [
+    {
+      name: 'topup.mine.quota',
+      to: '/workspace/topup?tab=quota',
+      icon: 'credit card',
+    },
+    {
+      name: 'header.token',
+      to: '/workspace/token',
+      icon: 'key',
+    },
+  ],
+};
+
 export const buildUnifiedWorkspaceMenuGroups = (hasAdminAccess) => {
-  const userGroups = buildUserWorkspaceMenuItems();
   if (!hasAdminAccess) {
-    return userGroups;
+    return buildUserWorkspaceMenuItems();
   }
-  const adminGroups = ADMIN_MENU_GROUPS.map((group) => ({
+  // Admin console: the operator surface, plus a personal group so operators can
+  // reach their own quota/tokens straight from the sidebar. Remaining personal
+  // entries (account / logs / guide) stay in the header avatar dropdown, which
+  // is now shown to every role for consistency.
+  return [...ADMIN_MENU_GROUPS, PERSONAL_WORKSPACE_MENU_GROUP].map((group) => ({
     ...group,
     type: 'group',
     items: group.items.map((item) => ({ ...item })),
   }));
-  const overview = adminGroups.find((group) => group.key === 'dashboard');
-  const userOverview = userGroups.find((group) => group.key === 'overview');
-  if (overview && userOverview) {
-    overview.items.push(...userOverview.items.map((item) => ({ ...item })));
-  }
-  return [
-    ...adminGroups,
-    ...userGroups
-      .filter((group) => group.key === 'mine' || group.key === 'help')
-      .map((group) => ({
-        ...group,
-        items: group.items.map((item) => ({ ...item })),
-      })),
-  ];
 };
 
 export const isAdminRouteActive = (location, to) => {
@@ -193,7 +213,7 @@ export const isAdminRouteActive = (location, to) => {
   }
   const targetSection = (targetParams.get('section') || '').trim().toLowerCase();
   if (path === '/admin/dashboard' && targetSection !== '') {
-    const currentSection = (currentParams.get('section') || 'channels')
+    const currentSection = (currentParams.get('section') || 'spending')
       .trim()
       .toLowerCase();
     if (currentSection !== targetSection) {

@@ -45,9 +45,13 @@ const PRODUCT_LIST_TABLE_MIN_WIDTH = 1000;
 const PRODUCT_FORM_KIND_OPTIONS = PRODUCT_KIND_OPTIONS.filter(
   (item) => item.value !== PRODUCT_KIND_ALL,
 );
+const QUOTA_METRIC_LABEL_KEYS = {
+  [SERVICE_PACKAGE_QUOTA_METRIC_YYC]: 'entitlement.metrics.yyc',
+  [SERVICE_PACKAGE_QUOTA_METRIC_REQUEST_COUNT]: 'entitlement.request_count',
+};
 const QUOTA_METRIC_OPTIONS = [
-  { key: SERVICE_PACKAGE_QUOTA_METRIC_YYC, value: SERVICE_PACKAGE_QUOTA_METRIC_YYC, text: 'YYC 额度' },
-  { key: SERVICE_PACKAGE_QUOTA_METRIC_REQUEST_COUNT, value: SERVICE_PACKAGE_QUOTA_METRIC_REQUEST_COUNT, text: '请求次数' },
+  { key: SERVICE_PACKAGE_QUOTA_METRIC_YYC, value: SERVICE_PACKAGE_QUOTA_METRIC_YYC, textKey: QUOTA_METRIC_LABEL_KEYS[SERVICE_PACKAGE_QUOTA_METRIC_YYC] },
+  { key: SERVICE_PACKAGE_QUOTA_METRIC_REQUEST_COUNT, value: SERVICE_PACKAGE_QUOTA_METRIC_REQUEST_COUNT, textKey: QUOTA_METRIC_LABEL_KEYS[SERVICE_PACKAGE_QUOTA_METRIC_REQUEST_COUNT] },
 ];
 const PERIOD_TYPE_OPTIONS = [
   { key: SERVICE_PACKAGE_PERIOD_MONTHLY, value: SERVICE_PACKAGE_PERIOD_MONTHLY, text: '每月' },
@@ -402,7 +406,7 @@ const Entitlement = () => {
         showError(data.message || t('common.failed'));
         return;
       }
-      showSuccess('操作成功');
+      showSuccess(t('common.operation_success'));
       setFormOpen(false);
       await loadProducts();
     } catch (error) {
@@ -426,7 +430,7 @@ const Entitlement = () => {
         showError(data.message || t('common.failed'));
         return;
       }
-      showSuccess('操作成功');
+      showSuccess(t('common.operation_success'));
       setDeleteRow(null);
       await loadProducts();
     } catch (error) {
@@ -516,7 +520,7 @@ const Entitlement = () => {
         width: 84,
         render: (value) => (
           <AppTag color={value ? 'green' : 'default'}>
-            {value ? '启用' : '停用'}
+            {value ? t('entitlement.enabled') : t('entitlement.disabled')}
           </AppTag>
         ),
       },
@@ -656,10 +660,13 @@ const Entitlement = () => {
 
         {isSubscription ? (
           <AppFormRow className='router-modal-form-row'>
-            <AppField label='权益类型' required>
+            <AppField label={t('entitlement.type')} required>
               <AppSelect
                 className='router-section-input'
-                options={QUOTA_METRIC_OPTIONS}
+                options={QUOTA_METRIC_OPTIONS.map((item) => ({
+                  ...item,
+                  text: t(item.textKey),
+                }))}
                 value={form.quota_metric}
                 onChange={(_, { value }) =>
                   setForm((current) => ({
@@ -823,7 +830,7 @@ const Entitlement = () => {
               }
             />
           </AppField>
-          <AppField label='启用'>
+          <AppField label={t('entitlement.enabled')}>
             <AppSwitch
               checked={form.enabled !== false}
               onChange={(_, { checked }) =>
@@ -888,7 +895,7 @@ const Entitlement = () => {
             />
             <AppInput
               className='router-section-input router-search-form-sm'
-              placeholder='搜索名称、说明、分组'
+              placeholder={t('entitlement.placeholder.search')}
               value={searchKeyword}
               onChange={(_, { value }) => {
                 setSearchKeyword(value || '');
@@ -956,7 +963,7 @@ const Entitlement = () => {
       <AppModal
         open={formOpen}
         size='large'
-        title='新增权益'
+        title={t('entitlement.add_title')}
         onClose={() => setFormOpen(false)}
         footer={null}
       >
@@ -966,12 +973,12 @@ const Entitlement = () => {
       <AppModal
         open={Boolean(deleteRow)}
         size='tiny'
-        title='删除权益'
+        title={t('entitlement.delete_title')}
         onClose={() => setDeleteRow(null)}
         footer={null}
       >
         <div className='router-page-stack'>
-          <div>确认删除 {deleteRow?.name || '-'}？</div>
+          <div>{t('entitlement.confirm_delete', { name: deleteRow?.name || '-' })}</div>
           <AppFormActions>
             <AppButton
               type='button'

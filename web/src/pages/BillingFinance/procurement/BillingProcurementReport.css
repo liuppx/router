@@ -1,0 +1,410 @@
+.billing-procurement-report-page {
+  max-width: 1600px;
+}
+
+.billing-procurement-report-filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.billing-procurement-report-segmented {
+  min-height: 32px;
+}
+
+.billing-procurement-report-time-input {
+  width: 188px;
+  min-height: 32px !important;
+  height: 32px !important;
+}
+
+.billing-procurement-report-group-select {
+  min-width: 180px;
+}
+
+.billing-procurement-report-overview,
+.billing-procurement-report-detail {
+  display: grid;
+  gap: 16px;
+}
+
+.billing-procurement-report-health {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.billing-procurement-report-health.is-ok {
+  border-bottom-color: rgba(22, 163, 74, 0.3);
+}
+
+.billing-procurement-report-health.is-warning {
+  border-bottom-color: rgba(245, 158, 11, 0.4);
+}
+
+.billing-procurement-report-health.is-critical {
+  border-bottom-color: rgba(220, 38, 38, 0.4);
+}
+
+.billing-procurement-report-health.is-unknown {
+  border-bottom-color: rgba(148, 163, 184, 0.5);
+  background: rgba(148, 163, 184, 0.04);
+}
+
+.billing-procurement-report-health-main {
+  min-width: 220px;
+}
+
+.billing-procurement-report-health-title {
+  color: var(--router-text-primary, var(--router-text-primary, #0f172a));
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.billing-procurement-report-health-meta {
+  margin-top: 4px;
+  color: var(--router-text-muted, var(--router-text-muted, #64748b));
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.billing-procurement-report-health-issues {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.billing-procurement-report-health-ok {
+  color: var(--router-status-success, var(--router-status-success, #15803d));
+  font-size: 13px;
+}
+
+.billing-procurement-report-health-issue {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 340px;
+  padding: 2px 0;
+  color: var(--router-text-secondary, var(--router-text-secondary, #334155));
+  font-size: 12px;
+}
+
+a.billing-procurement-report-health-issue:hover {
+  color: var(--router-link-hover, #1d4ed8);
+}
+
+.billing-procurement-report-health-level {
+  font-weight: 700;
+}
+
+.billing-procurement-report-health-level.is-critical {
+  color: var(--router-status-danger, var(--router-status-danger, #dc2626));
+}
+
+.billing-procurement-report-health-level.is-warning {
+  color: var(--router-status-warning, var(--router-status-warning, #b45309));
+}
+
+.billing-procurement-report-health-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.billing-procurement-report-headline {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
+  gap: 12px;
+  padding: 18px 20px;
+  border: 1px solid rgba(15, 23, 42, .08);
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--router-surface-muted, var(--router-surface-muted, #f8fafc)) 0%, var(--router-surface, var(--router-surface, var(--router-surface, #fff))fff) 60%);
+}
+
+.billing-procurement-report-headline-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.billing-procurement-report-headline-label {
+  color: var(--router-text-muted, var(--router-text-muted, #64748b));
+  font-size: 13px;
+}
+
+.billing-procurement-report-headline-value {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--router-text-primary, var(--router-text-primary, #0f172a));
+}
+
+.billing-procurement-report-headline-sub {
+  color: var(--router-text-muted, var(--router-text-muted, #64748b));
+  font-size: 13px;
+}
+
+.billing-procurement-report-headline.is-warning .billing-procurement-report-headline-value {
+  color: var(--router-status-warning, var(--router-status-warning, #d97706));
+}
+
+.billing-procurement-report-headline.is-negative .billing-procurement-report-headline-value {
+  color: var(--router-status-danger, var(--router-status-danger, #dc2626));
+}
+
+.billing-procurement-report-headline-side {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
+  align-content: center;
+  padding-left: 12px;
+  border-left: 1px solid rgba(15, 23, 42, .08);
+}
+
+.billing-procurement-report-headline-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.billing-procurement-report-headline-stat-label {
+  color: var(--router-text-muted, var(--router-text-muted, #64748b));
+  font-size: 12px;
+}
+
+.billing-procurement-report-headline-stat-value {
+  color: var(--router-text-primary, var(--router-text-primary, #0f172a));
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.billing-procurement-report-headline-stat.is-warning .billing-procurement-report-headline-stat-value {
+  color: var(--router-status-warning, var(--router-status-warning, #d97706));
+}
+
+.billing-procurement-report-loss-section {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(15, 23, 42, .08);
+  border-radius: 12px;
+  background: var(--router-surface, var(--router-surface, #fff));
+}
+
+.billing-procurement-report-analytics-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.billing-procurement-report-analytics-head h3 {
+  margin: 0;
+  color: var(--router-text-primary, var(--router-text-primary, #0f172a));
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.billing-procurement-report-analytics-head span {
+  color: var(--router-text-muted, var(--router-text-muted, #94a3b8));
+  font-size: 11px;
+}
+
+.billing-procurement-report-advanced {
+  display: grid;
+  gap: 8px;
+}
+
+.billing-procurement-report-advanced-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px dashed rgba(15, 23, 42, .12);
+  border-radius: 10px;
+  background: var(--router-surface-muted, var(--router-surface-muted, #f8fafc));
+  color: var(--router-text-secondary, var(--router-text-secondary, #475569));
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+
+.billing-procurement-report-advanced-toggle:hover {
+  border-color: var(--router-link, var(--router-link, #2563eb));
+  background: var(--router-surface-info, var(--router-surface-info, #f1f5ff));
+}
+
+.billing-procurement-report-advanced-chevron {
+  color: var(--router-text-muted, var(--router-text-muted, #64748b));
+  font-size: 12px;
+}
+
+.billing-procurement-report-retries {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.billing-procurement-report-table .ant-table-thead > tr > th,
+.billing-procurement-report-table .ant-table-tbody > tr > td {
+  white-space: nowrap;
+}
+
+.billing-procurement-report-link {
+  color: var(--router-link, var(--router-link, #2563eb));
+  font-weight: 500;
+}
+
+.billing-procurement-report-link:hover {
+  color: var(--router-link-hover, #1d4ed8);
+}
+
+.billing-procurement-report-channel-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.billing-procurement-report-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.billing-procurement-report-error {
+  display: inline-block;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+@media (max-width: 1180px) {
+  .billing-procurement-report-analytics {
+    grid-template-columns: 1fr;
+  }
+}
+
+.billing-procurement-report-analytics {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.billing-procurement-report-analytics-card {
+  padding: 12px 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  background: var(--router-surface, var(--router-surface, #fff));
+}
+
+.billing-procurement-report-analytics-title {
+  color: var(--router-text-primary, var(--router-text-primary, #0f172a));
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.billing-procurement-report-analytics-hint {
+  margin: 4px 0 8px;
+  color: var(--router-text-muted, var(--router-text-muted, #94a3b8));
+  font-size: 11px;
+}
+
+.billing-procurement-report-pie {
+  height: 220px;
+}
+
+.billing-procurement-report-empty {
+  padding: 24px 0;
+  color: var(--router-text-muted, var(--router-text-muted, #94a3b8));
+  font-size: 12px;
+  text-align: center;
+}
+
+.billing-procurement-report-loss-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.billing-procurement-report-loss-row {
+  display: grid;
+  grid-template-columns: 1fr 110px 84px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.billing-procurement-report-loss-row.is-unknown .billing-procurement-report-loss-profit {
+  color: var(--router-text-muted, var(--router-text-muted, #94a3b8));
+}
+
+.billing-procurement-report-loss-row:last-child {
+  border-bottom: 0;
+}
+
+.billing-procurement-report-loss-label {
+  overflow: hidden;
+  color: var(--router-text-secondary, var(--router-text-secondary, #475569));
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.billing-procurement-report-loss-profit {
+  color: var(--router-status-danger, var(--router-status-danger, #dc2626));
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.billing-procurement-report-loss-margin {
+  color: var(--router-text-muted, var(--router-text-muted, #94a3b8));
+  font-size: 12px;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .billing-procurement-report-headline {
+    grid-template-columns: 1fr;
+  }
+  .billing-procurement-report-headline-side {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid rgba(15, 23, 42, .08);
+    padding-top: 12px;
+  }
+}
+
+@media (max-width: 760px) {
+  .billing-procurement-report-health {
+    flex-direction: column;
+  }
+
+  .billing-procurement-report-health-issues {
+    justify-content: flex-start;
+  }
+
+  .billing-procurement-report-time-input {
+    width: 100%;
+  }
+
+  .billing-procurement-report-group-select {
+    width: 100%;
+  }
+}

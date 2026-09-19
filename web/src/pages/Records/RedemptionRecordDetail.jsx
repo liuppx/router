@@ -102,7 +102,7 @@ const RedemptionRecordDetail = () => {
             active: true,
           },
         ]}
-        title='兑换记录'
+        title={t('redemption.record.title')}
       />
       <div className='router-entity-detail-page'>
         <AppDetailSection

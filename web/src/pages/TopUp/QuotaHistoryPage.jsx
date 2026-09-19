@@ -17,7 +17,7 @@ import {
 
 const PAGE_SIZE = 20;
 
-const QuotaHistoryPageInner = () => {
+export const QuotaHistoryPageInner = ({ embedded = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { displayCurrency, displayCurrencyIndex } = useTopUpWorkspace();
@@ -97,43 +97,8 @@ const QuotaHistoryPageInner = () => {
     [navigate],
   );
 
-  return (
-    <div className='dashboard-container'>
-      <AppFilterHeader
-        breadcrumbs={[
-          { key: 'mine', label: t('header.mine') },
-          {
-            key: 'quota',
-            label: t('topup.mine.quota'),
-            onClick: () => navigate('/workspace/topup?tab=quota'),
-          },
-          {
-            key: 'history',
-            label: t('topup.quota_cards.history_title'),
-            active: true,
-          },
-        ]}
-        title={t('topup.quota_cards.history_title')}
-        actions={
-          <>
-          <AppButton
-            loading={loading}
-            onClick={() => loadCards(page)}
-          >
-            {t('common.refresh')}
-          </AppButton>
-            <AppSelect
-              className='router-quota-history-kind-select'
-              options={kindOptions}
-              value={kind}
-              onChange={(event, { value }) => {
-                setKind(String(value || 'all'));
-                setPage(1);
-              }}
-            />
-          </>
-        }
-      />
+  const historyBody = (
+    <>
       {cards.length > 0 ? (
         <div className='router-quota-card-grid'>
           {cards.map((card) => (
@@ -162,6 +127,57 @@ const QuotaHistoryPageInner = () => {
           />
         </div>
       ) : null}
+    </>
+  );
+
+  const toolbar = (
+    <>
+      <AppButton loading={loading} onClick={() => loadCards(page)}>
+        {t('common.refresh')}
+      </AppButton>
+      <AppSelect
+        className='router-quota-history-kind-select'
+        options={kindOptions}
+        value={kind}
+        onChange={(event, { value }) => {
+          setKind(String(value || 'all'));
+          setPage(1);
+        }}
+      />
+    </>
+  );
+
+  // Embedded inside the TopUp usage hub: the layout already owns the
+  // breadcrumb/header, so only render the toolbar + list here.
+  if (embedded) {
+    return (
+      <div className='router-topup-history-panel'>
+        <div className='router-topup-history-toolbar'>{toolbar}</div>
+        {historyBody}
+      </div>
+    );
+  }
+
+  return (
+    <div className='dashboard-container'>
+      <AppFilterHeader
+        breadcrumbs={[
+          { key: 'mine', label: t('header.mine') },
+          {
+            key: 'quota',
+            label: t('topup.mine.quota'),
+            onClick: () => navigate('/workspace/topup?tab=quota'),
+          },
+          {
+            key: 'history',
+            label: t('topup.quota_cards.history_title'),
+            active: true,
+          },
+        ]}
+        title={t('topup.quota_cards.history_title')}
+        actions={toolbar}
+      />
+      {historyBody}
     </div>
   );
 };

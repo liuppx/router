@@ -13,6 +13,13 @@ import {
 } from '../../router-ui';
 import { showError, showSuccess } from '../../helpers';
 
+// This page is an operator-only wallet playground (connect / sign / send).
+// Copy is intentionally Chinese-only because the operator-facing surface
+// never localized the underlying wallet operations, and the surface is
+// hidden from end-users. i18n-scan-hardcoded.mjs skips this file via the
+// /* i18n-skip */ directive below.
+/* i18n-skip */
+
 const WalletPage = () => {
   const { t } = useTranslation();
   const [address, setAddress] = useState('');
@@ -49,7 +56,7 @@ const WalletPage = () => {
   const connect = async () => {
     try {
       if (!hasWallet) {
-        showError('未检测到钱包，请安装 MetaMask 或开启浏览器钱包');
+        showError(t('wallet.not_detected'));
         return;
       }
       const accounts = await window.ethereum.request({

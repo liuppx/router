@@ -20,7 +20,7 @@ const GitHubOAuth = () => {
     const { success, message, data } = res.data;
     if (success) {
       if (message === 'bind') {
-        showSuccess('绑定成功！');
+        showSuccess(t('oauth.bind_success'));
         navigate('/setting');
       } else {
         userDispatch({ type: 'login', payload: data });

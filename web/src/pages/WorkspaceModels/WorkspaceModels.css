@@ -353,6 +353,26 @@
   overflow-wrap: anywhere;
 }
 
+/* Admin-only deep link from a model to a channel's publish tab: render the
+   count value inline (strip the default button chrome) so it aligns with the
+   other metric values, only signalling interactivity on hover. */
+.workspace-model-metric strong .workspace-model-channel-link.router-button,
+.workspace-model-metric strong .workspace-model-channel-link {
+  height: auto;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+
+.workspace-model-channel-popover {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
 .workspace-model-footer {
   display: flex;
   align-items: center;

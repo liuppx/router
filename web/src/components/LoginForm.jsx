@@ -393,10 +393,7 @@ const LoginForm = () => {
                         type='warning'
                         showIcon
                         className='router-auth-message'
-                        title={t(
-                          'auth.login.wallet_not_detected',
-                          '未检测到钱包插件，请安装或启用钱包插件后重试'
-                        )}
+                        title={t('auth.login.wallet_not_detected')}
                       />
                     )}
                 </div>

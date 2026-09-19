@@ -1,13 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { API } from '../../helpers/api';
+import { showError } from '../../helpers';
+import { useIsAdmin } from '../../hooks/useAuth';
+import ModelSectionTabs from '../../components/ModelSectionTabs';
 import {
   AppButton,
   AppFilterHeader,
   AppIcon,
   AppInput,
+  AppPopover,
   AppSegmented,
   AppSection,
+  AppSpin,
   AppTag,
   AppTooltip,
   AppToolbar,
@@ -118,6 +124,11 @@ const normalizePayload = (payload) => {
         ? item.health_source
         : 'none',
       channel_count: toNumber(item?.channel_count),
+      channel_ids: Array.isArray(item?.channel_ids)
+        ? item.channel_ids
+            .map((id) => String(id || '').trim())
+            .filter(Boolean)
+        : [],
       tested_channel_count: toNumber(item?.tested_channel_count),
       tested_endpoint_count: toNumber(item?.tested_endpoint_count),
       supported_count: toNumber(item?.supported_count),
@@ -217,11 +228,74 @@ const renderHealthPointTooltip = (point, stateLabel, t) => {
 
 const WorkspaceModels = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const hasAdminAccess = useIsAdmin();
   const [payload, setPayload] = useState(EMPTY_PAYLOAD);
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [healthFilter, setHealthFilter] = useState('all');
   const [sortBy, setSortBy] = useState('health');
+
+  // Admins can jump straight from a model to the publish tab of a channel that
+  // serves it (channel_ids comes from /api/v1/public/model/status). Single
+  // channel → direct deep link; multiple → a popover of per-channel links.
+  const goPublishChannel = useCallback(
+    (channelId) => {
+      const id = String(channelId || '').trim();
+      if (!id) return;
+      navigate(`/admin/channel/detail/${id}?tab=publish`);
+    },
+    [navigate],
+  );
+
+  const renderChannelCount = useCallback(
+    (item) => {
+      const value = `${formatCount(item.tested_channel_count)} / ${formatCount(item.channel_count)}`;
+      const ids = Array.isArray(item.channel_ids) ? item.channel_ids : [];
+      if (!hasAdminAccess || ids.length === 0) {
+        return <strong>{value}</strong>;
+      }
+      if (ids.length === 1) {
+        return (
+          <strong>
+            <AppButton
+              type='link'
+              className='workspace-model-channel-link'
+              title={t('channel.edit.detail_tabs.publish')}
+              onClick={() => goPublishChannel(ids[0])}
+            >
+              {value}
+            </AppButton>
+          </strong>
+        );
+      }
+      return (
+        <strong>
+          <AppPopover
+            trigger='click'
+            content={
+              <div className='workspace-model-channel-popover'>
+                {ids.map((id, index) => (
+                  <AppButton
+                    key={id}
+                    type='link'
+                    onClick={() => goPublishChannel(id)}
+                  >
+                    {`${t('header.channel')} ${index + 1}`}
+                  </AppButton>
+                ))}
+              </div>
+            }
+          >
+            <AppButton type='link' className='workspace-model-channel-link'>
+              {value}
+            </AppButton>
+          </AppPopover>
+        </strong>
+      );
+    },
+    [goPublishChannel, hasAdminAccess, t],
+  );
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -234,6 +308,7 @@ const WorkspaceModels = () => {
       }
     } catch (error) {
       console.error('Failed to load workspace model status:', error);
+      showError(error);
       setPayload(EMPTY_PAYLOAD);
     } finally {
       setLoading(false);
@@ -334,6 +409,8 @@ const WorkspaceModels = () => {
         ]}
         title={t('workspace_models.title')}
       />
+      {hasAdminAccess ? <ModelSectionTabs active='catalog' /> : null}
+      <AppSpin spinning={loading}>
       <AppSection className='workspace-models-section'>
         <div className='workspace-models-toolbar'>
           <div className='workspace-models-summary-grid'>
@@ -523,9 +600,7 @@ const WorkspaceModels = () => {
                       </div>
                       <div className='workspace-model-metric'>
                         <span>{t('workspace_models.card.channels')}</span>
-                        <strong>
-                          {formatCount(item.tested_channel_count)} / {formatCount(item.channel_count)}
-                        </strong>
+                        {renderChannelCount(item)}
                       </div>
                     </div>
                   </div>
@@ -554,6 +629,7 @@ const WorkspaceModels = () => {
           </div>
         )}
       </AppSection>
+      </AppSpin>
     </div>
   );
 };

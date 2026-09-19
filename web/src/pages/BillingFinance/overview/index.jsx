@@ -1,8 +1,31 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { API, showError, timestamp2string } from '../../helpers';
-import { formatDecimalNumber } from '../../helpers/render';
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { API, showError, timestamp2string } from '../../../helpers';
+import { formatDecimalNumber } from '../../../helpers/render';
+import {
+  BILLING_DECIMALS,
+  BILLING_PERCENT_DECIMALS,
+  chartAxisStyle,
+  chartCategoricalPalette,
+  chartGridStyle,
+  chartStatusPalette,
+  chartTooltipStyle,
+  formatBillingPercent,
+  formatCnyFixed,
+  formatCsvCurrency,
+  formatCsvPercent,
+} from '../../../router-ui/theme/charts';
 import {
   AppButton,
   AppFilterHeader,
@@ -12,12 +35,13 @@ import {
   AppSpin,
   AppTable,
   AppTag,
-} from '../../router-ui';
+} from '../../../router-ui';
+import { exportCSV } from '../../../helpers/csv';
 import './BillingOverview.css';
 
-const formatCNY = (value) => `¥${formatDecimalNumber(value || 0, 2)}`;
+const formatCNY = (value) => formatCnyFixed(value, BILLING_DECIMALS);
 const formatCount = (value) => formatDecimalNumber(value || 0, 0);
-const formatPercent = (value) => `${(Number(value || 0) * 100).toFixed(2)}%`;
+const formatPercent = (value) => formatBillingPercent(value, BILLING_PERCENT_DECIMALS);
 
 const riskLevel = (critical, warning) => {
   if (Number(critical || 0) > 0) return 'critical';
@@ -283,12 +307,33 @@ function BillingOverview() {
   const statusColor = (level) => (level === 'critical' ? 'red' : level === 'warning' ? 'orange' : level === 'empty' ? 'grey' : 'green');
   const statusLabel = (level) => t(`billing.overview.status.${level || 'ok'}`);
 
-  const overviewColumns = [
-    { title: t('billing.overview.overview_table.columns.dimension'), dataIndex: 'dimension', width: 160 },
-    { title: t('billing.overview.overview_table.columns.primary'), dataIndex: 'primary', width: 240 },
-    { title: t('billing.overview.overview_table.columns.secondary'), dataIndex: 'secondary' },
-    { title: t('billing.overview.overview_table.columns.status'), dataIndex: 'level', width: 110, render: (value) => <AppTag color={statusColor(value)}>{statusLabel(value)}</AppTag> },
-    { title: t('billing.overview.overview_table.columns.action'), dataIndex: 'target', width: 110, render: (target) => <Link to={target}>{t('billing.overview.actions.drilldown')}</Link> },
+  // The six KPIs the previous version rendered are condensed into one headline:
+  // gross profit + gross margin are the action-relevant numbers; revenue/cost live
+  // in the trend chart and the drill-down pages.
+  const headlineMarginTone =
+    report.gross_margin < 0 ? 'negative' : report.gross_margin < 0.1 ? 'warning' : 'positive';
+  const headlineProfit = formatCNY(report.gross_profit_base_amount);
+  const headlineMargin = formatPercent(report.gross_margin);
+  const headlineUnconfigured = Number(report.unconfigured_cost_request_count || 0);
+  const headlineUnconfiguredAmount = Number(report.unconfigured_sell_base_amount || 0);
+  const headlineIssuesCount = currentScopeRiskCount;
+
+  // Surface the most urgent risk per source as inline chips; the full list lives
+  // in the priority-risk table below.
+  const headlineChips = overviewRows
+    .filter((row) => row.level === 'critical' || row.level === 'warning')
+    .slice(0, 4);
+
+  const trendChartData = trend.map((item) => ({
+    day: item.day,
+    revenue: Number(item.sell_base_amount || 0),
+    cost: Number(item.procurement_cost_base_amount || 0),
+    profit: Number(item.gross_profit_base_amount || 0),
+  }));
+  const trendSeries = [
+    { key: 'revenue', color: chartCategoricalPalette[0], label: t('billing.procurement_report.summary.sell_amount') },
+    { key: 'cost', color: chartStatusPalette.warning, label: t('billing.procurement_report.summary.procurement_cost') },
+    { key: 'profit', color: chartStatusPalette.success, label: t('billing.procurement_report.summary.gross_profit') },
   ];
 
   const priorityColumns = [
@@ -333,31 +378,114 @@ function BillingOverview() {
     <div className='dashboard-container billing-overview-page'>
       <AppFilterHeader
         breadcrumbs={[{ key: 'finance', label: t('header.finance') }, { key: 'billing-overview', label: t('billing.overview.title'), active: true }]}
-        actions={<AppButton className='router-page-button' color='blue' loading={loading} onClick={() => load().then()}>{t('common.refresh')}</AppButton>}
+        actions={
+          <>
+            <AppButton
+              className='router-page-button'
+              loading={loading}
+              onClick={() => {
+                exportCSV(
+                  `billing-overview-${toDateTimeLocalValue(startAt).replace(/[:T]/g, '-')}_${toDateTimeLocalValue(endAt).replace(/[:T]/g, '-')}.csv`,
+                  [
+                    { key: 'dimension_key', label: t('billing.overview.columns.dimension') },
+                    { key: 'request_count', label: t('billing.overview.columns.request_count') },
+                    { key: 'sell_base_amount', label: t('billing.procurement_report.summary.sell_amount'), format: formatCsvCurrency },
+                    { key: 'procurement_cost_base_amount', label: t('billing.procurement_report.summary.procurement_cost'), format: formatCsvCurrency },
+                    { key: 'gross_profit_base_amount', label: t('billing.procurement_report.summary.gross_profit'), format: formatCsvCurrency },
+                    { key: 'gross_margin', label: t('billing.procurement_report.summary.gross_margin'), format: formatCsvPercent },
+                    { key: 'configured_cost_request_count', label: t('billing.procurement_report.columns.configured_count') },
+                    { key: 'unconfigured_cost_request_count', label: t('billing.procurement_report.columns.unconfigured_count') },
+                  ],
+                  report.items,
+                );
+              }}
+            >
+              {t('common.export_csv')}
+            </AppButton>
+            <AppButton className='router-page-button' color='blue' loading={loading} onClick={() => load().then()}>{t('common.refresh')}</AppButton>
+          </>
+        }
         query={<div className='billing-overview-filters'><AppInput className='billing-overview-time-input' type='datetime-local' value={toDateTimeLocalValue(startAt)} onChange={(e, { value }) => setStartAt(timestampFromDateTimeLocal(value, startAt))} /><AppInput className='billing-overview-time-input' type='datetime-local' value={toDateTimeLocalValue(endAt)} onChange={(e, { value }) => setEndAt(timestampFromDateTimeLocal(value, endAt))} /><AppSelect className='billing-overview-channel-select' clearable search options={channelOptions} value={channelID} placeholder={t('billing.overview.channel_placeholder')} onChange={(e, { value }) => setChannelID((value || '').toString())} /><AppSelect className='billing-overview-model-select' clearable search options={modelOptions} value={modelName} placeholder={t('billing.overview.model_placeholder')} onChange={(e, { value }) => setModelName((value || '').toString())} /></div>}
       />
       <div className='billing-overview-context'><span>{t('billing.overview.context.range', { start: toDateTimeLocalValue(startAt).replace('T', ' '), end: toDateTimeLocalValue(endAt).replace('T', ' ') })}</span><span>{t('billing.overview.context.currency')}</span></div>
       <AppSpin spinning={loading}>
+        <div className='billing-overview-headline'>
+          <div className={`billing-overview-headline-main is-${headlineMarginTone}`}>
+            <span className='billing-overview-headline-label'>{t('billing.overview.headline.profit')}</span>
+            <span className='billing-overview-headline-value'>{headlineProfit}</span>
+            <span className='billing-overview-headline-sub'>{t('billing.overview.headline.margin', { margin: headlineMargin })}</span>
+          </div>
+          <div className='billing-overview-headline-side'>
+            <div className='billing-overview-headline-stat'>
+              <span className='billing-overview-headline-stat-label'>{t('billing.overview.headline.revenue')}</span>
+              <span className='billing-overview-headline-stat-value'>{formatCNY(report.sell_base_amount)}</span>
+            </div>
+            <div className='billing-overview-headline-stat'>
+              <span className='billing-overview-headline-stat-label'>{t('billing.overview.headline.cost')}</span>
+              <span className='billing-overview-headline-stat-value'>{formatCNY(report.procurement_cost_base_amount)}</span>
+            </div>
+            <div className={`billing-overview-headline-stat${headlineUnconfigured > 0 ? ' is-warning' : ''}`}>
+              <span className='billing-overview-headline-stat-label'>{t('billing.overview.headline.unconfigured')}</span>
+              <span className='billing-overview-headline-stat-value'>{formatCount(headlineUnconfigured)}</span>
+            </div>
+            <div className='billing-overview-headline-stat'>
+              <span className='billing-overview-headline-stat-label'>{t('billing.overview.headline.requests')}</span>
+              <span className='billing-overview-headline-stat-value'>{formatCount(report.request_count)}</span>
+            </div>
+          </div>
+        </div>
+        {headlineChips.length > 0 ? (
+          <div className='billing-overview-headline-chips'>
+            {headlineChips.map((chip) => (
+              <Link key={chip.key} to={chip.target} className={`billing-overview-headline-chip is-${chip.level}`}>
+                <AppTag color={statusColor(chip.level)}>{statusLabel(chip.level)}</AppTag>
+                <span className='billing-overview-headline-chip-text'>{chip.dimension}</span>
+                <span className='billing-overview-headline-chip-arrow'>›</span>
+              </Link>
+            ))}
+          </div>
+        ) : null}
         <section className='billing-overview-section'>
-          <div className='billing-overview-section-heading'><h2>{t('billing.overview.overview_table.title')}</h2><span>{t('billing.overview.overview_table.summary', { risks: formatCount(currentScopeRiskCount) })}</span></div>
-          <AppTable className='router-detail-table' size='small' pagination={false} rowKey='key' dataSource={overviewRows} columns={overviewColumns} scroll={{ x: 900 }} />
+          <div className='billing-overview-section-heading'><h2>{t('billing.overview.trend.title')}</h2></div>
+          {trendChartData.length > 0 ? (
+            <div className='billing-overview-trend-chart'>
+              <ResponsiveContainer width='100%' height={280}>
+                <LineChart data={trendChartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid {...chartGridStyle()} />
+                  <XAxis dataKey='day' {...chartAxisStyle()} />
+                  <YAxis {...chartAxisStyle()} width={72} tickFormatter={(value) => formatCNY(value)} />
+                  <Tooltip contentStyle={chartTooltipStyle()} formatter={(value, name) => [formatCNY(value), trendSeries.find((s) => s.key === name)?.label || name]} />
+                  <Legend formatter={(value) => trendSeries.find((s) => s.key === value)?.label || value} />
+                  {trendSeries.map((series) => (
+                    <Line key={series.key} type='monotone' dataKey={series.key} name={series.key} stroke={series.color} strokeWidth={2} dot={false} />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className='billing-overview-empty'>{t('common.no_data')}</div>
+          )}
         </section>
-        {priorityRisks.length > 0 ? <section className='billing-overview-section'>
+        <section className='billing-overview-section'>
           <div className='billing-overview-section-heading'><h2>{t('billing.overview.priority.title')}</h2><span>{t('billing.overview.priority.scope_note')}</span></div>
-          <AppTable className='router-detail-table' size='small' pagination={false} rowKey={(row) => `${row.source}-${row.key}`} dataSource={priorityRisks.slice(0, 8)} columns={priorityColumns} scroll={{ x: 760 }} />
-        </section> : null}
+          {priorityRisks.length > 0 ? (
+            <AppTable className='router-detail-table' size='small' pagination={false} rowKey={(row) => `${row.source}-${row.key}`} dataSource={priorityRisks.slice(0, 8)} columns={priorityColumns} scroll={{ x: 760 }} />
+          ) : (
+            <div className='billing-overview-empty'>{t('billing.overview.priority.empty')}</div>
+          )}
+        </section>
         <section className='billing-overview-section'>
           <div className='billing-overview-section-heading'><h2>{t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.title`)}</h2><div className='billing-overview-section-controls'><AppSegmented options={[{ value: 'channel', label: t('billing.overview.channels.title') }, { value: 'model', label: t('billing.overview.models.title') }]} value={dimension} onChange={(e, { value }) => setDimension(value)} /><Link to={buildTarget(dimension === 'channel' ? '/admin/finance/procurement' : '/admin/finance/profit')}>{t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.view_details`)}</Link></div></div>
           <div className='billing-overview-table-note'>{t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.sorted_note`)}</div>
           <AppTable className='router-detail-table' size='small' pagination={false} rowKey={(row) => row.dimension_key} dataSource={activeDimensionRows} columns={activeDimensionColumns} scroll={{ x: dimension === 'channel' ? 1000 : 840 }} locale={{ emptyText: t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.empty`) }} />
         </section>
         <section className='billing-overview-section'>
-          <div className='billing-overview-section-heading'><h2>{t('billing.overview.trend.title')}</h2></div>
-          <div className='billing-overview-trend'>{trend.map((item) => <div className='billing-overview-trend-row' key={item.day}><span>{item.day}</span><span>{t('billing.overview.trend.financials', { revenue: formatCNY(item.sell_base_amount), cost: formatCNY(item.procurement_cost_base_amount), profit: formatCNY(item.gross_profit_base_amount) })}</span></div>)}</div>
-        </section>
-        <section className='billing-overview-section'>
           <div className='billing-overview-section-heading'><h2>{t('billing.overview.consistency.title')}</h2><span>{t('billing.overview.consistency.summary', { count: formatCount(consistencyIssues.length) })}</span></div>
-          <AppTable className='router-detail-table' size='small' pagination={false} rowKey={(row) => `${row.issue_type}-${row.request_log_id}`} dataSource={consistencyIssues} columns={consistencyIssueColumns} scroll={{ x: 900 }} locale={{ emptyText: t('billing.overview.consistency.empty') }} />
+          {consistencyIssues.length > 0 ? (
+            <AppTable className='router-detail-table' size='small' pagination={false} rowKey={(row) => `${row.issue_type}-${row.request_log_id}`} dataSource={consistencyIssues} columns={consistencyIssueColumns} scroll={{ x: 900 }} locale={{ emptyText: t('billing.overview.consistency.empty') }} />
+          ) : (
+            <div className='billing-overview-empty'>{t('billing.overview.consistency.empty')}</div>
+          )}
         </section>
       </AppSpin>
     </div>

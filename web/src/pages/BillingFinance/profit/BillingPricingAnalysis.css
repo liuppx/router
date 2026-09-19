@@ -1,0 +1,77 @@
+.billing-pricing-analysis-page { max-width: 1600px; }
+.billing-pricing-analysis-section { margin-top: 0; }
+.billing-pricing-analysis-note { margin-bottom: 12px; padding: 10px 12px; border: 1px solid rgba(37, 99, 235, .16); border-radius: 8px; background: var(--router-surface-info-strong, #eff6ff); color: var(--router-link-hover, #1e40af); font-size: 13px; }
+.billing-pricing-analysis-model { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.billing-pricing-analysis-group-select { min-width: 190px; }
+.billing-pricing-analysis-time-input { width: 200px; }
+.billing-pricing-analysis-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.billing-pricing-analysis-table .ant-table-thead > tr > th, .billing-pricing-analysis-table .ant-table-tbody > tr > td { white-space: nowrap; }
+
+.billing-pricing-analysis-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.billing-pricing-analysis-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 12px;
+  background: var(--router-surface, var(--router-surface, #fff));
+}
+
+.billing-pricing-analysis-summary-card.is-danger {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.billing-pricing-analysis-summary-label {
+  color: var(--router-text-muted, var(--router-text-muted, #64748b));
+  font-size: 12px;
+}
+
+.billing-pricing-analysis-summary-value {
+  color: var(--router-accent-strong, #2b3674);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.billing-pricing-analysis-summary-card.is-danger .billing-pricing-analysis-summary-value {
+  color: var(--router-status-danger, var(--router-status-danger, #dc2626));
+}
+
+.billing-pricing-analysis-summary-hint {
+  color: var(--router-text-muted, var(--router-text-muted, #94a3b8));
+  font-size: 11px;
+}
+
+.billing-pricing-analysis-distribution {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  background: var(--router-surface, var(--router-surface, #fff));
+}
+
+.billing-pricing-analysis-distribution-title {
+  color: var(--router-text-primary, var(--router-text-primary, #0f172a));
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.billing-pricing-analysis-distribution-hint {
+  margin: 4px 0 8px;
+  color: var(--router-text-muted, var(--router-text-muted, #94a3b8));
+  font-size: 11px;
+}
+
+@media (max-width: 1200px) {
+  .billing-pricing-analysis-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

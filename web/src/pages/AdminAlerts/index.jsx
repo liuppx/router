@@ -1,8 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import AdminChannelAlertsPanel from '../../components/AdminChannelAlertsPanel';
+import ChannelSectionTabs from '../../components/ChannelSectionTabs';
 import { AppFilterHeader } from '../../router-ui';
-import '../Dashboard/Dashboard.css';
+import '../AdminDashboard/Dashboard.css';
 import '../AdminDashboard/AdminDashboard.css';
 
 function AdminAlerts() {
@@ -14,11 +15,12 @@ function AdminAlerts() {
         className='admin-dashboard-toolbar'
         breadcrumbs={[
           { key: 'admin', label: t('header.admin_workspace') },
-          { key: 'dashboard', label: t('header.system_overview') },
+          { key: 'dashboard', label: t('header.dashboard') },
           { key: 'alerts', label: t('dashboard.admin.nav.alerts'), active: true },
         ]}
         title={t('dashboard.admin.nav.alerts')}
       />
+      <ChannelSectionTabs active='alerts' />
       <AdminChannelAlertsPanel />
     </div>
   );

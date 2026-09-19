@@ -39,5 +39,40 @@ export { default as AppFilterHeader } from './patterns/AppFilterHeader';
 export { default as AppFormActions } from './patterns/AppFormActions';
 export { default as RouterUIProvider } from './RouterUIProvider';
 export { routerTokens } from './theme/tokens';
+export {
+  chartPalette,
+  chartCategoricalPalette,
+  chartStatusPalette,
+  getActiveChartTheme,
+  chartNeutralColor,
+  applyChartThemeToDocument,
+  chartAxisStyle,
+  chartTooltipStyle,
+  chartTooltipLabelStyle,
+  chartTooltipItemStyle,
+  chartGridStyle,
+  colorForKey,
+  formatCurrencyCompact,
+  formatUsdChart,
+  formatCnyChart,
+  formatIntChart,
+  formatPercentChart,
+  BILLING_DECIMALS,
+  BILLING_PERCENT_DECIMALS,
+  formatCnyFixed,
+  formatBillingPercent,
+  CSV_DECIMALS,
+  CSV_PERCENT_DECIMALS,
+  formatCsvCurrency,
+  formatCsvPercent,
+} from './theme/charts';
 export { antdTheme } from './theme/antd-theme';
+export { antdThemeDark, antdThemeByMode } from './theme/antd-theme';
+export {
+  resolveInitialThemeMode,
+  applyThemeMode,
+  persistThemeMode,
+  readStoredThemeMode,
+} from './theme/store';
+export { useThemeMode } from './theme/useThemeMode';
 export { resolvePopupContainer } from './popupContainer';

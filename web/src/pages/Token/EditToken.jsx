@@ -945,7 +945,7 @@ const EditToken = () => {
       )}
       {isCreateMode && createdToken ? (
             <div className='router-page-stack'>
-              <AppDetailSection title='令牌已创建'>
+              <AppDetailSection title={t('token.created.title')}>
                 <div className='router-section-message'>
                   令牌只会在创建成功后显示一次，请现在保存到你的客户端或密钥管理工具中。离开当前页面后，系统不会再次展示完整令牌。
                 </div>

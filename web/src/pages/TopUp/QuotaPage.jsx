@@ -138,7 +138,7 @@ const QuotaPage = () => {
         extra={
           <AppButton
             className='router-section-button'
-            onClick={() => navigate('/workspace/topup/history')}
+            onClick={() => navigate('/workspace/topup?tab=history')}
           >
             {t('topup.quota_cards.history_button')}
           </AppButton>

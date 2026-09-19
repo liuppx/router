@@ -100,7 +100,7 @@ const EditRedemption = () => {
       return;
     }
     if ((inputs.entitlement_product_id || '').trim() === '') {
-      showError('请选择充值权益');
+      showError(t('redemption.error.select_entitlement'));
       return;
     }
     const localInputs = { ...inputs };
@@ -196,7 +196,7 @@ const EditRedemption = () => {
                 <AppSelect
                   className='router-section-input'
                   name='entitlement_product_id'
-                  placeholder='请选择充值权益'
+                  placeholder={t('redemption.placeholder.select_entitlement')}
                   options={productOptions}
                   value={entitlement_product_id}
                   onChange={handleInputChange}

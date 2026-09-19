@@ -1,9 +1,23 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { API, showError, showInfo, showSuccess, timestamp2string } from '../../helpers';
-import { formatDecimalNumber } from '../../helpers/render';
-import ChannelDetailBillingTab from '../Channel/components/ChannelDetailBillingTab';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { API, showError, showInfo, showSuccess, timestamp2string } from '../../../helpers';
+import { exportCSV } from '../../../helpers/csv';
+import { formatDecimalNumber } from '../../../helpers/render';
+import ChannelDetailBillingTab from '../../Channel/components/ChannelDetailBillingTab';
 import {
   AppButton,
   AppFilterHeader,
@@ -14,19 +28,22 @@ import {
   AppSpin,
   AppTable,
   AppTag,
-} from '../../router-ui';
+  chartAxisStyle,
+  chartCategoricalPalette,
+  chartGridStyle,
+  chartNeutralColor,
+  chartStatusPalette,
+  chartTooltipStyle,
+  colorForKey,
+  getActiveChartTheme,
+  formatCnyChart,
+  formatCnyFixed,
+  formatCsvCurrency,
+  formatCsvPercent,
+  formatBillingPercent,
+  BILLING_PERCENT_DECIMALS,
+} from '../../../router-ui';
 import './BillingProcurementReport.css';
-
-const GROUP_BY_OPTIONS = [
-  { label: '按渠道', value: 'channel' },
-  { label: '按模型', value: 'model' },
-  { label: '按端点', value: 'endpoint' },
-];
-
-const COST_SCOPE_OPTIONS = [
-  { label: '全部请求', value: 'all' },
-  { label: '仅未配置成本', value: 'unconfigured' },
-];
 
 const toDateTimeLocalValue = (date) => {
   const pad = (value) => String(value).padStart(2, '0');
@@ -58,9 +75,9 @@ const createLastSevenDaysRange = () => {
   };
 };
 
-const formatCNY = (value) => `¥${formatDecimalNumber(value || 0, 4)}`;
+const formatCNY = formatCnyFixed;
 const formatCount = (value) => formatDecimalNumber(value || 0, 0);
-const formatPercent = (value) => `${(Number(value || 0) * 100).toFixed(1)}%`;
+const formatPercent = (value) => formatBillingPercent(value, BILLING_PERCENT_DECIMALS);
 
 const normalizeReport = (payload) => {
   const items = Array.isArray(payload?.items) ? payload.items : [];
@@ -440,12 +457,25 @@ function BillingProcurementReport() {
       const { success, data } = res.data || {};
       if (success) {
         setHealth(normalizeHealth(data));
+      } else {
+        setHealth(
+          normalizeHealth({
+            status: 'unknown',
+            issues: [
+              {
+                key: 'health_load_failed',
+                level: 'warning',
+                title: t('billing.procurement_report.health.load_failed'),
+                message: t('billing.procurement_report.health.load_failed_hint'),
+              },
+            ],
+          }),
+        );
       }
     } catch {
       setHealth(
         normalizeHealth({
-          status: 'warning',
-          warning_count: 1,
+          status: 'unknown',
           issues: [
             {
               key: 'health_load_failed',
@@ -540,63 +570,123 @@ function BillingProcurementReport() {
     loadRetries().then();
   }, [groupBy, costScope, groupID, managedChannelID, model, provider, loadRetries]);
 
-  const summaryItems = [
+  // 8 summary cards were collapsed into a single headline + side stats.
+  // The two big numbers on the left are gross profit + margin (actionable);
+  // the right column keeps the operational numbers that used to live in the
+  // 4-column grid.
+  const headlineProfit = formatCNY(report.gross_profit_base_amount);
+  const headlineMargin = formatPercent(report.gross_margin);
+  const headlineTone =
+    report.gross_profit_base_amount < 0
+      ? 'negative'
+      : report.gross_margin < 0.1
+        ? 'warning'
+        : 'positive';
+  const attributionProcessing = report.pending_cost_request_count + report.retry_cost_request_count;
+  const headlineSideStats = [
     {
-      key: 'request_count',
-      label: t('billing.procurement_report.summary.request_count'),
-      value: formatCount(report.request_count),
-      hint: t('billing.procurement_report.summary.request_count_hint'),
-    },
-    {
-      key: 'router_consumed_yyc',
-      label: t('billing.procurement_report.summary.router_consumed_yyc'),
-      value: formatCount(report.router_consumed_yyc),
-      hint: t('billing.procurement_report.summary.router_consumed_yyc_hint'),
-    },
-    {
-      key: 'sell_amount',
+      key: 'revenue',
       label: t('billing.procurement_report.summary.sell_amount'),
       value: formatCNY(report.sell_base_amount),
-      hint: t('billing.procurement_report.summary.sell_amount_hint'),
     },
     {
-      key: 'procurement_cost',
+      key: 'cost',
       label: t('billing.procurement_report.summary.procurement_cost'),
       value: formatCNY(report.procurement_cost_base_amount),
-      hint: t('billing.procurement_report.summary.procurement_cost_hint'),
-    },
-    {
-      key: 'gross_profit',
-      label: t('billing.procurement_report.summary.gross_profit'),
-      value: formatCNY(report.gross_profit_base_amount),
-      hint: t('billing.procurement_report.summary.gross_profit_hint'),
-    },
-    {
-      key: 'gross_margin',
-      label: t('billing.procurement_report.summary.gross_margin'),
-      value: formatPercent(report.gross_margin),
-      hint: t('billing.procurement_report.summary.gross_margin_hint'),
     },
     {
       key: 'unconfigured',
       label: t('billing.procurement_report.summary.unconfigured'),
       value: formatCount(report.unconfigured_cost_request_count),
-      hint: formatCNY(report.unconfigured_sell_base_amount),
-      danger: report.unconfigured_cost_request_count > 0,
+      tone: report.unconfigured_cost_request_count > 0 ? 'warning' : undefined,
     },
     {
       key: 'attribution_processing',
       label: t('billing.procurement_report.summary.attribution_processing'),
-      value: formatCount(
-        report.pending_cost_request_count + report.retry_cost_request_count,
-      ),
-      hint: t('billing.procurement_report.summary.attribution_processing_hint', {
-        pending: formatCount(report.pending_cost_request_count),
-        retry: formatCount(report.retry_cost_request_count),
-      }),
-      danger: report.retry_cost_request_count > 0,
+      value: formatCount(attributionProcessing),
+      tone: report.retry_cost_request_count > 0 ? 'warning' : undefined,
     },
   ];
+  // The advanced analytics card carries the provider pie + margin distribution
+  // — both are the headline visuals of this page, so default to expanded.
+  const [showAdvancedAnalytics, setShowAdvancedAnalytics] = useState(true);
+
+  const providerBreakdown = useMemo(() => {
+    const buckets = new Map();
+    (Array.isArray(report.items) ? report.items : []).forEach((row) => {
+      const cost = Number(row?.procurement_cost_base_amount || 0);
+      if (cost <= 0) return;
+      const raw = (row?.provider || '').toString().trim();
+      const key = raw || '__unassigned__';
+      const prev = buckets.get(key) || { key, label: raw || t('common.unassigned'), cost: 0 };
+      prev.cost += cost;
+      buckets.set(key, prev);
+    });
+    const arr = Array.from(buckets.values()).sort((left, right) => right.cost - left.cost);
+    if (arr.length > 8) {
+      const head = arr.slice(0, 8);
+      const otherCost = arr.slice(8).reduce((sum, item) => sum + item.cost, 0);
+      if (otherCost > 0) {
+        head.push({ key: '__other__', label: t('common.other'), cost: otherCost });
+      }
+      return head;
+    }
+    return arr;
+  }, [report.items, t]);
+
+  const marginDistribution = useMemo(() => {
+    const buckets = {
+      loss: 0,
+      low: 0,
+      ok: 0,
+      high: 0,
+      unknown: 0,
+    };
+    (Array.isArray(report.items) ? report.items : []).forEach((row) => {
+      const configured = Number(row?.configured_cost_request_count || 0);
+      const cost = Number(row?.procurement_cost_base_amount || 0);
+      if (configured <= 0 || cost <= 0) {
+        buckets.unknown += 1;
+        return;
+      }
+      const margin = Number(row?.gross_margin || 0);
+      if (margin < 0) buckets.loss += 1;
+      else if (margin < 0.1) buckets.low += 1;
+      else if (margin < 0.3) buckets.ok += 1;
+      else buckets.high += 1;
+    });
+    return [
+      { key: 'loss', label: t('billing.procurement_report.analytics.margin_bucket.loss'), count: buckets.loss, color: chartStatusPalette.danger },
+      { key: 'low', label: t('billing.procurement_report.analytics.margin_bucket.low'), count: buckets.low, color: chartStatusPalette.warning },
+      { key: 'ok', label: t('billing.procurement_report.analytics.margin_bucket.ok'), count: buckets.ok, color: chartStatusPalette.success },
+      { key: 'high', label: t('billing.procurement_report.analytics.margin_bucket.high'), count: buckets.high, color: chartCategoricalPalette[0] },
+      { key: 'unknown', label: t('billing.procurement_report.analytics.margin_bucket.unknown'), count: buckets.unknown, color: chartNeutralColor() },
+    ];
+  }, [report.items, t]);
+
+  const lossLeaderboard = useMemo(() => {
+    const items = (Array.isArray(report.items) ? report.items : [])
+      .filter((row) => Number(row?.gross_profit_base_amount || 0) < 0)
+      .sort(
+        (left, right) =>
+          Number(left?.gross_profit_base_amount || 0) - Number(right?.gross_profit_base_amount || 0),
+      )
+      .slice(0, 10)
+      .map((row) => {
+        const configured = Number(row?.configured_cost_request_count || 0);
+        const cost = Number(row?.procurement_cost_base_amount || 0);
+        const isUnknown = configured <= 0 || cost <= 0;
+        return {
+          key: `${row?.dimension_type || ''}-${row?.dimension_key || ''}`,
+          label: row?.dimension_name || row?.dimension_key || '-',
+          cost: cost,
+          profit: Number(row?.gross_profit_base_amount || 0),
+          margin: isUnknown ? null : Number(row?.gross_margin || 0),
+          unknown: isUnknown,
+        };
+      });
+    return items;
+  }, [report.items]);
 
   const renderUnconfiguredChannels = (row) => {
     const channels = Array.isArray(row?.unconfigured_channels)
@@ -877,24 +967,52 @@ function BillingProcurementReport() {
               },
             ]}
         actions={!managedChannelID ? (
-          <AppButton
-            className='router-page-button'
-            color='blue'
-            loading={loading || healthLoading}
-            onClick={() => {
-              loadHealth().then();
-              loadReport().then();
-              loadRetries().then();
-            }}
-          >
-            {t('common.refresh')}
-          </AppButton>
+          <>
+            <AppButton
+              className='router-page-button'
+              loading={loading || healthLoading}
+              onClick={() => {
+                exportCSV(
+                  `procurement-report-${startAt.replace(/[:T]/g, '-')}_${endAt.replace(/[:T]/g, '-')}.csv`,
+                  [
+                    { key: 'dimension_key', label: t('billing.procurement_report.columns.dimension') },
+                    { key: 'request_count', label: t('billing.procurement_report.columns.request_count') },
+                    { key: 'configured_cost_request_count', label: t('billing.procurement_report.columns.configured_count') },
+                    { key: 'unconfigured_cost_request_count', label: t('billing.procurement_report.columns.unconfigured_count') },
+                    { key: 'sell_base_amount', label: t('billing.procurement_report.columns.sell_amount'), format: formatCsvCurrency },
+                    { key: 'procurement_cost_base_amount', label: t('billing.procurement_report.columns.procurement_cost'), format: formatCsvCurrency },
+                    { key: 'gross_profit_base_amount', label: t('billing.procurement_report.columns.gross_profit'), format: formatCsvCurrency },
+                    { key: 'gross_margin', label: t('billing.procurement_report.columns.gross_margin'), format: formatCsvPercent },
+                  ],
+                  report.items,
+                );
+              }}
+            >
+              {t('common.export_csv')}
+            </AppButton>
+            <AppButton
+              className='router-page-button'
+              color='blue'
+              loading={loading || healthLoading}
+              onClick={() => {
+                loadHealth().then();
+                loadReport().then();
+                loadRetries().then();
+              }}
+            >
+              {t('common.refresh')}
+            </AppButton>
+          </>
         ) : null}
         query={!managedChannelID ? (
           <div className='billing-procurement-report-filters'>
             <AppSegmented
               className='billing-procurement-report-segmented'
-              options={GROUP_BY_OPTIONS.map((item) => ({
+              options={[
+                { value: 'channel' },
+                { value: 'model' },
+                { value: 'endpoint' },
+              ].map((item) => ({
                 ...item,
                 label: t(`billing.procurement_report.group_by.${item.value}`),
               }))}
@@ -903,7 +1021,10 @@ function BillingProcurementReport() {
             />
             <AppSegmented
               className='billing-procurement-report-segmented'
-              options={COST_SCOPE_OPTIONS.map((item) => ({
+              options={[
+                { value: 'all' },
+                { value: 'unconfigured' },
+              ].map((item) => ({
                 ...item,
                 label: t(`billing.procurement_report.cost_scope.${item.value}`),
               }))}
@@ -946,6 +1067,17 @@ function BillingProcurementReport() {
               placeholder={t('billing.procurement_report.filters.model')}
               onChange={(e, { value }) => setModel((value || '').toString())}
             />
+            <AppSelect
+              className='router-section-input billing-procurement-report-group-select'
+              clearable
+              search
+              options={channelOptions}
+              value={managedChannelID}
+              placeholder={t('billing.procurement_report.filters.channel')}
+              onChange={(e, { value }) =>
+                selectManagedChannel((value || '').toString())
+              }
+            />
           </div>
         ) : null}
       />
@@ -958,10 +1090,12 @@ function BillingProcurementReport() {
                 {t(`billing.procurement_report.health.status.${health.status || 'ok'}`)}
               </div>
               <div className='billing-procurement-report-health-meta'>
-                {t('billing.procurement_report.health.summary', {
-                  critical: health.critical_count,
-                  warning: health.warning_count,
-                })}
+                {health.status === 'unknown'
+                  ? t('billing.procurement_report.health.summary_unknown')
+                  : t('billing.procurement_report.health.summary', {
+                      critical: health.critical_count,
+                      warning: health.warning_count,
+                    })}
               </div>
             </div>
             <div className='billing-procurement-report-health-issues'>
@@ -1004,29 +1138,143 @@ function BillingProcurementReport() {
               )}
             </div>
           </div>
-          <div className='billing-procurement-report-summary-grid'>
-            {summaryItems.map((item) => (
-              <div
-                key={item.key}
-                className={[
-                  'billing-procurement-report-summary-card',
-                  item.danger ? 'is-danger' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                <div className='billing-procurement-report-summary-label'>
-                  {item.label}
+          <div className={`billing-procurement-report-headline is-${headlineTone}`}>
+            <div className='billing-procurement-report-headline-main'>
+              <span className='billing-procurement-report-headline-label'>{t('billing.procurement_report.summary.gross_profit')}</span>
+              <span className='billing-procurement-report-headline-value'>{headlineProfit}</span>
+              <span className='billing-procurement-report-headline-sub'>{t('billing.procurement_report.summary.gross_margin')}: {headlineMargin}</span>
+            </div>
+            <div className='billing-procurement-report-headline-side'>
+              {headlineSideStats.map((stat) => (
+                <div
+                  key={stat.key}
+                  className={`billing-procurement-report-headline-stat${stat.tone ? ` is-${stat.tone}` : ''}`}
+                >
+                  <span className='billing-procurement-report-headline-stat-label'>{stat.label}</span>
+                  <span className='billing-procurement-report-headline-stat-value'>{stat.value}</span>
                 </div>
-                <div className='billing-procurement-report-summary-value'>
-                  {item.value}
-                </div>
-                <div className='billing-procurement-report-summary-hint'>
-                  {item.hint}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+          {lossLeaderboard.length > 0 ? (
+            <section className='billing-procurement-report-loss-section'>
+              <div className='billing-procurement-report-analytics-head'>
+                <h3>{t('billing.procurement_report.analytics.loss_leaderboard_title')}</h3>
+                <span>{t('billing.procurement_report.analytics.loss_leaderboard_hint')}</span>
+              </div>
+              <div className='billing-procurement-report-loss-list'>
+                {lossLeaderboard.slice(0, 5).map((row) => (
+                  <div
+                    key={row.key}
+                    className={`billing-procurement-report-loss-row${row.unknown ? ' is-unknown' : ''}`}
+                  >
+                    <span className='billing-procurement-report-loss-label' title={row.label}>{row.label}</span>
+                    <span className='billing-procurement-report-loss-profit'>{formatCNY(row.profit)}</span>
+                    <span className='billing-procurement-report-loss-margin'>
+                      {row.unknown
+                        ? t('billing.procurement_report.analytics.margin_bucket.unknown')
+                        : formatPercent(row.margin)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+          {(providerBreakdown.length > 0 || marginDistribution.some((item) => item.count > 0)) ? (
+            <section className='billing-procurement-report-advanced'>
+              <button
+                type='button'
+                className='billing-procurement-report-advanced-toggle'
+                onClick={() => setShowAdvancedAnalytics((prev) => !prev)}
+                aria-expanded={showAdvancedAnalytics}
+                aria-label={t('billing.procurement_report.analytics.advanced_toggle')}
+              >
+                <span>{t('billing.procurement_report.analytics.advanced_toggle')}</span>
+                <span className='billing-procurement-report-advanced-chevron' aria-hidden='true'>{showAdvancedAnalytics ? '▾' : '▸'}</span>
+              </button>
+              {showAdvancedAnalytics ? (
+                <div className='billing-procurement-report-analytics'>
+                  <div className='billing-procurement-report-analytics-card'>
+                    <div className='billing-procurement-report-analytics-title'>
+                      {t('billing.procurement_report.analytics.by_provider_title')}
+                    </div>
+                    <div className='billing-procurement-report-analytics-hint'>
+                      {t('billing.procurement_report.analytics.by_provider_hint')}
+                    </div>
+                    {providerBreakdown.length === 0 ? (
+                      <div className='billing-procurement-report-empty'>
+                        {t('billing.procurement_report.empty')}
+                      </div>
+                    ) : (
+                      <div className='chart-container billing-procurement-report-pie'>
+                        <ResponsiveContainer width='100%' height={220}>
+                          <PieChart>
+                            <Tooltip
+                              contentStyle={chartTooltipStyle()}
+                              formatter={(value, key) => [formatCnyChart(value), key]}
+                            />
+                            <Legend
+                              layout='vertical'
+                              align='right'
+                              verticalAlign='middle'
+                              wrapperStyle={{ fontSize: 12 }}
+                            />
+                            <Pie
+                              data={providerBreakdown.map((item) => ({
+                                ...item,
+                                value: item.cost,
+                              }))}
+                              dataKey='value'
+                              nameKey='label'
+                              innerRadius={48}
+                              outerRadius={80}
+                              paddingAngle={2}
+                              stroke={getActiveChartTheme().surface}
+                              strokeWidth={2}
+                            >
+                              {providerBreakdown.map((item) => (
+                                <Cell key={item.key} fill={colorForKey(item.key)} />
+                              ))}
+                            </Pie>
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </div>
+                  <div className='billing-procurement-report-analytics-card'>
+                    <div className='billing-procurement-report-analytics-title'>
+                      {t('billing.procurement_report.analytics.margin_distribution_title')}
+                    </div>
+                    <div className='billing-procurement-report-analytics-hint'>
+                      {t('billing.procurement_report.analytics.margin_distribution_hint')}
+                    </div>
+                    <div className='chart-container'>
+                      <ResponsiveContainer width='100%' height={220}>
+                        <BarChart data={marginDistribution}>
+                          <CartesianGrid {...chartGridStyle()} />
+                          <XAxis
+                            dataKey='label'
+                            {...chartAxisStyle()}
+                            interval={0}
+                            angle={-12}
+                            dy={10}
+                            height={50}
+                          />
+                          <YAxis {...chartAxisStyle()} allowDecimals={false} />
+                          <Tooltip contentStyle={chartTooltipStyle()} />
+                          <Bar dataKey='count' radius={[4, 4, 0, 0]}>
+                            {marginDistribution.map((item) => (
+                              <Cell key={item.key} fill={item.color} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
           <div className='billing-overview-section-heading'>
             <h2>{t('billing.procurement_report.title')}</h2>
           </div>

@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API, showError, showSuccess } from '../helpers';
 import { UserContext } from '../context/User';
@@ -6,6 +7,7 @@ import { AppSpin } from '../router-ui';
 import { resolvePostLoginPath } from '../helpers/authRedirect';
 
 const LarkOAuth = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
 
   const [, userDispatch] = useContext(UserContext);
@@ -20,7 +22,7 @@ const LarkOAuth = () => {
     const { success, message, data } = res.data;
     if (success) {
       if (message === 'bind') {
-        showSuccess('绑定成功！');
+        showSuccess(t('oauth.bind_success'));
         navigate('/setting');
       } else {
         userDispatch({ type: 'login', payload: data });
@@ -41,7 +43,7 @@ const LarkOAuth = () => {
         return;
       }
       count++;
-      setPrompt(`出现错误，第 ${count} 次重试中...`);
+      setPrompt(t('wallet.retry_prompt', { count }));
       await new Promise((resolve) => setTimeout(resolve, count * 2000));
       await sendCode(code, state, count);
     }

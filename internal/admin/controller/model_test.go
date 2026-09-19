@@ -782,6 +782,12 @@ func TestBuildUserModelStatusPayloadAggregatesGroupModels(t *testing.T) {
 	if gpt.SupportedCount != 1 || gpt.UnsupportedCount != 1 {
 		t.Fatalf("gpt supported/unsupported = %d/%d, want 1/1", gpt.SupportedCount, gpt.UnsupportedCount)
 	}
+	if gpt.ChannelCount != 2 {
+		t.Fatalf("gpt channel count = %d, want 2", gpt.ChannelCount)
+	}
+	if len(gpt.ChannelIDs) != 2 || gpt.ChannelIDs[0] != "channel-1" || gpt.ChannelIDs[1] != "channel-2" {
+		t.Fatalf("gpt channel ids = %#v, want [channel-1 channel-2]", gpt.ChannelIDs)
+	}
 	if len(gpt.HealthPoints) != healthtrend.BucketCount {
 		t.Fatalf("gpt health points = %d, want %d", len(gpt.HealthPoints), healthtrend.BucketCount)
 	}
@@ -815,6 +821,9 @@ func TestBuildUserModelStatusPayloadAggregatesGroupModels(t *testing.T) {
 	}
 	if len(claude.SupportedEndpoints) != 1 || claude.SupportedEndpoints[0] != model.ChannelModelEndpointMessages {
 		t.Fatalf("claude endpoints = %#v, want messages", claude.SupportedEndpoints)
+	}
+	if len(claude.ChannelIDs) != 1 || claude.ChannelIDs[0] != "channel-3" {
+		t.Fatalf("claude channel ids = %#v, want [channel-3]", claude.ChannelIDs)
 	}
 }
 

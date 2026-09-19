@@ -3,8 +3,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UserContext } from '../context/User';
 import { StatusContext } from '../context/Status';
+import { useIsAdmin } from '../hooks/useAuth';
 import HeaderMessageCenter from './HeaderMessageCenter';
-import { API, getLogo, isAdmin, isMobile } from '../helpers';
+import { API, getLogo, getSystemName, isMobile } from '../helpers';
 import { WEB3_TOKEN_STORAGE_KEY } from '../helpers/web3';
 import { logoutWallet } from '../services/web3Auth';
 import {
@@ -23,6 +24,7 @@ import {
   AppMenuDropdown,
   AppNavMenu,
   AppSelect,
+  useThemeMode,
 } from '../router-ui';
 import '../index.css';
 
@@ -45,7 +47,9 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
   const logo = getLogo();
   const shouldFixHeader = Boolean(userState?.user);
   const currentWorkspace = workspace === 'admin' ? 'admin' : 'user';
-  const hasAdminAccess = isAdmin();
+  // Trust UserContext (server-sourced) over localStorage so the nav reflects
+  // the role the server last confirmed, reacting to changes without re-login.
+  const hasAdminAccess = useIsAdmin();
   const userButtons = useMemo(() => buildUserWorkspaceMenuItems(), []);
   const unifiedButtons = useMemo(
     () => buildUnifiedWorkspaceMenuGroups(hasAdminAccess),
@@ -103,8 +107,13 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
     i18n.changeLanguage(language);
   };
 
-  const storedStatus = (() => {
-    const raw = localStorage.getItem('status');
+  const { mode: themeMode, toggle: toggleThemeMode } = useThemeMode();
+
+  const storedStatus = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const raw = window.localStorage.getItem('status');
     if (!raw) {
       return undefined;
     }
@@ -113,7 +122,7 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
     } catch (error) {
       return undefined;
     }
-  })();
+  }, []);
 
   const status = statusState?.status || storedStatus || {};
   const passwordRegisterEnabled =
@@ -222,13 +231,14 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
               rel='noopener noreferrer'
               className='router-header-brand'
             >
-              <img src={logo} alt='logo' />
+              <img src={logo} alt={getSystemName()} />
             </a>
             <div className='router-header-actions'>
               <HeaderMessageCenter />
               <button
                 type='button'
                 className='router-header-mobile-toggle'
+                aria-label={t(showSidebar ? 'header.menu.close' : 'header.menu.open')}
                 onClick={() => setShowSidebar((previous) => !previous)}
               >
                 <AppIcon name={showSidebar ? 'close' : 'sidebar'} />
@@ -265,6 +275,17 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
               value={i18n.language}
               onChange={(_, { value }) => changeLanguage(value)}
             />
+            <AppButton
+              className='router-page-button router-header-mobile-actions'
+              onClick={() => {
+                toggleThemeMode();
+                setShowSidebar(false);
+              }}
+            >
+              {t(
+                themeMode === 'dark' ? 'header.theme.switch_to_light' : 'header.theme.switch_to_dark',
+              )}
+            </AppButton>
             <div className='router-header-mobile-auth'>
               {userState.user ? (
                 <AppButton
@@ -320,7 +341,7 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
           rel='noopener noreferrer'
           className='router-header-brand hide-on-mobile'
         >
-          <img src={logo} alt='logo' />
+          <img src={logo} alt={getSystemName()} />
         </a>
         {!hideNavButtons ? (
           <div className='router-header-nav'>
@@ -348,6 +369,19 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
             </AppButton>
           ) : null}
           <HeaderMessageCenter />
+          <button
+            type='button'
+            className='router-header-toolbar-icon router-header-theme-toggle'
+            onClick={toggleThemeMode}
+            aria-label={t(
+              themeMode === 'dark' ? 'header.theme.switch_to_light' : 'header.theme.switch_to_dark',
+            )}
+            title={t(
+              themeMode === 'dark' ? 'header.theme.switch_to_light' : 'header.theme.switch_to_dark',
+            )}
+          >
+            <AppIcon name={themeMode === 'dark' ? 'sun' : 'moon'} className='router-header-trigger-icon' />
+          </button>
           <div className='router-header-dropdown router-header-trigger'>
             <AppMenuDropdown
               items={languageOptions.map((option) => ({
@@ -357,7 +391,13 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
                 onClick: () => changeLanguage(option.value),
               }))}
             >
-              <span className='router-header-toolbar-icon'>
+              <span
+                className='router-header-toolbar-icon'
+                role='button'
+                aria-label={t('header.menu.language')}
+                aria-haspopup='menu'
+                tabIndex={0}
+              >
                 <AppIcon name='language' className='router-header-trigger-icon' />
               </span>
             </AppMenuDropdown>
@@ -366,6 +406,34 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
             <div className='router-header-dropdown router-header-trigger'>
               <AppMenuDropdown
                 items={[
+                  // Personal shortcuts are shown to every role: admins get them
+                  // in the sidebar's "personal" group too, but the dropdown is
+                  // the consistent, always-available fallback for everyone.
+                  {
+                    key: 'my-quota',
+                    label: t('topup.mine.quota'),
+                    onClick: () => navigate('/workspace/topup?tab=quota'),
+                  },
+                  {
+                    key: 'my-token',
+                    label: t('header.token'),
+                    onClick: () => navigate('/workspace/token'),
+                  },
+                  {
+                    key: 'my-account',
+                    label: t('header.account'),
+                    onClick: () => navigate('/workspace/setting'),
+                  },
+                  {
+                    key: 'my-log',
+                    label: t('header.log'),
+                    onClick: () => navigate('/workspace/log'),
+                  },
+                  {
+                    key: 'my-guide',
+                    label: t('header.router_guide'),
+                    onClick: () => navigate('/workspace/service/router-guide'),
+                  },
                   {
                     key: 'logout',
                     label: t('header.logout'),

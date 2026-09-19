@@ -21,6 +21,9 @@
     "system_overview": "Overview",
     "model": "Models",
     "operation": "Operations",
+    "supply": "Supply",
+    "customers": "Products & Customers",
+    "system": "System",
     "billing": "Billing",
     "finance": "Finance",
     "config": "Config",
@@ -71,12 +74,22 @@
       "user_task_failed_title": "Task failed",
       "user_task_running_title": "Task running",
       "user_task_failed_summary": "Open task details for more information",
-      "user_task_running_summary": "Result is still being generated"
+      "user_task_running_summary": "Result is still being generated",
+      "unread_badge": "{count} unread messages"
     },
     "get_started": "Activate Service",
     "login": "Login",
     "logout": "Logout",
-    "register": "Register"
+    "register": "Register",
+    "menu": {
+      "open": "Open menu",
+      "close": "Close menu",
+      "language": "Change language"
+    },
+    "theme": {
+      "switch_to_dark": "Switch to dark mode",
+      "switch_to_light": "Switch to light mode"
+    }
   },
   "topup": {
     "title": "Top Up Center",
@@ -508,9 +521,15 @@
   },
   "channel": {
     "title": "Channel Management",
+    "error": {
+      "id_invalid": "Channel ID is invalid"
+    },
     "tabs": {
       "channels": "Channels",
-      "providers": "Providers"
+      "providers": "Providers",
+      "list": "List",
+      "health": "Health",
+      "alerts": "Alerts"
     },
     "search": "Search channels by identifier...",
     "table": {
@@ -1823,6 +1842,9 @@
       "copy_failed": "Unable to copy to clipboard, please copy manually.",
       "chat_open_failed": "Unable to open Chat. Check the Chat page link or token value.",
       "operation_success": "Operation completed successfully!"
+    },
+    "created": {
+      "title": "Token created"
     }
   },
   "common": {
@@ -1832,6 +1854,7 @@
     "view": "View",
     "back": "Back",
     "download": "Download",
+    "export_csv": "Export CSV",
     "basic_info": "Basic Information",
     "cancel": "Cancel",
     "confirm": "Confirm",
@@ -1843,6 +1866,7 @@
     "operation": "Operation",
     "save": "Save",
     "clear": "Clear",
+    "operation_success": "Operation completed successfully!",
     "unlimited": "Unlimited",
     "day": "Day",
     "never": "Never",
@@ -1853,7 +1877,14 @@
       "display_short": "${{amount}}",
       "unit": "$"
     },
-    "delete": "Delete"
+    "delete": "Delete",
+    "session_expired": "Your session has expired. Please sign in again.",
+    "rate_limit": "Too many requests. Please try again later.",
+    "server_error": "Server error. Please contact the administrator.",
+    "demo_only": "Demo mode — no backend service.",
+    "server_unreachable": "Cannot reach the server",
+    "new_version_notice": "A new version ({version}) is available. Press Shift + F5 to reload.",
+    "workspace_entry_load_failed": "Could not load your account. Please try again."
   },
   "redemption": {
     "title": "Redemption Management",
@@ -1935,6 +1966,15 @@
       "face_value_invalid": "Face value must be greater than 0",
       "code_validity_invalid": "Code validity must be greater than or equal to 0",
       "credit_validity_invalid": "Credited balance validity must be greater than or equal to 0"
+    },
+    "error": {
+      "select_entitlement": "Please select a top-up entitlement"
+    },
+    "placeholder": {
+      "select_entitlement": "Please select a top-up entitlement"
+    },
+    "record": {
+      "title": "Redemption record"
     }
   },
   "log": {
@@ -2317,6 +2357,10 @@
   },
   "user": {
     "title": "User Management",
+    "tabs": {
+      "list": "List",
+      "analytics": "Analytics"
+    },
     "detail": {
       "title": "User Detail",
       "user_id": "User ID",
@@ -2494,7 +2538,8 @@
       "edit": "Edit",
       "promote": "Promote",
       "demote": "Demote"
-    }
+    },
+    "no_email": "No email linked"
   },
   "dashboard": {
     "statistics": {
@@ -2675,11 +2720,15 @@
     "admin": {
       "title": "Admin Overview",
       "nav": {
-        "spending": "Spending",
-        "channels": "Channels",
-        "users": "Users",
-        "models": "Models",
+        "spending": "Overview",
+        "channels": "Channel Health",
+        "users": "User Analytics",
+        "models": "Model Operations",
         "alerts": "Alerts"
+      },
+      "model_tabs": {
+        "catalog": "Catalog",
+        "operations": "Operations"
       },
       "period": {
         "label": "Period"
@@ -2759,6 +2808,13 @@
           "latency": "High-Latency Channels",
           "latency_hint": "Channels whose current average latency is 8 seconds or higher."
         },
+        "sort": {
+          "label": "Sort",
+          "health": "Health first",
+          "pass_rate": "Pass rate first",
+          "latency": "Latency first",
+          "requests": "Volume first"
+        },
         "history": {
           "title": "Recent Call Health",
           "hint": "Prioritizes circuit, risky, retest-needed, and high-usage channels. Each cell is a 5-minute call window; gray means that window has no call sample.",
@@ -2795,6 +2851,24 @@
         "description": "Aggregate billing anomalies, circuit breaker events, and model or endpoint disablements into one handling queue.",
         "empty": "There are no alerts right now",
         "page_count": "{{page_count}} on this page / {{total_count}} total",
+        "kpis": {
+          "active_total": "Active Alerts",
+          "active_total_hint": "Not yet resolved",
+          "unresolved_critical": "Unresolved Critical",
+          "unresolved_critical_hint": "Critical and still open",
+          "unacknowledged": "Unacknowledged",
+          "unacknowledged_hint": "Awaiting operator action",
+          "last_24h": "Added in 24h",
+          "last_24h_hint": "Within the current filter window",
+          "resolved_24h": "Resolved in 24h",
+          "resolved_24h_hint": "Throughput of closed alerts"
+        },
+        "distribution": {
+          "by_type": "Distribution by Type",
+          "by_channel": "Distribution by Channel (Top {{limit}})",
+          "trend_title": "Alert Volume Trend",
+          "trend_hint": "Each point represents a 1-hour alert window"
+        },
         "dialog": {
           "acknowledge_title": "Acknowledge Alert",
           "resolve_title": "Resolve Alert",
@@ -2888,6 +2962,9 @@
           "title": "How the numbers connect",
           "summary": "Payments and top-ups are user-side revenue and cash flow. Request consumption is entitlement usage. Channel procurement is upstream cost, matched to revenue in Billing Overview to calculate gross profit."
         },
+        "headline": {
+          "net": "Net this period"
+        },
         "insights": {
           "net_positive": "Positive Net Inflow",
           "net_positive_hint": "Top-up exceeds spend in the selected period, keeping cashflow positive.",
@@ -2931,6 +3008,16 @@
           }
         },
         "summary": {
+          "active_users": "Active Users",
+          "active_users_hint": "Users with at least one call or top-up this period",
+          "topup_users": "Top-up Users",
+          "topup_users_hint": "Users who topped up this period",
+          "paid_conversion_rate": "Paid Conversion",
+          "paid_conversion_hint": "Top-up / Active",
+          "arpu": "ARPU",
+          "arpu_hint": "Spend / Active user",
+          "user_balance_total": "User Balance Total (Platform Liability)",
+          "user_balance_hint": "Sum of balances for currently matched users",
           "user_count": "Matched Users",
           "request_count": "Matched Requests",
           "total_tokens": "Matched Tokens",
@@ -3064,7 +3151,10 @@
           "avg_pass_rate": "Avg Pass Rate",
           "avg_coverage_rate": "Avg Coverage",
           "avg_latency": "Avg Latency",
-          "needs_retest": "Channels Need Retest"
+          "needs_retest": "Channels Need Retest",
+          "risk_count": "Risk Channels",
+          "active_circuit_breaker": "Open Breakers",
+          "high_latency": "High-latency Channels"
         },
         "chart": {
           "health_score": "Health Score",
@@ -3323,9 +3413,8 @@
       },
       "retry": {
         "title": "Failure Retry",
-        "description": "Configure retry behavior after request failure.",
-        "description_title": "What happens after the first failure",
         "description": "Control whether a failed request should continue trying other available channels.",
+        "description_title": "What happens after the first failure",
         "description_effective": "When enabled, if the error is retryable, no specific channel is pinned, and unused candidates remain, the system keeps trying them in order.",
         "description_disabled": "When disabled, the first failure is returned immediately. When enabled, channels that already failed in the same request are not retried again.",
         "limit": "Retry strategy",
@@ -3539,8 +3628,23 @@
       "title": "Profit",
       "load_failed": "Failed to load profit analysis",
       "group_placeholder": "Filter group",
+      "channel_placeholder": "Filter channel",
+      "model_placeholder": "Filter model",
       "note": "Showing models with requests in the last 7 days. Formal margin uses actual or explicitly zero cost only; models with incomplete cost coverage are not treated as healthy.",
       "empty": "No model finance data",
+      "summary": {
+        "models": "Models",
+        "loss_models": "Loss models",
+        "low_margin_models": "Low margin models",
+        "total_revenue": "Billed revenue",
+        "total_cost": "Procurement cost",
+        "total_profit": "Gross profit",
+        "avg_margin": "Weighted margin"
+      },
+      "distribution": {
+        "title": "Profit state distribution",
+        "hint": "Models bucketed by current profit state."
+      },
       "states": {
         "healthy": "Healthy",
         "low_margin": "Low margin",
@@ -3597,6 +3701,14 @@
         "warning": "Watch",
         "critical": "Action",
         "empty": "No data"
+      },
+      "headline": {
+        "profit": "Gross profit this period",
+        "margin": "Margin {{margin}}",
+        "revenue": "Billed revenue",
+        "cost": "Procurement cost",
+        "unconfigured": "Requests without cost",
+        "requests": "Requests"
       },
       "overview_table": {
         "title": "Multidimensional Finance Overview",
@@ -3690,6 +3802,7 @@
       },
       "priority": {
         "title": "Priority Items",
+        "empty": "No priority items in scope",
         "scope_note": "Operating risks follow the current filters; configuration risks are global health",
         "sources": {
           "operating": "Operating",
@@ -3711,8 +3824,18 @@
         "title": "Finance Consistency Issues",
         "summary": "{{count}} issues in scope",
         "empty": "No finance consistency issues in scope",
-        "columns": { "type": "Issue type", "request": "Request log", "created_at": "Created at", "prompt_tokens": "Input tokens", "completion_tokens": "Output tokens" },
-        "types": { "missing_settlement": "Missing settlement", "missing_attribution": "Missing procurement attribution", "settlement_mismatch": "Settlement snapshot mismatch" }
+        "columns": {
+          "type": "Issue type",
+          "request": "Request log",
+          "created_at": "Created at",
+          "prompt_tokens": "Input tokens",
+          "completion_tokens": "Output tokens"
+        },
+        "types": {
+          "missing_settlement": "Missing settlement",
+          "missing_attribution": "Missing procurement attribution",
+          "settlement_mismatch": "Settlement snapshot mismatch"
+        }
       },
       "channel_placeholder": "Filter channel",
       "model_placeholder": "Filter model"
@@ -3721,18 +3844,22 @@
       "nav": "Procurement",
       "title": "Procurement",
       "empty": "No procurement data",
-      "management": { "title": "Procurement management" },
+      "management": {
+        "title": "Procurement management"
+      },
       "health": {
         "status": {
           "ok": "Finance healthy",
           "warning": "Finance has risks",
-          "critical": "Finance needs action"
+          "critical": "Finance needs action",
+          "unknown": "Health check unavailable"
         },
         "level": {
           "critical": "Critical",
           "warning": "Warning"
         },
         "summary": "{{critical}} critical, {{warning}} warning",
+        "summary_unknown": "Finance health check is currently unavailable",
         "no_issue": "No finance configuration risk detected",
         "load_failed": "Failed to load finance health",
         "load_failed_hint": "Unable to load finance health check. Refresh later."
@@ -3749,7 +3876,8 @@
       "filters": {
         "group": "Filter group",
         "provider": "Filter provider",
-        "model": "Filter model"
+        "model": "Filter model",
+        "channel": "Select a channel to enter procurement"
       },
       "summary": {
         "request_count": "Requests",
@@ -3791,6 +3919,22 @@
       "actions": {
         "configure_cost": "Open procurement config"
       },
+      "analytics": {
+        "by_provider_title": "Cost share by provider",
+        "by_provider_hint": "Aggregates procurement cost by provider from the current list and shows the top 8.",
+        "margin_distribution_title": "Gross margin distribution",
+        "margin_distribution_hint": "Buckets each dimension by gross margin; red marks losses.",
+        "loss_leaderboard_title": "Loss leaderboard (Top 10)",
+        "loss_leaderboard_hint": "Dimensions with negative profit, sorted by loss amount.",
+        "advanced_toggle": "More analytics (provider share / margin distribution)",
+        "margin_bucket": {
+          "loss": "Loss (<0%)",
+          "low": "Low margin (0–10%)",
+          "ok": "Healthy (10–30%)",
+          "high": "High margin (≥30%)",
+          "unknown": "Unconfigured"
+        }
+      },
       "retry": {
         "title": "Procurement Retry",
         "empty": "No procurement cost records need retry",
@@ -3824,7 +3968,7 @@
     "mit": "MIT License"
   },
   "workspace_models": {
-    "title": "Models",
+    "title": "Available Models",
     "refresh": "Refresh model status",
     "search_placeholder": "Search models, providers, endpoints, or tags",
     "generated_at": "Updated at: {{time}}",
@@ -3947,7 +4091,8 @@
       "wechat": {
         "scan_tip": "Scan QR code to follow WeChat Official Account, enter 'code' to get verification code (valid for 3 minutes)",
         "code_placeholder": "Verification code"
-      }
+      },
+      "wallet_not_detected": "No wallet plugin detected. Please install or enable a wallet plugin and try again."
     },
     "register": {
       "title": "New User Registration",
@@ -3998,5 +4143,50 @@
     "notice": {
       "password_copied": "New password copied to clipboard: {{password}}"
     }
+  },
+  "entitlement": {
+    "metrics": {
+      "yyc": "YYC credits"
+    },
+    "placeholder": {
+      "search": "Search by name, description, or group"
+    },
+    "request_count": "Request count",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "add_title": "Add entitlement",
+    "delete_title": "Delete entitlement",
+    "confirm_delete": "Confirm delete {name}?",
+    "type": "Entitlement type"
+  },
+  "personal_setting": {
+    "unset": "Not set",
+    "set": "Set",
+    "section": {
+      "account_info": "Account info"
+    },
+    "placeholder": {
+      "email": "Enter your email address"
+    },
+    "error": {
+      "user_missing": "User information is missing",
+      "email_required": "Please enter an email address",
+      "current_password_required": "Please enter your current password"
+    },
+    "avatar": {
+      "alt": "User avatar"
+    }
+  },
+  "wallet": {
+    "not_detected": "No wallet detected. Please install MetaMask or enable a browser wallet.",
+    "plugin_missing": "No wallet plugin detected. Please install or enable a wallet plugin and try again.",
+    "retry_prompt": "Error occurred, retrying ({count})..."
+  },
+  "oauth": {
+    "bind_success": "Bound successfully!"
+  },
+  "not_found": {
+    "title": "Page not found",
+    "description": "Please check whether the URL is correct."
   }
 }
