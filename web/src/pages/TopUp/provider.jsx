@@ -166,53 +166,55 @@ const TopUpWorkspaceProvider = ({ children }) => {
 
   const createTopupOrder = useCallback(
     async (payload) => {
-      const popup = window.open('', '_blank');
-      if (!popup) {
-        showError(t('topup.external_topup.popup_blocked'));
-        return false;
-      }
-      try {
-        popup.opener = null;
-        popup.document.write(`
-          <!doctype html>
-          <html>
-            <head>
-              <meta charset="utf-8" />
-              <title>${t('common.loading')}</title>
-              <style>
-                body {
-                  margin: 0;
-                  min-height: 100vh;
-                  display: grid;
-                  place-items: center;
-                  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-                  color: #111827;
-                  background: #f8fafc;
-                }
-                .router-topup-loading {
-                  padding: 1.25rem 1.5rem;
-                  border-radius: 14px;
-                  background: #ffffff;
-                  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-                  font-size: 14px;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="router-topup-loading">${t('common.loading')}</div>
-            </body>
-          </html>
-        `);
-        popup.document.close();
-        popup.focus();
-      } catch (error) {
-        // Ignore same-origin popup bootstrap failures and continue with redirect.
+      // Pre-open a tab inside the click gesture so the later async redirect is
+      // not treated as a popup and blocked. If the browser blocks it anyway we
+      // do NOT abort: the order is still placed and we fall back to redirecting
+      // the current tab, so a blocked popup never silently loses a paid order.
+      let popup = window.open('', '_blank');
+      if (popup) {
+        try {
+          popup.opener = null;
+          popup.document.write(`
+            <!doctype html>
+            <html>
+              <head>
+                <meta charset="utf-8" />
+                <title>${t('common.loading')}</title>
+                <style>
+                  body {
+                    margin: 0;
+                    min-height: 100vh;
+                    display: grid;
+                    place-items: center;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                    color: #111827;
+                    background: #f8fafc;
+                  }
+                  .router-topup-loading {
+                    padding: 1.25rem 1.5rem;
+                    border-radius: 14px;
+                    background: #ffffff;
+                    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+                    font-size: 14px;
+                  }
+                </style>
+              </head>
+              <body>
+                <div class="router-topup-loading">${t('common.loading')}</div>
+              </body>
+            </html>
+          `);
+          popup.document.close();
+          popup.focus();
+        } catch (error) {
+          // Ignore same-origin popup bootstrap failures and continue with redirect.
+        }
       }
       try {
         const res = await API.post('/api/v1/public/user/topup/orders', payload);
         const { success, message, data } = res.data || {};
         if (!success) {
-          if (!popup.closed) {
+          if (popup && !popup.closed) {
             popup.close();
           }
           showError(message || t('topup.external_topup.request_failed'));
@@ -220,7 +222,7 @@ const TopUpWorkspaceProvider = ({ children }) => {
         }
         const currentStatus = (data?.status || '').trim();
         if (currentStatus === 'paid' || currentStatus === 'fulfilled') {
-          if (!popup.closed) {
+          if (popup && !popup.closed) {
             popup.close();
           }
           await Promise.all([
@@ -232,17 +234,23 @@ const TopUpWorkspaceProvider = ({ children }) => {
         }
         const redirectURL = data?.redirect_url;
         if (!redirectURL) {
-          if (!popup.closed) {
+          if (popup && !popup.closed) {
             popup.close();
           }
           showError(t('topup.external_topup.request_failed'));
           return false;
         }
-        popup.location.href = redirectURL;
-        popup.focus();
+        if (popup && !popup.closed) {
+          popup.location.href = redirectURL;
+          popup.focus();
+        } else {
+          // Popup was blocked: keep the payment flowing by redirecting the
+          // current tab instead of failing an already-created order.
+          window.location.href = redirectURL;
+        }
         return data || true;
       } catch (error) {
-        if (!popup.closed) {
+        if (popup && !popup.closed) {
           popup.close();
         }
         showError(error?.message || t('topup.external_topup.request_failed'));

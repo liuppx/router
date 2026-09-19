@@ -884,6 +884,21 @@ const EditToken = () => {
     </div>
   );
 
+  // OpenAI-compatible gateway: the call endpoint lives on the same origin under
+  // /v1, so derive the base URL from where the console is served rather than
+  // hardcoding a domain. Pair it with the just-created key to give the user a
+  // copy-paste first request instead of leaving them with a bare token.
+  const apiBaseUrl = `${String(window.location.origin || '').replace(/\/$/, '')}/v1`;
+  const createdTokenValue = createdToken ? renderFullToken(createdToken.key) : '';
+  const createdTokenCurl = createdToken
+    ? [
+        `curl ${apiBaseUrl}/chat/completions \\`,
+        `  -H "Authorization: Bearer ${createdTokenValue}" \\`,
+        '  -H "Content-Type: application/json" \\',
+        "  -d '{\"model\": \"gpt-4o-mini\", \"messages\": [{\"role\": \"user\", \"content\": \"Hello\"}]}'",
+      ].join('\n')
+    : '';
+
   return (
     <div className='dashboard-container'>
       {isDetailMode ? (
@@ -947,13 +962,13 @@ const EditToken = () => {
             <div className='router-page-stack'>
               <AppDetailSection title={t('token.created.title')}>
                 <div className='router-section-message'>
-                  令牌只会在创建成功后显示一次，请现在保存到你的客户端或密钥管理工具中。离开当前页面后，系统不会再次展示完整令牌。
+                  {t('token.created.hint')}
                 </div>
                 <AppFormRow className='router-token-basic-info-row'>
                   <AppField label={t('token.table.token')} readOnly>
                     <AppTextarea
                       className='router-section-input'
-                      value={renderFullToken(createdToken.key)}
+                      value={createdTokenValue}
                       readOnly
                       autoSize={{ minRows: 2, maxRows: 5 }}
                     />
@@ -963,8 +978,7 @@ const EditToken = () => {
                   <AppButton
                     className='router-page-button'
                     onClick={async () => {
-                      const rawToken = renderFullToken(createdToken.key);
-                      if (await copy(rawToken)) {
+                      if (await copy(createdTokenValue)) {
                         showSuccess(t('token.messages.copy_success'));
                         return;
                       }
@@ -973,15 +987,78 @@ const EditToken = () => {
                   >
                     {t('token.copy_options.raw')}
                   </AppButton>
+                </AppFormActions>
+              </AppDetailSection>
+
+              <AppDetailSection title={t('token.created.usage_title')}>
+                <div className='router-section-message'>
+                  {t('token.created.usage_desc')}
+                </div>
+                <AppFormRow className='router-token-basic-info-row'>
+                  <AppField label={t('token.created.base_url_label')} readOnly>
+                    <AppInput
+                      className='router-section-input'
+                      value={apiBaseUrl}
+                      readOnly
+                    />
+                  </AppField>
+                </AppFormRow>
+                <AppFormRow className='router-token-basic-info-row'>
+                  <AppField label={t('token.created.example_label')} readOnly>
+                    <AppTextarea
+                      className='router-section-input'
+                      value={createdTokenCurl}
+                      readOnly
+                      autoSize={{ minRows: 4, maxRows: 10 }}
+                    />
+                  </AppField>
+                </AppFormRow>
+                <div className='router-form-hint'>
+                  {t('token.created.example_note')}
+                </div>
+                <AppFormActions>
                   <AppButton
                     className='router-page-button'
-                    color='blue'
-                    onClick={() => navigate('/token')}
+                    onClick={async () => {
+                      if (await copy(apiBaseUrl)) {
+                        showSuccess(t('token.messages.copy_success'));
+                        return;
+                      }
+                      showError(t('token.messages.copy_failed'));
+                    }}
                   >
-                    {t('common.back')}
+                    {t('token.created.copy_base_url')}
+                  </AppButton>
+                  <AppButton
+                    className='router-page-button'
+                    onClick={async () => {
+                      if (await copy(createdTokenCurl)) {
+                        showSuccess(t('token.messages.copy_success'));
+                        return;
+                      }
+                      showError(t('token.messages.copy_failed'));
+                    }}
+                  >
+                    {t('token.created.copy_curl')}
+                  </AppButton>
+                  <AppButton
+                    className='router-page-button'
+                    onClick={() => navigate('/workspace/service/cli-guide')}
+                  >
+                    {t('token.created.view_guide')}
                   </AppButton>
                 </AppFormActions>
               </AppDetailSection>
+
+              <AppFormActions>
+                <AppButton
+                  className='router-page-button'
+                  color='blue'
+                  onClick={() => navigate('/workspace/token')}
+                >
+                  {t('common.back')}
+                </AppButton>
+              </AppFormActions>
             </div>
       ) : isCreateMode ? (
             <div className='router-page-stack'>

@@ -33,7 +33,7 @@ const ServicePricing = () => {
           <PackagePurchasePage />
         </div>
         <div id='pricing-balance-section'>
-          <BalanceTopUpPage showCurrentBalance={false} />
+          <BalanceTopUpPage />
         </div>
       </div>
     </TopUpWorkspaceProvider>

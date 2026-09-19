@@ -1844,7 +1844,16 @@
       "operation_success": "操作成功完成！"
     },
     "created": {
-      "title": "令牌已创建"
+      "title": "令牌已创建",
+      "hint": "令牌只会在创建成功后完整显示一次，请立即复制并保存到你的客户端或密钥管理工具。离开本页后将无法再次查看完整令牌。",
+      "usage_title": "如何调用",
+      "usage_desc": "本服务兼容 OpenAI 接口，把下面的接口地址和令牌填入任意 OpenAI 兼容客户端即可开始调用。",
+      "base_url_label": "接口地址 (Base URL)",
+      "example_label": "cURL 示例",
+      "example_note": "把示例中的模型名替换为「模型」页里的任一模型名。",
+      "copy_base_url": "复制接口地址",
+      "copy_curl": "复制 cURL 示例",
+      "view_guide": "查看完整接入指南"
     }
   },
   "common": {

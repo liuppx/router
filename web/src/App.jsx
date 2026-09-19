@@ -140,13 +140,13 @@ function UserWorkspaceEntryRedirect() {
         if (!active) {
           return;
         }
-        setTargetPath(hasActivePackage || hasBalance ? '/workspace/topup?tab=quota' : '/workspace/service/pricing');
+        setTargetPath(hasActivePackage || hasBalance ? '/workspace/topup?tab=quota' : '/workspace/start');
       } catch (error) {
         if (!active) {
           return;
         }
         showError(error?.message || i18n.t('common.workspace_entry_load_failed'));
-        setTargetPath('/workspace/service/pricing');
+        setTargetPath('/workspace/start');
       }
     };
 

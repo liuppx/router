@@ -28,7 +28,8 @@ const renderPlanValidity = (validityDays, t) => {
 
 const BalanceTopUpPage = () => {
   const { t } = useTranslation();
-  const { topupPlans, createTopupOrder } = useTopUpWorkspace();
+  const { topupPlans, createTopupOrder, userBalanceAmount, renderDisplayAmount } =
+    useTopUpWorkspace();
   const [creatingPlanID, setCreatingPlanID] = useState('');
 
   const handleSubmit = async (plan) => {
@@ -61,6 +62,12 @@ const BalanceTopUpPage = () => {
       <div className='router-section-stack-spread'>
         <div className='router-pricing-section-hint router-pricing-section-hint-balance'>
           {t('topup.pricing.balance_hint')}
+        </div>
+        <div className='router-form-hint router-balance-topup-current-balance'>
+          {t('topup.external_topup.current_balance')}{' '}
+          <strong className='router-title-accent-primary'>
+            {renderDisplayAmount(userBalanceAmount)}
+          </strong>
         </div>
         <div className='router-grid-top-md router-balance-topup-panel'>
           <div className='router-balance-topup-grid'>

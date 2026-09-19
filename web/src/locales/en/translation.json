@@ -1844,7 +1844,16 @@
       "operation_success": "Operation completed successfully!"
     },
     "created": {
-      "title": "Token created"
+      "title": "Token created",
+      "hint": "The full token is shown only once, right after creation. Copy it now and store it in your client or a secrets manager. You will not be able to view the full token again after leaving this page.",
+      "usage_title": "How to call",
+      "usage_desc": "This service is OpenAI-compatible. Put the base URL and token below into any OpenAI-compatible client to start calling.",
+      "base_url_label": "Base URL",
+      "example_label": "cURL example",
+      "example_note": "Replace the model name in the example with any model from the Models page.",
+      "copy_base_url": "Copy base URL",
+      "copy_curl": "Copy cURL example",
+      "view_guide": "View full integration guide"
     }
   },
   "common": {

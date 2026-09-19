@@ -409,6 +409,14 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
                   // Personal shortcuts are shown to every role: admins get them
                   // in the sidebar's "personal" group too, but the dropdown is
                   // the consistent, always-available fallback for everyone.
+                  // "Getting started" leads the list so the three-step onboarding
+                  // guide stays reachable after the first-login landing, for
+                  // returning users too.
+                  {
+                    key: 'my-start',
+                    label: t('workspace_start.title'),
+                    onClick: () => navigate('/workspace/start'),
+                  },
                   {
                     key: 'my-quota',
                     label: t('topup.mine.quota'),

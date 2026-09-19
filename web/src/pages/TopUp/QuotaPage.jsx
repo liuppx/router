@@ -87,13 +87,22 @@ const QuotaPage = () => {
       <AppSection
         title={t('topup.quota_overview.title')}
         extra={
-          <AppButton
-            className='router-section-button'
-            loading={loading}
-            onClick={loadQuotaPage}
-          >
-            {t('common.refresh')}
-          </AppButton>
+          <>
+            <AppButton
+              className='router-section-button'
+              color='blue'
+              onClick={() => navigate('/workspace/service/pricing')}
+            >
+              {t('workspace_start.actions.view_pricing')}
+            </AppButton>
+            <AppButton
+              className='router-section-button'
+              loading={loading}
+              onClick={loadQuotaPage}
+            >
+              {t('common.refresh')}
+            </AppButton>
+          </>
         }
       >
         <div className='router-quota-summary-grid'>
