@@ -272,6 +272,13 @@ func resolveWalletIdentityUser(did string, walletAddress string, identityUsernam
 	if err != nil || user.Status != model.UserStatusEnabled {
 		return nil, errors.New("此钱包尚未关联 Router 账户")
 	}
+	if err := model.SyncIdentityUsername(user.Id, identityUsername); err != nil {
+		return nil, errors.New("无法同步钱包身份用户名")
+	}
+	refreshed := model.User{Id: user.Id}
+	if err := refreshed.FillUserById(); err == nil {
+		user = &refreshed
+	}
 	return user, nil
 }
 
@@ -332,8 +339,8 @@ func syncWalletIdentityAddress(user *model.User, addr string) {
 }
 
 func autoCreateWalletIdentityUser(did string, addr string, identityUsername string, ctx context.Context) (*model.User, error) {
-	username := strings.TrimSpace(identityUsername)
-	if username == "" || len(username) > 20 {
+	username := model.NormalizeIdentityUsername(identityUsername)
+	if username == "" {
 		return nil, errors.New("钱包身份用户名无效")
 	}
 	if model.IsUsernameAlreadyTaken(username) {
