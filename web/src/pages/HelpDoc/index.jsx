@@ -1,15 +1,22 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import usageDocHtml from '../../assets/help/usage.html?raw';
 import { AppFilterHeader } from '../../router-ui';
+import useCopyableCodeBlocks from './useCopyableCodeBlocks';
 import './HelpDoc.css';
+
+// 指南里的 API Base URL 统一指向当前部署 origin,与令牌页(EditToken)一致,
+// 避免复制到写死的示例域名后指向错误的服务。
+const API_BASE = typeof window !== 'undefined' ? window.location.origin : '';
 
 const HelpDoc = () => {
   const { t } = useTranslation();
+  const containerRef = useRef(null);
   const html = useMemo(() => {
     return usageDocHtml
       .replaceAll('CLI 工具使用文档', t('header.cli_guide'))
-      .replaceAll('https://api.hanbbq.top', 'https://router.yeying.pub')
+      .replaceAll('https://api.hanbbq.top', API_BASE)
+      .replaceAll('https://router.yeying.pub', API_BASE)
       .replace(
         /<p class="hero-subtitle"[^>]*>\s*API BaseURL（CF节点）：[^<]*<\/p>/g,
         '',
@@ -34,6 +41,8 @@ const HelpDoc = () => {
       );
   }, [t]);
 
+  useCopyableCodeBlocks(containerRef, [html]);
+
   return (
     <div className='dashboard-container'>
       <AppFilterHeader
@@ -45,6 +54,7 @@ const HelpDoc = () => {
         title={t('header.cli_guide')}
       />
       <div
+        ref={containerRef}
         className='router-help-doc-page'
         dangerouslySetInnerHTML={{ __html: html }}
       />

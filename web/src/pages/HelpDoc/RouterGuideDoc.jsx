@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppFilterHeader } from '../../router-ui';
+import useCopyableCodeBlocks from './useCopyableCodeBlocks';
 import './HelpDoc.css';
+
+// 与令牌页(EditToken)一致:示例统一使用当前部署 origin 作为 Base URL,
+// 避免复制到写死的示例域名。
+const API_BASE = typeof window !== 'undefined' ? window.location.origin : '';
 
 const RouterGuideDoc = () => {
   const { t } = useTranslation();
+  const containerRef = useRef(null);
+  useCopyableCodeBlocks(containerRef, [t]);
 
   return (
     <div className='dashboard-container'>
@@ -16,7 +23,7 @@ const RouterGuideDoc = () => {
         ]}
         title={t('header.router_guide')}
       />
-      <div className='router-help-doc-page'>
+      <div className='router-help-doc-page' ref={containerRef}>
         <main className='storefront-content'>
           <div className='usage-doc-page'>
             <div className='doc-body'>
@@ -117,8 +124,8 @@ const RouterGuideDoc = () => {
                       </li>
                       <li>
                         在客户端里配置 Base URL。OpenAI 兼容客户端通常使用{' '}
-                        <code>https://router.yeying.pub/v1</code>；Claude / Anthropic
-                        兼容客户端通常使用 <code>https://router.yeying.pub</code>。
+                        <code>{`${API_BASE}/v1`}</code>；Claude / Anthropic
+                        兼容客户端通常使用 <code>{API_BASE}</code>。
                       </li>
                       <li>把 API Key 配到客户端的 Key 字段，选择模型后发起请求。</li>
                       <li>
@@ -180,12 +187,12 @@ const RouterGuideDoc = () => {
                     </table>
 
                     <pre>
-                      <code className='language-bash'>{`curl https://router.yeying.pub/v1/models \\
+                      <code className='language-bash'>{`curl ${API_BASE}/v1/models \\
   -H "Authorization: Bearer your-api-key-here"`}</code>
                     </pre>
 
                     <pre>
-                      <code className='language-bash'>{`curl https://router.yeying.pub/v1/responses \\
+                      <code className='language-bash'>{`curl ${API_BASE}/v1/responses \\
   -H "Authorization: Bearer your-api-key-here" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -205,7 +212,7 @@ const RouterGuideDoc = () => {
 
 client = OpenAI(
     api_key="your-api-key-here",
-    base_url="https://router.yeying.pub/v1",
+    base_url="${API_BASE}/v1",
 )
 
 resp = client.chat.completions.create(
@@ -220,7 +227,7 @@ print(resp.choices[0].message.content)`}</code>
 
 const client = new OpenAI({
   apiKey: 'your-api-key-here',
-  baseURL: 'https://router.yeying.pub/v1',
+  baseURL: '${API_BASE}/v1',
 });
 
 const resp = await client.chat.completions.create({
@@ -232,7 +239,7 @@ console.log(resp.choices[0].message.content);`}</code>
                     <blockquote>
                       <p>
                         Anthropic / Claude SDK 同理：把 base URL 指向{' '}
-                        <code>https://router.yeying.pub</code>，调用{' '}
+                        <code>{API_BASE}</code>，调用{' '}
                         <code>/v1/messages</code> 端点即可。
                       </p>
                     </blockquote>
@@ -243,7 +250,7 @@ console.log(resp.choices[0].message.content);`}</code>
                       逐段返回增量内容，适合聊天与长文本场景。
                     </p>
                     <pre>
-                      <code className='language-bash'>{`curl https://router.yeying.pub/v1/chat/completions \\
+                      <code className='language-bash'>{`curl ${API_BASE}/v1/chat/completions \\
   -H "Authorization: Bearer your-api-key-here" \\
   -H "Content-Type: application/json" \\
   -d '{
