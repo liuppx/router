@@ -645,14 +645,16 @@ const LogsTable = () => {
         key: 'token_name',
         label: t('log.table.token_name'),
         placeholder: t('log.table.token_name_placeholder'),
-        type: isAdminScope ? 'select' : 'text',
+        type:
+          isAdminScope || filterOptions.tokenNames.length > 0 ? 'select' : 'text',
         options: filterOptions.tokenNames,
       },
       {
         key: 'model_name',
         label: t('log.table.model_name'),
         placeholder: t('log.table.model_name_placeholder'),
-        type: isAdminScope ? 'select' : 'text',
+        type:
+          isAdminScope || filterOptions.modelNames.length > 0 ? 'select' : 'text',
         options: filterOptions.modelNames,
       },
     ];
@@ -810,13 +812,21 @@ const LogsTable = () => {
           tokenNames:
             !normalizedFilterKey || normalizedFilterKey === 'token_name'
               ? Array.isArray(data?.token_names)
-                ? data.token_names
+                ? data.token_names.map((item) => ({
+                    key: item,
+                    text: item,
+                    value: item,
+                  }))
                 : []
               : prev.tokenNames,
           modelNames:
             !normalizedFilterKey || normalizedFilterKey === 'model_name'
               ? Array.isArray(data?.model_names)
-                ? data.model_names
+                ? data.model_names.map((item) => ({
+                    key: item,
+                    text: item,
+                    value: item,
+                  }))
                 : []
               : prev.modelNames,
         }));
@@ -870,11 +880,16 @@ const LogsTable = () => {
         )
       ) {
         loadFilterOptions(filterKey).then();
+      } else if (!isAdminScope && ['token_name', 'model_name'].includes(filterKey)) {
+        // Normal users get a dropdown of the token/model names they have
+        // actually used (from /api/v1/public/log/options) instead of typing
+        // blind. Options load lazily on first open, mirroring channel/group.
+        loadFilterOptions(filterKey).then();
       }
       setDraftFilterKey(filterKey);
       setAddFilterPopupOpen(true);
     },
-    [conditionalFilterConfig, inputs, loadFilterOptions, logType]
+    [conditionalFilterConfig, inputs, isAdminScope, loadFilterOptions, logType]
   );
 
   const closeFilterDraft = useCallback(() => {
