@@ -36,9 +36,9 @@ const PRODUCT_KIND_SUBSCRIPTION = 'subscription';
 const PRODUCT_KIND_ALL = '__all_kinds__';
 
 const PRODUCT_KIND_OPTIONS = [
-  { key: 'all', value: PRODUCT_KIND_ALL, text: '全部类型' },
-  { key: PRODUCT_KIND_BALANCE, value: PRODUCT_KIND_BALANCE, text: '充值' },
-  { key: PRODUCT_KIND_SUBSCRIPTION, value: PRODUCT_KIND_SUBSCRIPTION, text: '订阅' },
+  { key: 'all', value: PRODUCT_KIND_ALL, textKey: 'entitlement.kind.all' },
+  { key: PRODUCT_KIND_BALANCE, value: PRODUCT_KIND_BALANCE, textKey: 'entitlement.kind.balance' },
+  { key: PRODUCT_KIND_SUBSCRIPTION, value: PRODUCT_KIND_SUBSCRIPTION, textKey: 'entitlement.kind.subscription' },
 ];
 
 const PRODUCT_LIST_TABLE_MIN_WIDTH = 1000;
@@ -54,14 +54,14 @@ const QUOTA_METRIC_OPTIONS = [
   { key: SERVICE_PACKAGE_QUOTA_METRIC_REQUEST_COUNT, value: SERVICE_PACKAGE_QUOTA_METRIC_REQUEST_COUNT, textKey: QUOTA_METRIC_LABEL_KEYS[SERVICE_PACKAGE_QUOTA_METRIC_REQUEST_COUNT] },
 ];
 const PERIOD_TYPE_OPTIONS = [
-  { key: SERVICE_PACKAGE_PERIOD_MONTHLY, value: SERVICE_PACKAGE_PERIOD_MONTHLY, text: '每月' },
-  { key: SERVICE_PACKAGE_PERIOD_WEEKLY, value: SERVICE_PACKAGE_PERIOD_WEEKLY, text: '每周' },
-  { key: SERVICE_PACKAGE_PERIOD_DAILY, value: SERVICE_PACKAGE_PERIOD_DAILY, text: '每天' },
-  { key: SERVICE_PACKAGE_PERIOD_PACKAGE_TOTAL, value: SERVICE_PACKAGE_PERIOD_PACKAGE_TOTAL, text: '套餐总量' },
+  { key: SERVICE_PACKAGE_PERIOD_MONTHLY, value: SERVICE_PACKAGE_PERIOD_MONTHLY, textKey: 'entitlement.period.monthly' },
+  { key: SERVICE_PACKAGE_PERIOD_WEEKLY, value: SERVICE_PACKAGE_PERIOD_WEEKLY, textKey: 'entitlement.period.weekly' },
+  { key: SERVICE_PACKAGE_PERIOD_DAILY, value: SERVICE_PACKAGE_PERIOD_DAILY, textKey: 'entitlement.period.daily' },
+  { key: SERVICE_PACKAGE_PERIOD_PACKAGE_TOTAL, value: SERVICE_PACKAGE_PERIOD_PACKAGE_TOTAL, textKey: 'entitlement.period.package_total' },
 ];
 const VISIBILITY_OPTIONS = [
-  { key: 'all', value: 'all', text: '全部用户' },
-  { key: 'partial_users', value: 'partial_users', text: '部分用户' },
+  { key: 'all', value: 'all', textKey: 'entitlement.visibility_option.all' },
+  { key: 'partial_users', value: 'partial_users', textKey: 'entitlement.visibility_option.partial' },
 ];
 
 const createEmptyForm = () => ({
@@ -89,8 +89,10 @@ const createEmptyForm = () => ({
   source: 'manual',
 });
 
-const getProductKindLabel = (kind) =>
-  kind === PRODUCT_KIND_SUBSCRIPTION ? '订阅' : '充值';
+const getProductKindLabel = (kind, t) =>
+  kind === PRODUCT_KIND_SUBSCRIPTION
+    ? t('entitlement.kind.subscription')
+    : t('entitlement.kind.balance');
 
 const formatAmount = (amount, currency) => {
   const normalizedCurrency = (currency || '').toString().trim().toUpperCase();
@@ -106,8 +108,10 @@ const formatDuration = (row, t) => {
   return `${days} ${t('common.day')}`;
 };
 
-const formatVisibility = (row) =>
-  row?.visibility_scope === 'partial_users' ? '部分用户' : '全部用户';
+const formatVisibility = (row, t) =>
+  row?.visibility_scope === 'partial_users'
+    ? t('entitlement.visibility_option.partial')
+    : t('entitlement.visibility_option.all');
 
 const SupportedModelsCount = ({ models, onOpen }) => {
   const normalizedModels = useMemo(
@@ -458,7 +462,7 @@ const Entitlement = () => {
   const columns = useMemo(
     () => [
       {
-        title: '名称',
+        title: t('entitlement.columns.name'),
         dataIndex: 'name',
         key: 'name',
         width: 180,
@@ -466,18 +470,18 @@ const Entitlement = () => {
         render: (value) => value || '-',
       },
       {
-        title: '类型',
+        title: t('entitlement.columns.type'),
         dataIndex: 'kind',
         key: 'kind',
         width: 84,
         render: (value) => (
           <AppTag color={value === PRODUCT_KIND_SUBSCRIPTION ? 'blue' : 'green'}>
-            {getProductKindLabel(value)}
+            {getProductKindLabel(value, t)}
           </AppTag>
         ),
       },
       {
-        title: '分组',
+        title: t('entitlement.columns.group'),
         dataIndex: 'group_name',
         key: 'group',
         width: 150,
@@ -485,7 +489,7 @@ const Entitlement = () => {
         render: (_, row) => row.group_name || row.group_id || '-',
       },
       {
-        title: '适用模型',
+        title: t('entitlement.columns.supported_models'),
         key: 'supported_models',
         width: 92,
         render: (_, row) => (
@@ -496,25 +500,25 @@ const Entitlement = () => {
         ),
       },
       {
-        title: '售价',
+        title: t('entitlement.columns.sale_price'),
         key: 'sale_price',
         width: 130,
         render: (_, row) => formatAmount(row.sale_price, row.sale_currency || 'CNY'),
       },
       {
-        title: '有效期',
+        title: t('entitlement.columns.validity'),
         key: 'duration',
         width: 100,
         render: (_, row) => formatDuration(row, t),
       },
       {
-        title: '可见范围',
+        title: t('entitlement.columns.visibility'),
         key: 'visibility_scope',
         width: 100,
-        render: (_, row) => formatVisibility(row),
+        render: (_, row) => formatVisibility(row, t),
       },
       {
-        title: '状态',
+        title: t('entitlement.columns.status'),
         dataIndex: 'enabled',
         key: 'enabled',
         width: 84,
@@ -525,7 +529,7 @@ const Entitlement = () => {
         ),
       },
       {
-        title: t('common.updated_at', '更新时间'),
+        title: t('common.updated_at'),
         dataIndex: 'updated_at',
         key: 'updated_at',
         className: 'router-table-col-datetime',
@@ -564,10 +568,13 @@ const Entitlement = () => {
     return (
       <div className='router-page-stack'>
         <AppFormRow className='router-modal-form-row'>
-          <AppField label='类型' required>
+          <AppField label={t('entitlement.form.kind')} required>
             <AppSelect
               className='router-section-input'
-              options={PRODUCT_FORM_KIND_OPTIONS}
+              options={PRODUCT_FORM_KIND_OPTIONS.map((item) => ({
+                ...item,
+                text: t(item.textKey),
+              }))}
               value={form.kind}
               disabled={Boolean(form.id)}
               onChange={(_, { value }) =>
@@ -580,7 +587,7 @@ const Entitlement = () => {
               }
             />
           </AppField>
-          <AppField label='名称' required>
+          <AppField label={t('entitlement.form.name')} required>
             <AppInput
               className='router-section-input'
               value={form.name}
@@ -592,7 +599,7 @@ const Entitlement = () => {
         </AppFormRow>
 
         <AppFormRow className='router-modal-form-row'>
-          <AppField label='分组' required>
+          <AppField label={t('entitlement.form.group')} required>
             <AppSelect
               className='router-section-input'
               options={groupOptions}
@@ -604,7 +611,7 @@ const Entitlement = () => {
               }
             />
           </AppField>
-          <AppField label='排序'>
+          <AppField label={t('entitlement.form.sort_order')}>
             <AppInputNumber
               className='router-section-input'
               min={0}
@@ -619,7 +626,7 @@ const Entitlement = () => {
         </AppFormRow>
 
         <AppFormRow className='router-modal-form-row'>
-          <AppField label='说明'>
+          <AppField label={t('entitlement.form.description')}>
             <AppTextarea
               className='router-section-input'
               value={form.description}
@@ -631,7 +638,7 @@ const Entitlement = () => {
         </AppFormRow>
 
         <AppFormRow className='router-modal-form-row'>
-          <AppField label='售价' required>
+          <AppField label={t('entitlement.form.sale_price')} required>
             <AppInputNumber
               className='router-section-input'
               min={0}
@@ -644,7 +651,7 @@ const Entitlement = () => {
               }
             />
           </AppField>
-          <AppField label='售价币种' required>
+          <AppField label={t('entitlement.form.sale_currency')} required>
             <AppInput
               className='router-section-input'
               value={form.sale_currency}
@@ -680,10 +687,13 @@ const Entitlement = () => {
                 }
               />
             </AppField>
-            <AppField label='周期' required>
+            <AppField label={t('entitlement.form.period')} required>
               <AppSelect
                 className='router-section-input'
-                options={PERIOD_TYPE_OPTIONS}
+                options={PERIOD_TYPE_OPTIONS.map((item) => ({
+                  ...item,
+                  text: t(item.textKey),
+                }))}
                 value={form.period_type}
                 onChange={(_, { value }) =>
                   setForm((current) => ({
@@ -697,7 +707,7 @@ const Entitlement = () => {
         ) : null}
 
         <AppFormRow className='router-modal-form-row'>
-          <AppField label={isSubscription ? '周期额度' : '到账额度'} required>
+          <AppField label={isSubscription ? t('entitlement.form.period_quota') : t('entitlement.form.arrival_quota')} required>
             <AppInputNumber
               className='router-section-input'
               min={0}
@@ -714,7 +724,7 @@ const Entitlement = () => {
               }
             />
           </AppField>
-          <AppField label='额度币种'>
+          <AppField label={t('entitlement.form.quota_currency')}>
             <AppInput
               className='router-section-input'
               value={form.quota_currency}
@@ -730,7 +740,7 @@ const Entitlement = () => {
         </AppFormRow>
 
         <AppFormRow className='router-modal-form-row'>
-          <AppField label={isSubscription ? '订阅天数' : '有效天数'}>
+          <AppField label={isSubscription ? t('entitlement.form.subscription_days') : t('entitlement.form.validity_days')}>
             <AppInputNumber
               className='router-section-input'
               min={0}
@@ -747,10 +757,13 @@ const Entitlement = () => {
               }
             />
           </AppField>
-          <AppField label='可见范围'>
+          <AppField label={t('entitlement.form.visibility')}>
             <AppSelect
               className='router-section-input'
-              options={VISIBILITY_OPTIONS}
+              options={VISIBILITY_OPTIONS.map((item) => ({
+                ...item,
+                text: t(item.textKey),
+              }))}
               value={form.visibility_scope || 'all'}
               onChange={(_, { value }) =>
                 setForm((current) => ({ ...current, visibility_scope: value || 'all' }))
@@ -761,7 +774,7 @@ const Entitlement = () => {
 
         {form.visibility_scope === 'partial_users' ? (
           <AppFormRow className='router-modal-form-row'>
-            <AppField label='可见用户'>
+            <AppField label={t('entitlement.form.visible_users')}>
               <AppSelect
                 className='router-section-input'
                 options={userOptions}
@@ -783,7 +796,7 @@ const Entitlement = () => {
         ) : null}
 
         <AppFormRow className='router-modal-form-row'>
-          <AppField label='单用户并发'>
+          <AppField label={t('entitlement.form.concurrency_per_user')}>
             <AppInputNumber
               className='router-section-input'
               min={0}
@@ -799,7 +812,7 @@ const Entitlement = () => {
               }
             />
           </AppField>
-          <AppField label='总并发'>
+          <AppField label={t('entitlement.form.concurrency_total')}>
             <AppInputNumber
               className='router-section-input'
               min={0}
@@ -818,7 +831,7 @@ const Entitlement = () => {
         </AppFormRow>
 
         <AppFormRow className='router-modal-form-row'>
-          <AppField label='余额兜底'>
+          <AppField label={t('entitlement.form.balance_fallback')}>
             <AppSwitch
               checked={isSubscription && Boolean(form.allow_balance_fallback)}
               disabled={!isSubscription}
@@ -878,7 +891,7 @@ const Entitlement = () => {
             className='router-breadcrumb-link router-page-header-link'
             onClick={() => navigate('/admin/entitlement/payments')}
           >
-            支付记录
+            {t('entitlement.payment_records')}
           </button>
         }
         metaClassName='router-page-header-meta-links'
@@ -886,7 +899,10 @@ const Entitlement = () => {
           <div className='router-list-toolbar-query router-list-toolbar-query-compact'>
             <AppSelect
               className='router-search-form-xs'
-              options={PRODUCT_KIND_OPTIONS}
+              options={PRODUCT_KIND_OPTIONS.map((item) => ({
+                ...item,
+                text: t(item.textKey),
+              }))}
               value={kind}
               onChange={(_, { value }) => {
                 setKind((value || PRODUCT_KIND_ALL).toString());
@@ -937,7 +953,7 @@ const Entitlement = () => {
           dataSource={rows}
           loading={loading}
           locale={{
-            emptyText: loading ? t('common.loading') : t('common.no_data', '暂无数据'),
+            emptyText: loading ? t('common.loading') : t('common.no_data'),
           }}
           onRow={(row) => ({
             className: row?.id ? 'router-row-clickable' : '',

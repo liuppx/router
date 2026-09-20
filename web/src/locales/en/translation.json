@@ -4276,7 +4276,53 @@
     "add_title": "Add entitlement",
     "delete_title": "Delete entitlement",
     "confirm_delete": "Confirm delete {name}?",
-    "type": "Entitlement type"
+    "type": "Entitlement type",
+    "kind": {
+      "all": "All types",
+      "balance": "Top-up",
+      "subscription": "Subscription"
+    },
+    "period": {
+      "monthly": "Monthly",
+      "weekly": "Weekly",
+      "daily": "Daily",
+      "package_total": "Package total"
+    },
+    "visibility_option": {
+      "all": "All users",
+      "partial": "Selected users"
+    },
+    "columns": {
+      "name": "Name",
+      "type": "Type",
+      "group": "Group",
+      "supported_models": "Supported models",
+      "sale_price": "Price",
+      "validity": "Validity",
+      "visibility": "Visibility",
+      "status": "Status"
+    },
+    "form": {
+      "kind": "Type",
+      "name": "Name",
+      "group": "Group",
+      "sort_order": "Sort order",
+      "description": "Description",
+      "sale_price": "Price",
+      "sale_currency": "Price currency",
+      "period": "Period",
+      "period_quota": "Period quota",
+      "arrival_quota": "Credited quota",
+      "quota_currency": "Quota currency",
+      "subscription_days": "Subscription days",
+      "validity_days": "Validity days",
+      "visibility": "Visibility",
+      "visible_users": "Visible users",
+      "concurrency_per_user": "Per-user concurrency",
+      "concurrency_total": "Total concurrency",
+      "balance_fallback": "Balance fallback"
+    },
+    "payment_records": "Payment records"
   },
   "personal_setting": {
     "unset": "Not set",

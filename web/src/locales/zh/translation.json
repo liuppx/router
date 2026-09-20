@@ -4276,7 +4276,53 @@
     "add_title": "新增权益",
     "delete_title": "删除权益",
     "confirm_delete": "确认删除 {name}？",
-    "type": "权益类型"
+    "type": "权益类型",
+    "kind": {
+      "all": "全部类型",
+      "balance": "充值",
+      "subscription": "订阅"
+    },
+    "period": {
+      "monthly": "每月",
+      "weekly": "每周",
+      "daily": "每天",
+      "package_total": "套餐总量"
+    },
+    "visibility_option": {
+      "all": "全部用户",
+      "partial": "部分用户"
+    },
+    "columns": {
+      "name": "名称",
+      "type": "类型",
+      "group": "分组",
+      "supported_models": "适用模型",
+      "sale_price": "售价",
+      "validity": "有效期",
+      "visibility": "可见范围",
+      "status": "状态"
+    },
+    "form": {
+      "kind": "类型",
+      "name": "名称",
+      "group": "分组",
+      "sort_order": "排序",
+      "description": "说明",
+      "sale_price": "售价",
+      "sale_currency": "售价币种",
+      "period": "周期",
+      "period_quota": "周期额度",
+      "arrival_quota": "到账额度",
+      "quota_currency": "额度币种",
+      "subscription_days": "订阅天数",
+      "validity_days": "有效天数",
+      "visibility": "可见范围",
+      "visible_users": "可见用户",
+      "concurrency_per_user": "单用户并发",
+      "concurrency_total": "总并发",
+      "balance_fallback": "余额兜底"
+    },
+    "payment_records": "支付记录"
   },
   "personal_setting": {
     "unset": "未设置",
