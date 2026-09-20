@@ -511,7 +511,11 @@ body,
     transition: background-color 120ms ease-out;
 }
 .router-header-onboarding-ring-segment.is-done {
-    background: #1677ff;
+    background: var(--router-primary-color, #1677ff);
+}
+/* 深色模式:未完成点在深底上不可见,提亮为半透明白;已完成点跟随主题主色 */
+html[data-theme='dark'] .router-header-onboarding-ring-segment:not(.is-done) {
+    background: rgba(226, 232, 240, 0.28);
 }
 
 .router-header-message-trigger {
