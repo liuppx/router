@@ -2933,6 +2933,7 @@
         "title": "告警",
         "description": "汇总渠道账务异常、熔断事件以及模型/端点运行时禁用，集中进入处理流程。",
         "empty": "当前没有告警",
+        "load_failed": "加载告警失败",
         "page_count": "当前页 {{page_count}} 条 / 共 {{total_count}} 条",
         "kpis": {
           "active_total": "活跃告警",

@@ -13,6 +13,7 @@ import {
   YAxis,
 } from 'recharts';
 import { API } from '../helpers/api';
+import { showError } from '../helpers';
 import {
   AppButton,
   AppDescriptions,
@@ -129,22 +130,32 @@ function AdminChannelAlertsPanel() {
           time: timeFilter === 'all' ? undefined : timeFilter,
         },
       });
-      const nextItems =
-        response?.data?.success === true
-          ? normalizeAlertItems(response?.data?.data?.items || [])
-          : [];
+      if (response?.data?.success !== true) {
+        // 业务失败也要提示,否则和「无告警」空态无法区分。
+        showError(
+          response?.data?.message || t('dashboard.admin.alerts.load_failed'),
+        );
+        setAlertItems([]);
+        setTotal(0);
+        setAlertSummary(null);
+        return;
+      }
+      const nextItems = normalizeAlertItems(
+        response?.data?.data?.items || [],
+      );
       setAlertItems(nextItems);
       setTotal(Number(response?.data?.data?.total || 0));
       setAlertSummary(response?.data?.data?.summary || null);
     } catch (error) {
       console.error('Failed to load channel alerts:', error);
+      showError(error?.message || t('dashboard.admin.alerts.load_failed'));
       setAlertItems([]);
       setTotal(0);
       setAlertSummary(null);
     } finally {
       setLoading(false);
     }
-  }, [keyword, levelFilter, page, pageSize, statusFilter, timeFilter, typeFilter]);
+  }, [keyword, levelFilter, page, pageSize, statusFilter, timeFilter, typeFilter, t]);
 
   useEffect(() => {
     loadAlertItems();
