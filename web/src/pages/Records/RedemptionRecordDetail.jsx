@@ -5,8 +5,10 @@ import { API, showError, timestamp2string } from '../../helpers';
 import { formatAmountWithUnit } from '../../helpers/render';
 import {
   AppDetailSection,
+  AppErrorState,
   AppFilterHeader,
   AppIcon,
+  AppSkeleton,
 } from '../../router-ui';
 
 const readOnlyText = (value) => {
@@ -50,6 +52,7 @@ const RedemptionRecordDetail = () => {
   const location = useLocation();
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [record, setRecord] = useState(null);
 
   const listPath = useMemo(
@@ -65,11 +68,14 @@ const RedemptionRecordDetail = () => {
       );
       const { success, message, data } = res.data || {};
       if (!success) {
+        setLoadError(true);
         showError(message || t('flow.messages.load_failed'));
         return;
       }
+      setLoadError(false);
       setRecord(data || null);
     } catch (error) {
+      setLoadError(true);
       showError(error?.message || t('flow.messages.load_failed'));
     } finally {
       setLoading(false);
@@ -110,7 +116,13 @@ const RedemptionRecordDetail = () => {
           titleTag='div'
         >
               {loading ? (
-                <div className='router-empty-cell'>{t('common.loading')}</div>
+                <AppSkeleton variant='text' />
+              ) : loadError && !record ? (
+                <AppErrorState
+                  message={t('flow.messages.load_failed')}
+                  onRetry={loadDetail}
+                  retryText={t('common.retry')}
+                />
               ) : (
                 <div className='router-detail-grid'>
                   <div className='router-detail-item'>

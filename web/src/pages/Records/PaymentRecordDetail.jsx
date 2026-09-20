@@ -5,8 +5,10 @@ import { API, showError, timestamp2string } from '../../helpers';
 import {
   AppButton,
   AppDetailSection,
+  AppErrorState,
   AppFilterHeader,
   AppIcon,
+  AppSkeleton,
   AppTag,
 } from '../../router-ui';
 
@@ -174,6 +176,7 @@ const PaymentRecordDetail = () => {
   const isPurchaseDetail = location.pathname.startsWith('/admin/entitlement/payments/');
   const [productKind, setProductKind] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [order, setOrder] = useState(null);
 
@@ -256,9 +259,11 @@ const PaymentRecordDetail = () => {
       const res = await API.get(endpoint);
       const { success, message, data } = res.data || {};
       if (!success) {
+        setLoadError(true);
         showError(message || t('flow.topup_reconcile.detail.messages.load_failed'));
         return;
       }
+      setLoadError(false);
       if (isPurchaseDetail) {
         setProductKind((data?.product_kind || '').toString());
         setOrder(data?.record || null);
@@ -267,6 +272,7 @@ const PaymentRecordDetail = () => {
         setOrder(data || null);
       }
     } catch (error) {
+      setLoadError(true);
       showError(error?.message || t('flow.topup_reconcile.detail.messages.load_failed'));
     } finally {
       setLoading(false);
@@ -322,7 +328,13 @@ const PaymentRecordDetail = () => {
         >
 
               {loading ? (
-                <div className='router-empty-cell'>{t('common.loading')}</div>
+                <AppSkeleton variant='text' />
+              ) : loadError && !order ? (
+                <AppErrorState
+                  message={t('flow.topup_reconcile.detail.messages.load_failed')}
+                  onRetry={loadDetail}
+                  retryText={t('common.retry')}
+                />
               ) : (
                 <div className='router-detail-grid'>
                   <div className='router-detail-item'>
