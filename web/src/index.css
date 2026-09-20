@@ -494,6 +494,26 @@ body,
     color: #1677ff !important;
 }
 
+/* 入门完成度环:与 WelcomeOverlay 步骤点同款,贴在头像 chip 下方 */
+.router-header-onboarding-ring {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+.router-header-onboarding-ring-segment {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.18);
+    display: inline-block;
+    transition: background-color 120ms ease-out;
+}
+.router-header-onboarding-ring-segment.is-done {
+    background: #1677ff;
+}
+
 .router-header-message-trigger {
     position: relative;
 }

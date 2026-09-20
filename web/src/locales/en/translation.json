@@ -86,6 +86,7 @@
       "close": "Close menu",
       "language": "Change language"
     },
+    "onboarding_progress": "Onboarding progress {done}/{total}",
     "theme": {
       "switch_to_dark": "Switch to dark mode",
       "switch_to_light": "Switch to light mode"

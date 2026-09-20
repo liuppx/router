@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { UserContext } from '../context/User';
 import { StatusContext } from '../context/Status';
 import { useIsAdmin } from '../hooks/useAuth';
+import useOnboardingProgress from '../hooks/useOnboardingProgress';
 import HeaderMessageCenter from './HeaderMessageCenter';
 import { API, getLogo, getSystemName, isMobile } from '../helpers';
 import { WEB3_TOKEN_STORAGE_KEY } from '../helpers/web3';
@@ -60,6 +61,11 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
     : currentWorkspace === 'admin'
       ? ADMIN_MENU_GROUPS
       : userButtons;
+  // 仅登录态请求;管理员也展示(让他们看到未完成项的提醒)。
+  const { doneCount: onboardingDoneCount, total: onboardingTotal } =
+    useOnboardingProgress(Boolean(userState?.user));
+  const showOnboardingRing =
+    Boolean(userState?.user) && onboardingDoneCount < onboardingTotal;
   const headerContainerClass = [
     'router-header-container',
     hideNavButtons ? 'router-header-container-full' : '',
@@ -460,6 +466,43 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
                 >
                   {userDisplayName}
                 </span>
+                {showOnboardingRing ? (
+                  <span
+                    className='router-header-onboarding-ring'
+                    role='img'
+                    aria-label={t('header.onboarding_progress', {
+                      done: onboardingDoneCount,
+                      total: onboardingTotal,
+                    })}
+                    title={t('header.onboarding_progress', {
+                      done: onboardingDoneCount,
+                      total: onboardingTotal,
+                    })}
+                  >
+                    <span className='router-header-onboarding-ring-segment is-done' />
+                    <span
+                      className={
+                        onboardingDoneCount >= 2
+                          ? 'router-header-onboarding-ring-segment is-done'
+                          : 'router-header-onboarding-ring-segment'
+                      }
+                    />
+                    <span
+                      className={
+                        onboardingDoneCount >= 3
+                          ? 'router-header-onboarding-ring-segment is-done'
+                          : 'router-header-onboarding-ring-segment'
+                      }
+                    />
+                    <span
+                      className={
+                        onboardingDoneCount >= 4
+                          ? 'router-header-onboarding-ring-segment is-done'
+                          : 'router-header-onboarding-ring-segment'
+                      }
+                    />
+                  </span>
+                ) : null}
               </AppMenuDropdown>
             </div>
           ) : (
