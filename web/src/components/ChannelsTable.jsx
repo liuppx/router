@@ -28,6 +28,7 @@ import {
   AppFormActions,
   AppModal,
   AppPagination,
+  AppPopconfirm,
   AppSpin,
   AppSwitch,
   AppTable,
@@ -564,14 +565,20 @@ const ChannelsTable = () => {
                     }}
                   />
                 ) : null}
-                <AppTableActionButton
-                  icon='trash'
-                  title={t('channel.buttons.delete')}
-                  color='red'
-                  onClick={() => {
+                <AppPopconfirm
+                  title={t('channel.buttons.confirm_delete')}
+                  onConfirm={() => {
                     manageChannel(channel.id, 'delete');
                   }}
-                />
+                >
+                  <span>
+                    <AppTableActionButton
+                      icon='trash'
+                      title={t('channel.buttons.delete')}
+                      color='red'
+                    />
+                  </span>
+                </AppPopconfirm>
               </div>
             ),
           },

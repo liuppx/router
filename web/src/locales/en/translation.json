@@ -611,7 +611,7 @@
       "disable_channel": "Disable Channels",
       "delete_channel": "Delete Channels",
       "delete": "Delete",
-      "confirm_delete": "Delete Channel",
+      "confirm_delete": "Delete this channel?",
       "confirm": "Confirm",
       "cancel": "Cancel",
       "enable": "Enable",

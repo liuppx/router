@@ -611,7 +611,7 @@
       "disable_channel": "禁用渠道",
       "delete_channel": "删除渠道",
       "delete": "删除",
-      "confirm_delete": "删除渠道",
+      "confirm_delete": "确认删除该渠道？",
       "confirm": "确定",
       "cancel": "取消",
       "enable": "启用",
