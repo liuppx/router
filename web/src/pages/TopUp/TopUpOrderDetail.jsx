@@ -9,6 +9,8 @@ import {
 } from '../../helpers';
 import TopUpWorkspaceProvider from './provider.jsx';
 import {
+  buildTopUpOrderReturnURL,
+  buildTopUpReturnURL,
   formatTopupBusinessType,
   formatTopupOrderStatusHint,
   renderTopupOrderStatus,
@@ -19,6 +21,7 @@ import {
   AppDetailSection,
   AppDescriptions,
   AppFilterHeader,
+  AppModal,
   AppTooltip,
 } from '../../router-ui';
 
@@ -45,11 +48,13 @@ const TopUpOrderDetailInner = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
-  const { renderDisplayAmount } = useTopUpWorkspace();
+  const { renderDisplayAmount, createTopupOrder } = useTopUpWorkspace();
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [canceling, setCanceling] = useState(false);
+  const [repayModalOpen, setRepayModalOpen] = useState(false);
+  const [repaying, setRepaying] = useState(false);
   const pollTimerRef = useRef(null);
   const pollDeadlineRef = useRef(0);
   const orderRef = useRef(null);
@@ -219,6 +224,65 @@ const TopUpOrderDetailInner = () => {
     () => formatTopupOrderStatusHint(order?.status, t),
     [order?.status, t],
   );
+
+  // 终态(失败/取消)订单不可复用,重试 = 用原参数新建订单并重新拉起支付。
+  const canRepay = ['failed', 'canceled'].includes(
+    String(order?.status || '').trim(),
+  );
+  const repayPayload = useMemo(() => {
+    const businessType = String(order?.business_type || '').trim();
+    if (businessType === 'package_purchase') {
+      const packageID = String(order?.package_id || '').trim();
+      if (!packageID) {
+        return null;
+      }
+      return {
+        business_type: 'package_purchase',
+        operation_type: String(order?.operation_type || '').trim(),
+        package_id: packageID,
+      };
+    }
+    const planID = String(order?.topup_plan_id || '').trim();
+    if (!planID) {
+      return null;
+    }
+    return {
+      business_type: 'balance_topup',
+      plan_id: planID,
+    };
+  }, [
+    order?.business_type,
+    order?.operation_type,
+    order?.package_id,
+    order?.topup_plan_id,
+  ]);
+
+  const handleRepay = useCallback(async () => {
+    // 老数据缺少 plan_id/package_id 时无法原样重下,降级引导回定价页。
+    if (!repayPayload) {
+      setRepayModalOpen(false);
+      navigate('/workspace/service/pricing');
+      return;
+    }
+    setRepaying(true);
+    try {
+      const created = await createTopupOrder({
+        ...repayPayload,
+        return_url: buildTopUpReturnURL(),
+      });
+      if (created && typeof created === 'object' && created.id) {
+        const status = String(created.status || '').trim();
+        // 未即时到账时,当前标签跳到新订单的承接页轮询(弹窗已在拉起支付)。
+        if (status !== 'paid' && status !== 'fulfilled') {
+          navigate(buildTopUpOrderReturnURL(created.id));
+        }
+      }
+    } finally {
+      setRepaying(false);
+      setRepayModalOpen(false);
+    }
+  }, [createTopupOrder, navigate, repayPayload]);
+
   const canSyncPaymentStatus = SYNCABLE_TOPUP_ORDER_STATUSES.has(
     String(order?.status || '').trim(),
   );
@@ -365,6 +429,16 @@ const TopUpOrderDetailInner = () => {
               </AppButton>
             </>
           ) : null}
+          {canRepay ? (
+            <AppButton
+              color='blue'
+              className='router-section-button'
+              onClick={() => setRepayModalOpen(true)}
+              disabled={!order}
+            >
+              {t('topup.records.repay')}
+            </AppButton>
+          ) : null}
           </>
         }
       />
@@ -377,6 +451,35 @@ const TopUpOrderDetailInner = () => {
             )}
         </AppDetailSection>
       </div>
+      <AppModal
+        size='small'
+        open={repayModalOpen}
+        onClose={() => setRepayModalOpen(false)}
+        title={t('topup.records.repay_confirm_title')}
+        footer={[
+          <AppButton
+            key='cancel'
+            className='router-modal-button'
+            basic
+            onClick={() => setRepayModalOpen(false)}
+          >
+            {t('common.cancel')}
+          </AppButton>,
+          <AppButton
+            key='ok'
+            className='router-modal-button'
+            color='blue'
+            loading={repaying}
+            onClick={handleRepay}
+          >
+            {t('topup.records.repay')}
+          </AppButton>,
+        ]}
+      >
+        <div className='router-modal-text'>
+          {t('topup.records.repay_confirm_body')}
+        </div>
+      </AppModal>
     </div>
   );
 };

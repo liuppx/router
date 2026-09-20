@@ -194,6 +194,9 @@
       "continue_pay": "继续支付",
       "cancel_pay": "取消支付",
       "cancel_pay_confirm": "确定取消这笔订单吗？取消后需重新下单。",
+      "repay": "重新下单",
+      "repay_confirm_title": "重新下单",
+      "repay_confirm_body": "该订单已失败或取消,将按原参数新建一笔订单并重新拉起支付。确定继续吗?",
       "refresh_status": "同步支付状态",
       "order_paid": "订单已支付，状态已更新",
       "order_canceled": "订单已取消",
@@ -267,6 +270,7 @@
         "return_success": "支付成功,额度已到账",
         "return_pending": "支付尚未完成,稍后将自动确认",
         "return_failed": "支付未成功,请重试或联系管理员",
+        "return_failed_hint": "可打开订单详情,用原参数重新下单。",
         "return_retry": "重新同步",
         "return_view_detail": "查看订单详情",
         "return_back_pricing": "返回套餐页"

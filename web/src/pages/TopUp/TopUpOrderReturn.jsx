@@ -122,6 +122,9 @@ const TopUpOrderReturn = () => {
           <div className='router-empty-cell'>
             {t('topup.external_topup.sync.return_failed')}
           </div>
+          <div className='router-empty-cell'>
+            {t('topup.external_topup.sync.return_failed_hint')}
+          </div>
         </AppSection>
       );
     }

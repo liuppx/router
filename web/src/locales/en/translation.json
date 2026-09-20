@@ -194,6 +194,9 @@
       "continue_pay": "Continue Pay",
       "cancel_pay": "Cancel Payment",
       "cancel_pay_confirm": "Cancel this order? You'll need to place a new one.",
+      "repay": "Reorder",
+      "repay_confirm_title": "Reorder",
+      "repay_confirm_body": "This order has failed or been canceled. A new order will be created with the same parameters and payment will be started again. Continue?",
       "refresh_status": "Sync Payment Status",
       "order_paid": "The order has been paid and refreshed",
       "order_canceled": "The order has been canceled",
@@ -267,6 +270,7 @@
         "return_success": "Payment successful, balance credited.",
         "return_pending": "Payment not complete yet, will auto-confirm shortly.",
         "return_failed": "Payment not successful. Please retry or contact admin.",
+        "return_failed_hint": "Open the order details to reorder with the same parameters.",
         "return_retry": "Re-sync",
         "return_view_detail": "View order detail",
         "return_back_pricing": "Back to subscriptions"
