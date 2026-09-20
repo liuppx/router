@@ -4324,6 +4324,7 @@
   },
   "not_found": {
     "title": "Page not found",
-    "description": "Please check whether the URL is correct."
+    "description": "Please check whether the URL is correct.",
+    "back_home": "Back to home"
   }
 }

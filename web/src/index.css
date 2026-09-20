@@ -125,6 +125,12 @@ body,
     margin: 24px auto;
 }
 
+.router-not-found-actions {
+    margin-top: 16px;
+    display: flex;
+    justify-content: center;
+}
+
 .router-admin-shell {
     display: flex;
     align-items: stretch;

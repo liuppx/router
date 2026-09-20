@@ -1,10 +1,12 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { AppSpin } from '../router-ui';
 
-const Loading = ({ prompt: name = 'page' }) => {
+const Loading = () => {
+  const { t } = useTranslation();
   return (
     <div className='router-loading-shell'>
-      <AppSpin size='large' description={`加载${name}中...`} />
+      <AppSpin size='large' description={t('common.loading')} />
     </div>
   );
 };

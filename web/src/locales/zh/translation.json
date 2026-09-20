@@ -4324,6 +4324,7 @@
   },
   "not_found": {
     "title": "页面不存在",
-    "description": "请检查你的浏览器地址是否正确"
+    "description": "请检查你的浏览器地址是否正确",
+    "back_home": "返回首页"
   }
 }
