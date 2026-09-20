@@ -1531,7 +1531,21 @@
         "fastgpt": "按照如下格式输入：APIKey-AppId，例如：fastgpt-0sp2gtvfdgyi4k30jwlgwf1i-64f335d84283f05518e9e041",
         "tencent": "按照如下格式输入：AppId|SecretId|SecretKey"
       },
-      "updated_at": "更新时间"
+      "updated_at": "更新时间",
+      "deepseek_base_url_no_v1": "DeepSeek 渠道 base_url 不能追加 /v1，请使用 https://api.deepseek.com 或 https://api.deepseek.com/beta",
+      "deepseek_api_base_url_no_v1": "DeepSeek 渠道 API Base URL 不能追加 /v1，请使用 https://api.deepseek.com 或 https://api.deepseek.com/beta",
+      "azure_notice_prefix": "注意，",
+      "azure_notice_strong": "模型部署名称必须和模型名称保持一致",
+      "azure_notice_body": "，因为 Router 会把请求体中的 model 参数替换为你的部署名称（模型名称中的点会被剔除），",
+      "azure_notice_link": "图片演示",
+      "azure_notice_suffix": "。",
+      "azure_api_version": "默认 API 版本",
+      "azure_api_version_placeholder": "请输入默认 API 版本，例如：2024-03-01-preview，该配置可以被实际的请求查询参数所覆盖",
+      "volc_realtime_notice": "Volcengine Realtime 使用火山引擎官方语音 WebSocket 接口，请填写 App ID；默认 Resource ID 为",
+      "volc_realtime_notice_2": "，如官方控制台分配了其他值，可在下方覆盖。",
+      "volc_app_id_placeholder": "请输入火山引擎语音应用 App ID",
+      "volc_resource_id_placeholder": "默认 volc.speech.dialog",
+      "cloudflare_account_id_placeholder": "请输入 Account ID，例如：d8d7c61dbc334c32d3ced580e4bf42b4"
     }
   },
   "group_manage": {

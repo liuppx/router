@@ -1531,7 +1531,21 @@
         "fastgpt": "Enter in format: APIKey-AppId, e.g.: fastgpt-0sp2gtvfdgyi4k30jwlgwf1i-64f335d84283f05518e9e041",
         "tencent": "Enter in format: AppId|SecretId|SecretKey"
       },
-      "updated_at": "Updated At"
+      "updated_at": "Updated At",
+      "deepseek_base_url_no_v1": "The DeepSeek channel base_url must not append /v1. Use https://api.deepseek.com or https://api.deepseek.com/beta",
+      "deepseek_api_base_url_no_v1": "The DeepSeek channel API Base URL must not append /v1. Use https://api.deepseek.com or https://api.deepseek.com/beta",
+      "azure_notice_prefix": "Note: ",
+      "azure_notice_strong": "the deployment name must match the model name",
+      "azure_notice_body": ", because Router replaces the model parameter in the request body with your deployment name (dots in the model name are stripped). ",
+      "azure_notice_link": "Image demo",
+      "azure_notice_suffix": ".",
+      "azure_api_version": "Default API version",
+      "azure_api_version_placeholder": "Enter the default API version, e.g. 2024-03-01-preview. This can be overridden by the actual request query parameter.",
+      "volc_realtime_notice": "Volcengine Realtime uses the official Volcengine voice WebSocket API. Enter the App ID. The default Resource ID is ",
+      "volc_realtime_notice_2": ". If the official console assigns another value, you can override it below.",
+      "volc_app_id_placeholder": "Enter the Volcengine voice application App ID",
+      "volc_resource_id_placeholder": "Default volc.speech.dialog",
+      "cloudflare_account_id_placeholder": "Enter the Account ID, e.g. d8d7c61dbc334c32d3ced580e4bf42b4"
     }
   },
   "group_manage": {

@@ -280,18 +280,18 @@ const validateChannelIdentifier = (value, t) => {
   return '';
 };
 
-const validateProtocolSpecificChannelConfig = (inputs, config) => {
+const validateProtocolSpecificChannelConfig = (inputs, config, t) => {
   const protocol = resolveEffectiveProtocolFromInputs(inputs);
   if (protocol !== 'deepseek') {
     return '';
   }
   const baseURL = normalizeBaseURL(inputs?.base_url || '');
   if (baseURL.toLowerCase().endsWith('/v1')) {
-    return 'DeepSeek 渠道 base_url 不能追加 /v1，请使用 https://api.deepseek.com 或 https://api.deepseek.com/beta';
+    return t('channel.edit.deepseek_base_url_no_v1');
   }
   const apiBaseURL = normalizeBaseURL(config?.api_base_url || '');
   if (apiBaseURL.toLowerCase().endsWith('/v1')) {
-    return 'DeepSeek 渠道 API Base URL 不能追加 /v1，请使用 https://api.deepseek.com 或 https://api.deepseek.com/beta';
+    return t('channel.edit.deepseek_api_base_url_no_v1');
   }
   return '';
 };
@@ -3277,7 +3277,8 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
       }
       const protocolConfigError = validateProtocolSpecificChannelConfig(
         inputs,
-        config
+        config,
+        t
       );
       if (protocolConfigError !== '') {
         showError(protocolConfigError);
@@ -5642,7 +5643,8 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
     }
     const protocolConfigError = validateProtocolSpecificChannelConfig(
       inputs,
-      config
+      config,
+      t
     );
     if (protocolConfigError !== '') {
       showError(protocolConfigError);
@@ -5712,26 +5714,26 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
               className='router-section-message'
               title={
                 <span>
-                  注意，<strong>模型部署名称必须和模型名称保持一致</strong>
-                  ，因为 Router 会把请求体中的 model
-                  参数替换为你的部署名称（模型名称中的点会被剔除），
+                  {t('channel.edit.azure_notice_prefix')}
+                  <strong>{t('channel.edit.azure_notice_strong')}</strong>
+                  {t('channel.edit.azure_notice_body')}
                   <a
                     target='_blank'
                     rel='noreferrer'
                     href='https://github.com/yeying-community/router/issues/133?notification_referrer_id=NT_kwDOAmJSYrM2NjIwMzI3NDgyOjM5OTk4MDUw#issuecomment-1571602271'
                   >
-                    图片演示
+                    {t('channel.edit.azure_notice_link')}
                   </a>
-                  。
+                  {t('channel.edit.azure_notice_suffix')}
                 </span>
               }
             />
             <AppFormRow>
-              <AppField label='默认 API 版本'>
+              <AppField label={t('channel.edit.azure_api_version')}>
                 <AppInput
                   className='router-section-input'
                   name='other'
-                  placeholder='请输入默认 API 版本，例如：2024-03-01-preview，该配置可以被实际的请求查询参数所覆盖'
+                  placeholder={t('channel.edit.azure_api_version_placeholder')}
                   onChange={handleInputChange}
                   value={inputs.other}
                   autoComplete='new-password'
@@ -5808,8 +5810,9 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
               className='router-section-message'
               title={
                 <span>
-                  Volcengine Realtime 使用火山引擎官方语音 WebSocket 接口，请填写 App ID；默认 Resource ID 为
-                  <code>volc.speech.dialog</code>，如官方控制台分配了其他值，可在下方覆盖。
+                  {t('channel.edit.volc_realtime_notice')}
+                  <code>volc.speech.dialog</code>
+                  {t('channel.edit.volc_realtime_notice_2')}
                 </span>
               }
             />
@@ -5819,7 +5822,7 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
                   className='router-section-input'
                   name='app_id'
                   required
-                  placeholder='请输入火山引擎语音应用 App ID'
+                  placeholder={t('channel.edit.volc_app_id_placeholder')}
                   onChange={handleConfigChange}
                   value={config.app_id}
                   autoComplete='off'
@@ -5830,7 +5833,7 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
                 <AppInput
                   className='router-section-input'
                   name='resource_id'
-                  placeholder='默认 volc.speech.dialog'
+                  placeholder={t('channel.edit.volc_resource_id_placeholder')}
                   onChange={handleConfigChange}
                   value={config.resource_id}
                   autoComplete='off'
@@ -5943,7 +5946,7 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
                 className='router-section-input'
                 name='user_id'
                 required
-                placeholder='请输入 Account ID，例如：d8d7c61dbc334c32d3ced580e4bf42b4'
+                placeholder={t('channel.edit.cloudflare_account_id_placeholder')}
                 onChange={handleConfigChange}
                 value={config.user_id}
                 autoComplete=''
