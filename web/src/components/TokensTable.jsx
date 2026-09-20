@@ -137,13 +137,20 @@ const TokensTable = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPagePath = `${location.pathname}${location.search}${location.hash}`;
+  // Seed the search keyword from the URL once, so a refresh or shared link
+  // keeps the active search instead of dropping back to the full list.
+  const initialSearchKeyword = useMemo(
+    () => (new URLSearchParams(location.search).get('q') || '').trim(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   const [tokens, setTokens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activePage, setActivePage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState(() => initialSearchKeyword);
   const [searching, setSearching] = useState(false);
   const [tableSorter, setTableSorter] = useState({
     columnKey: 'createdTime',
@@ -199,11 +206,18 @@ const TokensTable = () => {
   };
 
   useEffect(() => {
-    loadTokens(1)
-      .then()
-      .catch((reason) => {
-        showError(reason);
-      });
+    if (initialSearchKeyword) {
+      // Restore the search result set when arriving with a keyword in the URL.
+      searchTokens();
+    } else {
+      loadTokens(1)
+        .then()
+        .catch((reason) => {
+          showError(reason);
+        });
+    }
+    // Run once on mount; searchTokens reads the seeded keyword.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadTokens]);
 
   useEffect(() => {
@@ -296,9 +310,39 @@ const TokensTable = () => {
     );
   };
 
+  // Reflect the active search keyword in the URL (replace, so it doesn't spam
+  // history), preserving any other query params. Cleared search removes `q`.
+  const writeSearchParam = useCallback(
+    (keyword) => {
+      const params = new URLSearchParams(location.search);
+      const trimmed = (keyword || '').trim();
+      if (trimmed === '') {
+        params.delete('q');
+      } else {
+        params.set('q', trimmed);
+      }
+      const nextSearch = params.toString();
+      const currentSearch = location.search.startsWith('?')
+        ? location.search.slice(1)
+        : location.search;
+      if (nextSearch === currentSearch) {
+        return;
+      }
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+        },
+        { replace: true },
+      );
+    },
+    [location.pathname, location.search, navigate],
+  );
+
   const searchTokens = async () => {
     if (searchKeyword === '') {
       // if keyword is blank, load files instead.
+      writeSearchParam('');
       await loadTokens(1);
       setActivePage(1);
       return;
@@ -316,6 +360,7 @@ const TokensTable = () => {
       setTotalCount(normalizedRows.length);
       setTokens(normalizedRows);
       setActivePage(1);
+      writeSearchParam(searchKeyword);
     } else {
       showError(message);
     }
