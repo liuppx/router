@@ -1935,6 +1935,8 @@
   "common": {
     "loading": "加载中...",
     "no_data": "暂无数据",
+    "load_failed": "加载失败",
+    "retry": "重试",
     "add": "新增",
     "view": "查看",
     "back": "返回",

@@ -2783,6 +2783,12 @@ html[data-theme='dark'] .router-topup-return-next-hint {
     line-height: 1.6;
 }
 
+/* Retryable error state (AppErrorState) — visually distinct from the neutral
+   empty state so "load failed" never reads as "no data". */
+.router-error-state {
+    color: #d9534f !important;
+}
+
 /* Loading skeletons (AppSkeleton). Light-mode defaults with dark overrides,
    since the antd theme sets colors via tokens only (no darkAlgorithm), so the
    skeleton fill would otherwise stay a too-bright gray on dark surfaces. */

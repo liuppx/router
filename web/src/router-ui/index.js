@@ -32,6 +32,7 @@ export { default as AppBreadcrumb } from './patterns/AppBreadcrumb';
 export { default as AppTable } from './patterns/AppTable';
 export { default as AppToolbar } from './patterns/AppToolbar';
 export { default as AppEmpty } from './patterns/AppEmpty';
+export { default as AppErrorState } from './patterns/AppErrorState';
 export { default as AppPagination } from './patterns/AppPagination';
 export { default as AppField } from './patterns/AppField';
 export { default as AppFormRow } from './patterns/AppFormRow';
