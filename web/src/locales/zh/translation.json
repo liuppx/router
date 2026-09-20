@@ -2389,7 +2389,6 @@
       "title": "入门清单",
       "progress_label": "进度 {done}/{total}",
       "done_label": "已完成入门",
-      "replay_welcome": "重新查看新手引导",
       "dismiss": "不再提示",
       "restore": "重新显示清单",
       "items": {
@@ -4287,32 +4286,6 @@
     "message": "当前余额 {balance} 已低于提醒阈值 {threshold},建议尽快充值。",
     "action": "去充值",
     "dismiss": "关闭"
-  },
-  "welcome_overlay": {
-    "title": "欢迎使用",
-    "subtitle": "三步开始你的第一次 API 调用",
-    "step_of": "第 {current} / {total} 步",
-    "steps": {
-      "quota": {
-        "title": "充值或订阅套餐",
-        "description": "首次调用需要可用余额或套餐额度。前往定价页选择适合你的方式。",
-        "cta": "去充值"
-      },
-      "token": {
-        "title": "创建 API 令牌",
-        "description": "在「令牌」页新建一个,妥善保存好显示的密钥。",
-        "cta": "创建令牌"
-      },
-      "call": {
-        "title": "发起首次调用",
-        "description": "跟随接入指南把令牌接到你的客户端,跑通第一次请求。",
-        "cta": "查看接入指南"
-      }
-    },
-    "prev": "上一步",
-    "next": "下一步",
-    "finish": "开始使用",
-    "skip": "跳过引导"
   },
   "wallet": {
     "not_detected": "未检测到钱包，请安装 MetaMask 或开启浏览器钱包",

@@ -1,16 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import {
-  API,
-  showError,
-} from '../../helpers';
 import {
   AppButton,
   AppFilterHeader,
   AppIcon,
   AppSection,
 } from '../../router-ui';
+import useOnboardingProgress from '../../hooks/useOnboardingProgress';
 
 const DISMISSED_KEY = 'onboarding_dismissed';
 const CHECKLIST_ITEMS = [
@@ -32,39 +29,7 @@ const WorkspaceStart = () => {
       return false;
     }
   });
-  const [progress, setProgress] = useState(null);
-  const [progressLoading, setProgressLoading] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    setProgressLoading(true);
-    API.get('/api/v1/public/user/onboarding/progress')
-      .then((response) => {
-        if (!active) return;
-        const data = response?.data?.data || null;
-        setProgress(data);
-      })
-      .catch((error) => {
-        if (!active) return;
-        showError(error?.message || t('common.request_failed'));
-      })
-      .finally(() => {
-        if (active) setProgressLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [t]);
-
-  const doneCount = useMemo(() => {
-    if (!progress) return 0;
-    let count = 0;
-    if (progress.has_token) count++;
-    if (progress.has_balance_or_package) count++;
-    if (progress.has_api_call) count++;
-    if (progress.email_bound) count++;
-    return count;
-  }, [progress]);
+  const { progress, loading: progressLoading, doneCount } = useOnboardingProgress();
 
   const allDone = progress && doneCount === CHECKLIST_ITEMS.length;
   const showChecklist = !dismissed;
@@ -170,18 +135,6 @@ const WorkspaceStart = () => {
             })}
           </ul>
           <div className='router-workspace-start-checklist-footer'>
-            <AppButton
-              type='button'
-              size='small'
-              className='router-inline-button'
-              onClick={() => {
-                if (typeof window !== 'undefined') {
-                  window.dispatchEvent(new CustomEvent('welcome-overlay:open'));
-                }
-              }}
-            >
-              {t('workspace_start.checklist.replay_welcome')}
-            </AppButton>
             <AppButton
               type='button'
               size='small'

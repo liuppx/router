@@ -1,6 +1,5 @@
-// 仅供 Header 显示 onboarding 完成度环使用。
-// 暂不复用 WelcomeOverlay/WorkspaceStart/App.jsx 中的内联请求,
-// 以避免改动既有渲染顺序和错误处理带来的回归。
+// 共享 onboarding 进度:Header 完成度环与 WorkspaceStart 新手页共用,
+// 统一从 /onboarding/progress 拉取,失败静默(新手引导不打扰用户)。
 import { useEffect, useState } from 'react';
 import { API } from '../helpers';
 
