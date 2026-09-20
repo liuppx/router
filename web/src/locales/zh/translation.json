@@ -416,6 +416,9 @@
       "detail_path_package": "购买",
       "fields": {
         "title": "订单标题",
+        "paid_amount": "支付金额",
+        "credited_quota": "到账额度",
+        "amount_quota_note": "到账额度按下单时汇率由支付金额换算,币种可能与支付币种不同。",
         "provider_order_id": "渠道单号",
         "status_message": "状态说明",
         "updated_at": "更新时间"

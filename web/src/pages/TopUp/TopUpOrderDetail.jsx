@@ -354,7 +354,10 @@ const TopUpOrderDetailInner = () => {
       },
       {
         key: 'amount',
-        label: t('topup.external_topup_orders.columns.amount'),
+        label:
+          Number(order?.amount || 0) > 0 && Number(order?.quota || 0) > 0
+            ? t('topup.external_topup_orders.fields.paid_amount')
+            : t('topup.external_topup_orders.columns.amount'),
         value:
           Number(order?.amount || 0) > 0
             ? formatPaymentAmount(order?.amount, order?.currency)
@@ -362,6 +365,25 @@ const TopUpOrderDetailInner = () => {
               ? renderDisplayAmount(order?.quota)
               : '-',
       },
+      ...(Number(order?.amount || 0) > 0 && Number(order?.quota || 0) > 0
+        ? [
+            {
+              key: 'credited_quota',
+              label: t('topup.external_topup_orders.fields.credited_quota'),
+              value: renderDisplayAmount(order?.quota),
+            },
+            {
+              key: 'amount_quota_note',
+              span: { xs: 1, sm: 1, md: 2, lg: 2, xl: 2 },
+              label: '',
+              value: (
+                <span className='router-text-muted'>
+                  {t('topup.external_topup_orders.fields.amount_quota_note')}
+                </span>
+              ),
+            },
+          ]
+        : []),
       {
         key: 'title',
         label: t('topup.external_topup_orders.fields.title'),

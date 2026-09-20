@@ -416,6 +416,9 @@
       "detail_path_package": "Purchase",
       "fields": {
         "title": "Order Title",
+        "paid_amount": "Amount Paid",
+        "credited_quota": "Credited Quota",
+        "amount_quota_note": "The credited quota is converted from the amount paid at the order-time exchange rate; its currency may differ from the payment currency.",
         "provider_order_id": "Provider Order ID",
         "status_message": "Status Message",
         "updated_at": "Updated At"
