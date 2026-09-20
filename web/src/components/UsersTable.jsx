@@ -34,6 +34,8 @@ import {
 } from '../helpers/billing';
 import {
   AppButton,
+  AppEmpty,
+  AppErrorState,
   AppField,
   AppFilterHeader,
   AppFormActions,
@@ -170,6 +172,7 @@ const UsersTable = () => {
   const isAdminScope = location.pathname.startsWith('/admin/');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [activePage, setActivePage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
@@ -203,20 +206,28 @@ const UsersTable = () => {
   const loadUsers = useCallback(
     async (page) => {
       const normalizedPage = Number(page) > 0 ? Number(page) : 1;
-      const res = await API.get(`/api/v1/admin/user/?page=${normalizedPage}`);
-      const { success, message, data, meta } = res.data;
-      if (success) {
-        setIsSearchMode(false);
-        setTotalCount(Number(meta?.total || data?.length || 0));
-        if (normalizedPage === 1) {
-          setUsers(data);
+      try {
+        const res = await API.get(`/api/v1/admin/user/?page=${normalizedPage}`);
+        const { success, message, data, meta } = res.data;
+        if (success) {
+          setLoadError(false);
+          setIsSearchMode(false);
+          setTotalCount(Number(meta?.total || data?.length || 0));
+          if (normalizedPage === 1) {
+            setUsers(data);
+          } else {
+            setUsers((prev) => writePagedRows(prev, normalizedPage, ITEMS_PER_PAGE, data));
+          }
         } else {
-          setUsers((prev) => writePagedRows(prev, normalizedPage, ITEMS_PER_PAGE, data));
+          if (normalizedPage === 1) setLoadError(true);
+          showError(message);
         }
-      } else {
-        showError(message);
+      } catch (error) {
+        if (normalizedPage === 1) setLoadError(true);
+        showError(error?.message || error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     },
     [],
   );
@@ -322,6 +333,7 @@ const UsersTable = () => {
     setLoading(true);
     if (focusIDs.length > 0) {
       loadUsersByIDs(focusIDs, focusName, focusTotalHint).catch((reason) => {
+        setLoadError(true);
         showError(reason?.message || reason);
         setLoading(false);
       });
@@ -333,6 +345,7 @@ const UsersTable = () => {
     loadUsers(1)
       .then()
       .catch((reason) => {
+        setLoadError(true);
         showError(reason);
         setLoading(false);
       });
@@ -797,6 +810,19 @@ const UsersTable = () => {
             className='router-hover-table router-list-table router-table-fit-page router-user-list-table'
             pagination={false}
             scroll={{ x: USER_LIST_TABLE_MIN_WIDTH }}
+            locale={{
+              emptyText: loading ? (
+                t('common.loading')
+              ) : loadError ? (
+                <AppErrorState
+                  message={t('common.load_failed')}
+                  onRetry={refresh}
+                  retryText={t('common.retry')}
+                />
+              ) : (
+                <AppEmpty>{t('common.no_data')}</AppEmpty>
+              ),
+            }}
             rowKey={(user) => user.id}
             rowSelection={userRowSelection}
             onChange={handleTableChange}

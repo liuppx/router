@@ -22,6 +22,8 @@ import {
 } from '../helpers/helper';
 import {
   AppButton,
+  AppEmpty,
+  AppErrorState,
   AppFilterHeader,
   AppInput,
   AppInputNumber,
@@ -112,6 +114,7 @@ const ChannelsTable = () => {
   const navigate = useNavigate();
   const [channels, setChannels] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [activePage, setActivePage] = useState(1);
   const [totalChannels, setTotalChannels] = useState(0);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -153,13 +156,18 @@ const ChannelsTable = () => {
         });
         const { success, message, data } = res.data;
         if (success) {
+          setLoadError(false);
           const items = Array.isArray(data?.items) ? data.items : [];
           setChannels(items.map(processChannelData));
           const total = Number(data?.total || 0);
           setTotalChannels(Number.isFinite(total) && total >= 0 ? total : 0);
         } else {
+          setLoadError(true);
           showError(message);
         }
+      } catch (error) {
+        setLoadError(true);
+        showError(error?.message || String(error));
       } finally {
         setLoading(false);
       }
@@ -445,7 +453,19 @@ const ChannelsTable = () => {
           rowKey={(channel) => channel.id}
           onChange={handleTableChange}
           dataSource={visibleChannels}
-          locale={{ emptyText: loading ? t('common.loading') : t('common.no_data', '暂无数据') }}
+          locale={{
+            emptyText: loading ? (
+              t('common.loading')
+            ) : loadError ? (
+              <AppErrorState
+                message={t('common.load_failed')}
+                onRetry={refresh}
+                retryText={t('common.retry')}
+              />
+            ) : (
+              <AppEmpty>{t('common.no_data')}</AppEmpty>
+            ),
+          }}
           onRow={(channel) => ({
             onClick: () => openChannelByStatus(channel),
             className: 'router-row-clickable',
