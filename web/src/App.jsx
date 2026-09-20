@@ -139,8 +139,9 @@ function UserWorkspaceEntryRedirect() {
         if (!active) {
           return;
         }
-        showError(error?.message || i18n.t('common.workspace_entry_load_failed'));
-        setTargetPath('/workspace/start');
+        // 网络/服务抖动时静默降级到主页,避免把登录用户红条 + 踢到新手页。
+        // 401 由 api.jsx/showError 的统一分支自行处理跳转,这里不重复弹。
+        setTargetPath('/workspace/topup?tab=quota');
       }
     };
 
