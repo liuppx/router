@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { API, showError, timestamp2string } from '../../helpers';
+import { formatPaymentAmount } from '../../helpers/render';
 import {
   AppButton,
   AppDetailSection,
@@ -133,7 +134,7 @@ const renderReconcileStage = (row, t) => {
 
 const formatAmount = (row) =>
   Number(row?.amount || 0) > 0
-    ? `${readOnlyText(row?.currency || 'CNY')} ${Number(row?.amount || 0).toFixed(2)}`
+    ? formatPaymentAmount(row?.amount, row?.currency)
     : '-';
 
 const resolveListPath = (stateFrom, currentPath = '') => {

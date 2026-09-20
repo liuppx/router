@@ -164,6 +164,20 @@ export function formatAmountWithUnit(amount, unit, maximumFractionDigits = 8) {
   return normalizedUnit ? `${display} ${normalizedUnit}` : display;
 }
 
+// Single source of truth for a fiat PAYMENT amount (the money a user actually paid
+// for an order/top-up), as opposed to the credited quota/额度 which has its own
+// Ɏ credit-point rendering (formatCreditAmount / formatAmountWithUnit).
+// Canonical style: currency code first, then a 2-decimal amount — e.g. "CNY 12.00".
+// This intentionally matches the majority of existing payment-amount callsites so
+// adopting it is a pure centralization at those sites; the number-first outliers
+// ("12.00 CNY") converge onto this one form.
+export function formatPaymentAmount(amount, currency, fractionDigits = 2) {
+  const code = (currency || 'CNY').toString().trim().toUpperCase();
+  const normalized = Number(amount);
+  const value = Number.isFinite(normalized) ? normalized : 0;
+  return `${code} ${value.toFixed(fractionDigits)}`;
+}
+
 export function renderChargeAmount(chargeAmount, t, compact = true, amountPrecision = 6) {
   const normalized = Number(chargeAmount || 0);
   const triggerText = formatCreditAmount(normalized, compact);

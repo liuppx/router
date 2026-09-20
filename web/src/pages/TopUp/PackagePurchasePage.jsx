@@ -16,9 +16,10 @@ import {
   isRequestQuotaPackage,
   normalizeServicePackageType,
 } from '../../helpers/package';
+import { formatPaymentAmount } from '../../helpers/render';
 
 const formatMoney = (amount, currency) =>
-  `${Number(amount || 0).toFixed(2)} ${String(currency || 'USD').toUpperCase()}`;
+  formatPaymentAmount(amount, currency || 'USD');
 
 const formatTimeValue = (value, t) => {
   const normalized = Number(value || 0);
@@ -305,7 +306,7 @@ const PackagePurchasePage = () => {
                         </div>
 
                         <div className='router-package-purchase-price'>
-                          {`${item?.sale_currency || 'CNY'} ${Number(item?.sale_price ?? 0).toFixed(2)}`}
+                          {formatPaymentAmount(item?.sale_price, item?.sale_currency)}
                         </div>
 
                         <div className='router-package-purchase-meta-grid'>

@@ -9,6 +9,7 @@ import {
 } from '../../helpers';
 import TopUpWorkspaceProvider from './provider.jsx';
 import CopyButton from '../../components/CopyButton';
+import { formatPaymentAmount } from '../../helpers/render';
 import {
   buildTopUpOrderReturnURL,
   buildTopUpReturnURL,
@@ -356,7 +357,7 @@ const TopUpOrderDetailInner = () => {
         label: t('topup.external_topup_orders.columns.amount'),
         value:
           Number(order?.amount || 0) > 0
-            ? `${order?.currency || 'CNY'} ${Number(order?.amount || 0).toFixed(2)}`
+            ? formatPaymentAmount(order?.amount, order?.currency)
             : Number(order?.quota || 0) > 0
               ? renderDisplayAmount(order?.quota)
               : '-',

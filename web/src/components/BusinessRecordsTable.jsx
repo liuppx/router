@@ -9,7 +9,7 @@ import {
 } from '../constants/tableWidthPresets';
 import UnitDropdown from './UnitDropdown';
 import { buildBillingCurrencyIndex, buildDisplayUnitOptions, formatDisplayAmountFromChargeAmount } from '../helpers/billing';
-import { formatAmountWithUnit, renderText } from '../helpers/render';
+import { formatAmountWithUnit, formatPaymentAmount, renderText } from '../helpers/render';
 import {
   AppButton,
   AppFilterHeader,
@@ -420,7 +420,7 @@ const BusinessRecordsTable = ({
             label: t('flow.purchase.columns.amount'),
             width: BUSINESS_FLOW_COLUMN_WIDTHS.amount,
             render: (row) => Number(row?.amount || 0) > 0
-              ? `${row.currency || 'CNY'} ${Number(row.amount).toFixed(2)}`
+              ? formatPaymentAmount(row.amount, row.currency)
               : '-',
           },
           {
@@ -487,7 +487,7 @@ const BusinessRecordsTable = ({
             width: BUSINESS_FLOW_COLUMN_WIDTHS.amount,
             render: (row) =>
               Number(row.amount || 0) > 0
-                ? `${row.currency || 'CNY'} ${Number(row.amount || 0).toFixed(2)}`
+                ? formatPaymentAmount(row.amount, row.currency)
                 : '-',
           },
           {

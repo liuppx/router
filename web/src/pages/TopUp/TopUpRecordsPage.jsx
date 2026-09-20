@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API, timestamp2string, showError, showSuccess, withCardLabels } from '../../helpers';
 import { exportCSV } from '../../helpers/csv';
+import { formatPaymentAmount } from '../../helpers/render';
 import useUrlState, { parsePageParam } from '../../hooks/useUrlState';
 import {
   TOPUP_RECORD_COLUMN_WIDTHS,
@@ -414,7 +415,7 @@ const TopUpRecordsPage = ({ recordKey = 'topup', embedded = false }) => {
         width: TOPUP_RECORD_COLUMN_WIDTHS.amount,
         render: (_, order) =>
           order.amount > 0
-            ? `${order.currency || 'CNY'} ${Number(order.amount || 0).toFixed(2)}`
+            ? formatPaymentAmount(order.amount, order.currency)
             : order.quota > 0
               ? renderDisplayAmount(order.quota)
               : '-',

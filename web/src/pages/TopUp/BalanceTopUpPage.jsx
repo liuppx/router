@@ -9,9 +9,10 @@ import {
   useTopUpWorkspace,
 } from './shared.jsx';
 import { AppButton, AppSection } from '../../router-ui';
+import { formatPaymentAmount } from '../../helpers/render';
 
 const renderPlanAmount = (amount, currency) =>
-  `${Number(amount || 0).toFixed(2)} ${String(currency || 'CNY').toUpperCase()}`;
+  formatPaymentAmount(amount, currency);
 
 const renderPlanQuota = (amount, currency) =>
   `${Number(amount || 0).toFixed(2)} ${String(currency || 'USD').toUpperCase()}`;

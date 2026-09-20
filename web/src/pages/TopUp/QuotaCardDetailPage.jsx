@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { API, showError, timestamp2string } from '../../helpers';
+import { formatPaymentAmount } from '../../helpers/render';
 import {
   formatRequestCount,
   getServicePackagePeriodLabel,
@@ -147,7 +148,9 @@ const QuotaCardDetailPageInner = () => {
       [
         t('topup.quota_cards.source_amount'),
         sourceDetail?.amount
-          ? `${sourceDetail.amount} ${sourceDetail.currency || ''}`.trim()
+          ? sourceDetail.currency
+            ? formatPaymentAmount(sourceDetail.amount, sourceDetail.currency)
+            : `${sourceDetail.amount}`
           : '-',
       ],
     ];
