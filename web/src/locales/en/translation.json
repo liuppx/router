@@ -2985,6 +2985,8 @@
         "description": "Aggregate billing anomalies, circuit breaker events, and model or endpoint disablements into one handling queue.",
         "empty": "There are no alerts right now",
         "load_failed": "Failed to load alerts",
+        "acknowledge_failed": "Failed to acknowledge alert",
+        "resolve_failed": "Failed to resolve alert",
         "page_count": "{{page_count}} on this page / {{total_count}} total",
         "kpis": {
           "active_total": "Active Alerts",

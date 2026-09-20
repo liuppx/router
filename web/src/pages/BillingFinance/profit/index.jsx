@@ -161,7 +161,7 @@ function BillingPricingAnalysis() {
         const items = Array.isArray(response.data?.data?.items) ? response.data.data.items : [];
         setGroupOptions(items.map((group) => ({ key: group.id, value: group.id, text: group.name || group.id })));
       })
-      .catch(() => {});
+      .catch((error) => showError(error?.message || t('common.load_failed')));
 
     API.get('/api/v1/admin/channels/', { params: { page: 1, page_size: 500 } })
       .then((response) => {
@@ -175,7 +175,7 @@ function BillingPricingAnalysis() {
           })),
         );
       })
-      .catch(() => {});
+      .catch((error) => showError(error?.message || t('common.load_failed')));
   }, []);
 
   // Sync filters into the URL so the page is bookmarkable.

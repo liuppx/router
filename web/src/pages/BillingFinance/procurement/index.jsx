@@ -525,8 +525,8 @@ function BillingProcurementReport() {
             })
             .filter(Boolean),
         );
-      } catch {
-        // Ignore non-critical filter bootstrap failure.
+      } catch (error) {
+        showError(error?.message || t('common.load_failed'));
       }
     };
     loadProviders().then();
@@ -535,7 +535,7 @@ function BillingProcurementReport() {
         const items = response.data?.success && Array.isArray(response.data?.data?.items) ? response.data.data.items : [];
         setChannelOptions(items.map((item) => ({ key: item.id, value: String(item.id), text: item.name || String(item.id) })));
       })
-      .catch(() => {});
+      .catch((error) => showError(error?.message || t('common.load_failed')));
   }, []);
 
   useEffect(() => {

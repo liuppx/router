@@ -237,6 +237,7 @@ function AdminChannelAlertsPanel() {
         }
       } catch (error) {
         console.error('Failed to acknowledge channel alert:', error);
+        showError(error?.message || t('dashboard.admin.alerts.acknowledge_failed'));
       } finally {
         setAcknowledgingAlertID('');
       }
@@ -263,6 +264,7 @@ function AdminChannelAlertsPanel() {
       }
     } catch (error) {
       console.error('Failed to resolve channel alert:', error);
+      showError(error?.message || t('dashboard.admin.alerts.resolve_failed'));
     } finally {
       setResolvingAlertID('');
     }
