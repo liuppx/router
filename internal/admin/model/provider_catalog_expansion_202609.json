@@ -1,0 +1,357 @@
+[
+  {
+    "Provider": "moonshot",
+    "Name": "Moonshot AI / Kimi",
+    "BaseURL": "https://api.moonshot.ai",
+    "OfficialURL": "https://platform.moonshot.ai/docs",
+    "SortOrder": 215,
+    "ModelDetails": [
+      {
+        "model": "kimi-k2.5",
+        "type": "text",
+        "tags": ["reasoning", "tool_calling"],
+        "description": "Kimi K2.5 是 Moonshot AI 的通用推理和 Agent 模型。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.00045,
+        "output_price": 0.00225,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "kimi-k2.6",
+        "type": "text",
+        "tags": ["reasoning", "tool_calling"],
+        "description": "Kimi K2.6 是 Moonshot AI 的通用推理模型。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.00095,
+        "output_price": 0.004,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "kimi-k2.7-code",
+        "type": "text",
+        "tags": ["reasoning", "tool_calling"],
+        "description": "Kimi K2.7 Code 是 Moonshot AI 面向代码任务的推理模型。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.0007062,
+        "output_price": 0.00321,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      }
+    ]
+  },
+  {
+    "Provider": "amazon-nova",
+    "Name": "Amazon Nova",
+    "BaseURL": "https://aws.amazon.com/bedrock/",
+    "OfficialURL": "https://aws.amazon.com/bedrock/pricing/",
+    "SortOrder": 216,
+    "ModelDetails": [
+      {
+        "model": "nova-micro-v1",
+        "type": "text",
+        "description": "Amazon Nova Micro 是通过 Amazon Bedrock 提供的低成本文本模型。",
+        "input_price": 0.000035,
+        "output_price": 0.00014,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "nova-lite-v1",
+        "type": "text",
+        "tags": ["vision"],
+        "description": "Amazon Nova Lite 是通过 Amazon Bedrock 提供的轻量多模态模型。",
+        "input_price": 0.00006,
+        "output_price": 0.00024,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "nova-pro-v1",
+        "type": "text",
+        "tags": ["vision"],
+        "description": "Amazon Nova Pro 是通过 Amazon Bedrock 提供的多模态模型。",
+        "input_price": 0.0008,
+        "output_price": 0.0032,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "nova-premier-v1",
+        "type": "text",
+        "tags": ["vision", "tool_calling"],
+        "description": "Amazon Nova Premier 是通过 Amazon Bedrock 提供的高能力模型。",
+        "input_price": 0.0025,
+        "output_price": 0.0125,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "nova-2-lite-v1",
+        "type": "text",
+        "tags": ["vision", "tool_calling"],
+        "description": "Amazon Nova 2 Lite 是通过 Amazon Bedrock 提供的长上下文轻量模型。",
+        "input_price": 0.0003,
+        "output_price": 0.0025,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      }
+    ]
+  },
+  {
+    "Provider": "meta",
+    "Name": "Meta / Llama",
+    "BaseURL": "https://www.llama.com",
+    "OfficialURL": "https://www.llama.com/docs/overview/",
+    "SortOrder": 217,
+    "ModelDetails": [
+      {
+        "model": "llama-4-maverick",
+        "type": "text",
+        "tags": ["vision", "tool_calling"],
+        "description": "Llama 4 Maverick 是 Meta 发布的多模态开放权重模型；推理价格由实际部署渠道决定。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "source": "migration"
+      },
+      {
+        "model": "llama-4-scout",
+        "type": "text",
+        "tags": ["vision", "tool_calling"],
+        "description": "Llama 4 Scout 是 Meta 发布的长上下文多模态开放权重模型；推理价格由实际部署渠道决定。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "source": "migration"
+      },
+      {
+        "model": "llama-3.3-70b-instruct",
+        "type": "text",
+        "description": "Llama 3.3 70B Instruct 是 Meta 发布的指令微调开放权重模型；推理价格由实际部署渠道决定。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "source": "migration"
+      }
+    ]
+  },
+  {
+    "Provider": "black-forest-labs",
+    "Name": "Black Forest Labs / FLUX",
+    "BaseURL": "https://api.bfl.ai",
+    "OfficialURL": "https://docs.bfl.ai/pricing",
+    "SortOrder": 218,
+    "ModelDetails": [
+      {
+        "model": "flux-1.1-pro",
+        "type": "image",
+        "description": "FLUX 1.1 Pro 是 Black Forest Labs 的图像生成模型。",
+        "input_price": 0.04,
+        "price_unit": "per_image",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "flux-1.1-pro-ultra",
+        "type": "image",
+        "description": "FLUX 1.1 Pro Ultra 是 Black Forest Labs 的高分辨率图像生成模型。",
+        "input_price": 0.06,
+        "price_unit": "per_image",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "flux-kontext-pro",
+        "type": "image",
+        "description": "FLUX.1 Kontext Pro 是 Black Forest Labs 的图像生成和编辑模型。",
+        "supported_endpoints": ["/v1/images/generations", "/v1/images/edits"],
+        "input_price": 0.04,
+        "price_unit": "per_image",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "flux-kontext-max",
+        "type": "image",
+        "description": "FLUX.1 Kontext Max 是 Black Forest Labs 的高质量图像生成和编辑模型。",
+        "supported_endpoints": ["/v1/images/generations", "/v1/images/edits"],
+        "input_price": 0.08,
+        "price_unit": "per_image",
+        "currency": "USD",
+        "source": "migration"
+      }
+    ]
+  },
+  {
+    "Provider": "perplexity",
+    "Name": "Perplexity",
+    "BaseURL": "https://api.perplexity.ai",
+    "OfficialURL": "https://docs.perplexity.ai/docs/getting-started/pricing",
+    "SortOrder": 310,
+    "ModelDetails": [
+      {
+        "model": "sonar",
+        "type": "text",
+        "tags": ["web_search"],
+        "description": "Sonar 是 Perplexity 的联网回答模型；搜索请求和引用相关费用需在渠道层单独核验。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.001,
+        "output_price": 0.001,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "sonar-pro",
+        "type": "text",
+        "tags": ["web_search"],
+        "description": "Sonar Pro 是 Perplexity 的高能力联网回答模型；搜索请求和引用相关费用需在渠道层单独核验。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.003,
+        "output_price": 0.015,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "sonar-reasoning-pro",
+        "type": "text",
+        "tags": ["reasoning", "web_search"],
+        "description": "Sonar Reasoning Pro 是 Perplexity 的联网推理模型；搜索请求和引用相关费用需在渠道层单独核验。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.002,
+        "output_price": 0.008,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "sonar-deep-research",
+        "type": "text",
+        "tags": ["reasoning", "web_search"],
+        "description": "Sonar Deep Research 是 Perplexity 的深度联网研究模型；搜索请求和引用相关费用需在渠道层单独核验。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.002,
+        "output_price": 0.008,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      }
+    ]
+  },
+  {
+    "Provider": "voyageai",
+    "Name": "Voyage AI",
+    "BaseURL": "https://api.voyageai.com/v1",
+    "OfficialURL": "https://docs.voyageai.com/docs/pricing",
+    "SortOrder": 311,
+    "ModelDetails": [
+      {
+        "model": "voyage-4-large",
+        "type": "embedding",
+        "description": "Voyage 4 Large 是 Voyage AI 的高质量文本向量模型。",
+        "supported_endpoints": ["/v1/embeddings"],
+        "input_price": 0.00012,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "voyage-4",
+        "type": "embedding",
+        "description": "Voyage 4 是 Voyage AI 的通用文本向量模型。",
+        "supported_endpoints": ["/v1/embeddings"],
+        "input_price": 0.00006,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "voyage-4-lite",
+        "type": "embedding",
+        "description": "Voyage 4 Lite 是 Voyage AI 的低成本文本向量模型。",
+        "supported_endpoints": ["/v1/embeddings"],
+        "input_price": 0.00002,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "voyage-context-4",
+        "type": "embedding",
+        "description": "Voyage Context 4 是 Voyage AI 的长上下文文本向量模型。",
+        "supported_endpoints": ["/v1/embeddings"],
+        "input_price": 0.00012,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "rerank-3",
+        "type": "text",
+        "description": "Rerank 3 是 Voyage AI 的文档重排序模型，需要原生 rerank 渠道适配后才能发布。",
+        "supported_endpoints": ["/v1/rerank"],
+        "input_price": 0.00005,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      },
+      {
+        "model": "rerank-3-lite",
+        "type": "text",
+        "description": "Rerank 3 Lite 是 Voyage AI 的低成本文档重排序模型，需要原生 rerank 渠道适配后才能发布。",
+        "supported_endpoints": ["/v1/rerank"],
+        "input_price": 0.00002,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration"
+      }
+    ]
+  },
+  {
+    "Provider": "deepgram",
+    "Name": "Deepgram",
+    "BaseURL": "https://api.deepgram.com",
+    "OfficialURL": "https://developers.deepgram.com/docs/pricing",
+    "SortOrder": 312,
+    "ModelDetails": [
+      {
+        "model": "nova-3",
+        "type": "audio",
+        "description": "Nova-3 是 Deepgram 的语音转写模型；Router 尚未提供 Deepgram 原生请求和实时协议适配。",
+        "source": "migration"
+      },
+      {
+        "model": "nova-2",
+        "type": "audio",
+        "description": "Nova-2 是 Deepgram 的语音转写模型；Router 尚未提供 Deepgram 原生请求和实时协议适配。",
+        "source": "migration"
+      }
+    ]
+  },
+  {
+    "Provider": "assemblyai",
+    "Name": "AssemblyAI",
+    "BaseURL": "https://api.assemblyai.com",
+    "OfficialURL": "https://www.assemblyai.com/pricing",
+    "SortOrder": 313,
+    "ModelDetails": [
+      {
+        "model": "universal-3-pro",
+        "type": "audio",
+        "description": "Universal-3 Pro 是 AssemblyAI 的高精度语音转写模型；Router 尚未提供 AssemblyAI 原生异步任务适配。",
+        "source": "migration"
+      },
+      {
+        "model": "universal-3",
+        "type": "audio",
+        "description": "Universal-3 是 AssemblyAI 的语音转写模型；Router 尚未提供 AssemblyAI 原生异步任务适配。",
+        "source": "migration"
+      }
+    ]
+  }
+]

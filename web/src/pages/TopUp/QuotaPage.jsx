@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { API, showError } from '../../helpers';
-import { AppButton, AppSection, AppStatistic } from '../../router-ui';
+import { AppButton, AppSection, AppSkeleton, AppStatistic } from '../../router-ui';
 import QuotaCardItem from './QuotaCardItem';
 import SpendingCalendar from './SpendingCalendar';
 import {
@@ -198,7 +198,7 @@ const QuotaPage = () => {
             ))}
           </div>
         ) : loading ? (
-          <div className='router-empty-cell'>{t('common.loading')}</div>
+          <AppSkeleton variant='cards' count={4} />
         ) : (
           <div className='router-empty'>
             <div className='router-empty-cta'>

@@ -9,6 +9,9 @@ import (
 //go:embed provider_migration_snapshot.json
 var providerMigrationSnapshotJSON []byte
 
+//go:embed provider_catalog_expansion_202609.json
+var providerCatalogExpansion202609JSON []byte
+
 func LoadProviderMigrationSeeds(now int64) ([]ProviderSeed, error) {
 	if len(providerMigrationSnapshotJSON) == 0 {
 		return nil, fmt.Errorf("provider migration snapshot is empty")
@@ -17,6 +20,11 @@ func LoadProviderMigrationSeeds(now int64) ([]ProviderSeed, error) {
 	if err := json.Unmarshal(providerMigrationSnapshotJSON, &seeds); err != nil {
 		return nil, fmt.Errorf("unmarshal provider migration snapshot: %w", err)
 	}
+	additionalSeeds := make([]ProviderSeed, 0)
+	if err := json.Unmarshal(providerCatalogExpansion202609JSON, &additionalSeeds); err != nil {
+		return nil, fmt.Errorf("unmarshal provider catalog expansion: %w", err)
+	}
+	seeds = append(seeds, additionalSeeds...)
 	normalized := make([]ProviderSeed, 0, len(seeds))
 	for _, seed := range seeds {
 		seed.ModelDetails = normalizeProviderMigrationSeedModelDetails(

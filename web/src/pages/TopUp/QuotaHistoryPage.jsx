@@ -8,6 +8,7 @@ import {
   AppFilterHeader,
   AppPagination,
   AppSelect,
+  AppSkeleton,
 } from '../../router-ui';
 import QuotaCardItem from './QuotaCardItem';
 import TopUpWorkspaceProvider from './provider.jsx';
@@ -116,7 +117,7 @@ export const QuotaHistoryPageInner = ({ embedded = false }) => {
           ))}
         </div>
       ) : loading ? (
-        <div className='router-empty-cell'>{t('common.loading')}</div>
+        <AppSkeleton variant='cards' count={6} />
       ) : (
         <AppEmpty
           action={

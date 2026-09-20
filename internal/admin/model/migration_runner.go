@@ -2047,6 +2047,23 @@ func runMainVersionedMigrations(db *gorm.DB) error {
 				return replaceProviderMigrationSeedsWithDB(tx)
 			},
 		},
+		{
+			Version:     "202609201200_expand_official_provider_catalog",
+			Description: "add reviewed mainstream model providers from the OpenRouter provider landscape",
+			Up: func(tx *gorm.DB) error {
+				return upsertProviderMigrationProvidersWithDB(
+					tx,
+					"moonshot",
+					"amazon-nova",
+					"meta",
+					"black-forest-labs",
+					"perplexity",
+					"voyageai",
+					"deepgram",
+					"assemblyai",
+				)
+			},
+		},
 	}
 	return runVersionedMigrations(db, migrationScopeMain, migrations)
 }

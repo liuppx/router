@@ -23,6 +23,7 @@ import {
   AppDescriptions,
   AppFilterHeader,
   AppModal,
+  AppSkeleton,
   AppTooltip,
 } from '../../router-ui';
 
@@ -453,7 +454,7 @@ const TopUpOrderDetailInner = () => {
       <div className='router-entity-detail-page'>
         <AppDetailSection title={t('common.basic_info')}>
             {loading ? (
-              <div className='router-empty-cell'>{t('common.loading')}</div>
+              <AppSkeleton variant='text' rows={5} />
             ) : (
               <AppDescriptions items={detailRows} />
             )}
