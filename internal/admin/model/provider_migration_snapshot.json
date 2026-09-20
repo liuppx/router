@@ -2863,6 +2863,9 @@
       {
         "model": "gpt-transcribe",
         "type": "audio",
+        "tags": [
+          "audio"
+        ],
         "status": "active",
         "description": "GPT Transcribe 是 OpenAI 的音频转写模型。",
         "supported_endpoints": [

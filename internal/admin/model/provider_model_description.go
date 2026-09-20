@@ -86,7 +86,8 @@ func defaultProviderModelStatus(provider string, modelName string) string {
 	case "deepseek":
 		// https://api-docs.deepseek.com/quick_start/pricing
 		switch modelName {
-		case "deepseek-chat",
+		case "deepseek-v4-flash",
+			"deepseek-chat",
 			"deepseek-reasoner":
 			return ProviderModelStatusDeprecated
 		}

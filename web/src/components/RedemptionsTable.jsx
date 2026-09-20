@@ -10,6 +10,7 @@ import {
   hasLoadedPagedRows,
   timestamp2string,
   writePagedRows,
+  withCardLabels,
 } from '../helpers';
 
 import { ITEMS_PER_PAGE } from '../constants';
@@ -359,7 +360,7 @@ const RedemptionsTable = ({ headerMeta = null }) => {
 
       <div className='router-table-scroll-x'>
         <AppTable
-          className='router-hover-table router-list-table router-table-fit-page router-redemption-list-table'
+          className='router-hover-table router-list-table router-table-fit-page router-redemption-list-table router-table-cardify'
           pagination={false}
           scroll={{ x: REDEMPTION_LIST_TABLE_MIN_WIDTH }}
           rowKey={(redemption) => redemption.id}
@@ -380,7 +381,7 @@ const RedemptionsTable = ({ headerMeta = null }) => {
               });
             },
           })}
-          columns={[
+          columns={withCardLabels([
           {
             title: t('redemption.table.name'),
             dataIndex: 'name',
@@ -510,7 +511,7 @@ const RedemptionsTable = ({ headerMeta = null }) => {
               </div>
             ),
           },
-          ]}
+          ])}
         />
       </div>
       <div className='router-pagination-wrap'>

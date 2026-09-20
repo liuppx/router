@@ -598,6 +598,7 @@ func normalizeModelType(raw string, modelName string) string {
 	}
 	switch {
 	case strings.Contains(lower, "whisper"),
+		strings.Contains(lower, "transcribe"),
 		strings.HasPrefix(lower, "tts-"),
 		strings.Contains(lower, "-tts"),
 		strings.Contains(lower, "realtime"),

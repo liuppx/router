@@ -8,6 +8,7 @@ import {
   showInfo,
   showSuccess,
   timestamp2string,
+  withCardLabels,
 } from '../helpers';
 
 import { ITEMS_PER_PAGE } from '../constants';
@@ -437,7 +438,7 @@ const ChannelsTable = () => {
       <div className='router-table-scroll-x'>
         <AppSpin spinning={loading}>
           <AppTable
-            className='router-hover-table router-list-table router-table-fit-page'
+            className='router-hover-table router-list-table router-table-fit-page router-table-cardify'
           pagination={false}
           scroll={{ x: CHANNEL_LIST_TABLE_MIN_WIDTH }}
           rowKey={(channel) => channel.id}
@@ -448,7 +449,7 @@ const ChannelsTable = () => {
             onClick: () => openChannelByStatus(channel),
             className: 'router-row-clickable',
           })}
-          columns={[
+          columns={withCardLabels([
           {
             title: t('channel.table.id'),
             dataIndex: 'name',
@@ -574,7 +575,7 @@ const ChannelsTable = () => {
               </div>
             ),
           },
-          ]}
+          ])}
           />
         </AppSpin>
       </div>
