@@ -2619,7 +2619,9 @@
       "detail": "Detail",
       "edit": "Edit",
       "promote": "Promote",
-      "demote": "Demote"
+      "demote": "Demote",
+      "confirm_delete": "Delete this user? They will no longer be able to sign in. Related data is preserved.",
+      "confirm_change_status": "Change this user's status?"
     },
     "no_email": "No email linked"
   },

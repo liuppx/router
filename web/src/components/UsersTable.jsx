@@ -41,6 +41,7 @@ import {
   AppInput,
   AppModal,
   AppPagination,
+  AppPopconfirm,
   AppSelect,
   AppSpin,
   AppTable,
@@ -1012,31 +1013,45 @@ const UsersTable = () => {
                   className='router-action-group router-table-actions-icon-compact'
                   onClick={stopRowClick}
                 >
-                  <AppTableActionButton
-                    icon={user.status === 1 ? 'close' : 'check'}
-                    title={
-                      user.status === 1
-                        ? t('user.buttons.disable')
-                        : t('user.buttons.enable')
-                    }
-                    color={user.status === 1 ? undefined : 'blue'}
-                    onClick={() => {
+                  <AppPopconfirm
+                    title={t('user.buttons.confirm_change_status')}
+                    onConfirm={() => {
                       manageUser(
                         user,
                         user.status === 1 ? 'disable' : 'enable',
                       );
                     }}
                     disabled={!canManageAdminUser}
-                  />
-                  <AppTableActionButton
-                    icon='trash'
-                    title={t('user.buttons.delete')}
-                    color='red'
-                    disabled={!canManageAdminUser}
-                    onClick={() => {
+                  >
+                    <span>
+                      <AppTableActionButton
+                        icon={user.status === 1 ? 'close' : 'check'}
+                        title={
+                          user.status === 1
+                            ? t('user.buttons.disable')
+                            : t('user.buttons.enable')
+                        }
+                        color={user.status === 1 ? undefined : 'blue'}
+                        disabled={!canManageAdminUser}
+                      />
+                    </span>
+                  </AppPopconfirm>
+                  <AppPopconfirm
+                    title={t('user.buttons.confirm_delete')}
+                    onConfirm={() => {
                       manageUser(user, 'delete');
                     }}
-                  />
+                    disabled={!canManageAdminUser}
+                  >
+                    <span>
+                      <AppTableActionButton
+                        icon='trash'
+                        title={t('user.buttons.delete')}
+                        color='red'
+                        disabled={!canManageAdminUser}
+                      />
+                    </span>
+                  </AppPopconfirm>
                 </div>
               );
             },

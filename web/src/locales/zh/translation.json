@@ -2619,7 +2619,9 @@
       "detail": "详情",
       "edit": "编辑",
       "promote": "提升",
-      "demote": "降级"
+      "demote": "降级",
+      "confirm_delete": "确认删除该用户？删除后用户不可登录，相关数据保留。",
+      "confirm_change_status": "确认切换该用户状态？"
     },
     "no_email": "未绑定邮箱地址"
   },
