@@ -20,12 +20,15 @@ import {
   AppButton,
   AppCompact,
   AppDetailSection,
+  AppEmpty,
+  AppErrorState,
   AppField,
   AppFilterHeader,
   AppFormRow,
   AppInput,
   AppInputNumber,
   AppSelect,
+  AppSkeleton,
   AppTag,
 } from '../../router-ui';
 
@@ -105,6 +108,7 @@ const RedemptionDetail = () => {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [optionsLoading, setOptionsLoading] = useState(false);
   const [redemption, setRedemption] = useState(null);
@@ -207,13 +211,16 @@ const RedemptionDetail = () => {
       const res = await API.get(`/api/v1/admin/redemption/${id}`);
       const { success, message, data } = res.data;
       if (success) {
+        setLoadError(false);
         setRedemption(data);
         syncInputs(data);
         await loadOptions(normalizeFaceValueUnit(data));
       } else {
+        setLoadError(true);
         showError(message);
       }
     } catch (error) {
+      setLoadError(true);
       showError(error.message);
     } finally {
       setLoading(false);
@@ -293,6 +300,17 @@ const RedemptionDetail = () => {
         title={t('redemption.detail.title')}
       />
       <div className='router-entity-detail-page'>
+        {loading && !redemption ? (
+          <AppSkeleton variant='text' />
+        ) : loadError && !redemption ? (
+          <AppErrorState
+            message={t('common.load_failed')}
+            onRetry={loadRedemption}
+            retryText={t('common.retry')}
+          />
+        ) : !redemption ? (
+          <AppEmpty>{t('common.no_data')}</AppEmpty>
+        ) : (
         <AppDetailSection
           title={t('common.basic_info')}
           headerStart={redemption ? renderStatus(redemption.status, t) : null}
@@ -491,7 +509,7 @@ const RedemptionDetail = () => {
                   </AppField>
                 </AppFormRow>
                 <AppFormRow>
-                  <AppField label='过期时间' readOnly>
+                  <AppField label={t('redemption.detail.code_expires_at')} readOnly>
                     <AppInput
                       className='router-section-input'
                       value={
@@ -515,6 +533,7 @@ const RedemptionDetail = () => {
                   </AppField>
                 </AppFormRow>
         </AppDetailSection>
+        )}
       </div>
     </div>
   );

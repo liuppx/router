@@ -28,6 +28,8 @@ import {
 import UnitDropdown from './UnitDropdown';
 import {
   AppButton,
+  AppEmpty,
+  AppErrorState,
   AppFilterHeader,
   AppInput,
   AppPagination,
@@ -139,6 +141,7 @@ const RedemptionsTable = ({ headerMeta = null }) => {
   const currentPagePath = `${location.pathname}${location.search}${location.hash}`;
   const [redemptions, setRedemptions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [activePage, setActivePage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
@@ -190,21 +193,29 @@ const RedemptionsTable = ({ headerMeta = null }) => {
 
   const loadRedemptions = useCallback(async (page) => {
     const normalizedPage = Number(page) > 0 ? Number(page) : 1;
-    const res = await API.get(`/api/v1/admin/redemption/?page=${normalizedPage}`);
-    const { success, message, data, meta } = res.data;
-    if (success) {
-      setIsSearchMode(false);
-      setTotalCount(Number(meta?.total || data?.length || 0));
-      const nextRows = (Array.isArray(data) ? data : []).map(normalizeRedemptionRow);
-      if (normalizedPage === 1) {
-        setRedemptions(nextRows);
+    try {
+      const res = await API.get(`/api/v1/admin/redemption/?page=${normalizedPage}`);
+      const { success, message, data, meta } = res.data;
+      if (success) {
+        setLoadError(false);
+        setIsSearchMode(false);
+        setTotalCount(Number(meta?.total || data?.length || 0));
+        const nextRows = (Array.isArray(data) ? data : []).map(normalizeRedemptionRow);
+        if (normalizedPage === 1) {
+          setRedemptions(nextRows);
+        } else {
+          setRedemptions((prev) => writePagedRows(prev, normalizedPage, ITEMS_PER_PAGE, nextRows));
+        }
       } else {
-        setRedemptions((prev) => writePagedRows(prev, normalizedPage, ITEMS_PER_PAGE, nextRows));
+        if (normalizedPage === 1) setLoadError(true);
+        showError(message);
       }
-    } else {
-      showError(message);
+    } catch (error) {
+      if (normalizedPage === 1) setLoadError(true);
+      showError(error?.message || error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const onPaginationChange = (e, { activePage }) => {
@@ -362,6 +373,18 @@ const RedemptionsTable = ({ headerMeta = null }) => {
         <AppTable
           className='router-hover-table router-list-table router-table-fit-page router-redemption-list-table router-table-cardify'
           pagination={false}
+          loading={loading}
+          locale={{
+            emptyText: loadError ? (
+              <AppErrorState
+                message={t('common.load_failed')}
+                onRetry={refresh}
+                retryText={t('common.retry')}
+              />
+            ) : (
+              <AppEmpty>{t('common.no_data')}</AppEmpty>
+            ),
+          }}
           scroll={{ x: REDEMPTION_LIST_TABLE_MIN_WIDTH }}
           rowKey={(redemption) => redemption.id}
           onChange={handleTableChange}
