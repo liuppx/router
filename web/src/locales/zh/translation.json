@@ -1,4 +1,10 @@
 {
+  "error_boundary": {
+    "title": "页面出错了",
+    "description": "抱歉,页面遇到了一个问题。你可以刷新重试,或返回首页。",
+    "reload": "刷新页面",
+    "home": "返回首页"
+  },
   "header": {
     "home": "首页",
     "channel": "渠道",

@@ -8,12 +8,15 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { StatusProvider } from './context/Status';
 import { RouterUIProvider } from './router-ui';
+import ErrorBoundary from './components/ErrorBoundary';
 import './i18n';
 
 function AppShell() {
   return (
     <>
-      <App />
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
       <ToastContainer />
     </>
   );

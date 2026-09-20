@@ -1,4 +1,10 @@
 {
+  "error_boundary": {
+    "title": "Something went wrong",
+    "description": "Sorry, this page ran into a problem. Try reloading, or go back home.",
+    "reload": "Reload page",
+    "home": "Back to home"
+  },
   "header": {
     "home": "Home",
     "channel": "Channel",
