@@ -68,6 +68,7 @@ const Token = lazy(() => import('./pages/Token'));
 const EditToken = lazy(() => import('./pages/Token/EditToken'));
 const TopUp = lazy(() => import('./pages/TopUp'));
 const TopUpOrderDetail = lazy(() => import('./pages/TopUp/TopUpOrderDetail'));
+const TopUpOrderReturn = lazy(() => import('./pages/TopUp/TopUpOrderReturn'));
 const QuotaHistoryPage = lazy(() => import('./pages/TopUp/QuotaHistoryPage'));
 const QuotaCardDetailPage = lazy(
   () => import('./pages/TopUp/QuotaCardDetailPage'),
@@ -645,6 +646,14 @@ function App() {
           element={
             <Suspense fallback={<Loading />}>
               <TopUpOrderDetail />
+            </Suspense>
+          }
+        />
+        <Route
+          path='/workspace/topup/return'
+          element={
+            <Suspense fallback={<Loading />}>
+              <TopUpOrderReturn />
             </Suspense>
           }
         />

@@ -259,6 +259,18 @@
       "amount_invalid": "Please enter an amount greater than 0",
       "request_failed": "Failed to create top-up order",
       "popup_blocked": "The browser blocked the new window. Please allow pop-ups and try again.",
+      "sync": {
+        "polling": "Syncing payment status...",
+        "auto_refresh_hint": "We'll auto-sync the payment result when you return to this tab.",
+        "return_title": "Payment result",
+        "return_confirming": "Confirming payment...",
+        "return_success": "Payment successful, balance credited.",
+        "return_pending": "Payment not complete yet, will auto-confirm shortly.",
+        "return_failed": "Payment not successful. Please retry or contact admin.",
+        "return_retry": "Re-sync",
+        "return_view_detail": "View order detail",
+        "return_back_pricing": "Back to subscriptions"
+      },
       "no_link": "Admin has not set up the top-up link!",
       "plan_hint": "Choose a preset top-up plan to place the order.",
       "pay_label": "Pay {{amount}}",

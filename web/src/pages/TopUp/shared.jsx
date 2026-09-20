@@ -77,6 +77,19 @@ export const buildTopUpReturnURL = () => {
   }
 };
 
+// In-app confirmation path for a freshly created pending order. The main tab
+// navigates here (while the popup handles payment) so the user gets an
+// auto-polling "confirming payment" view instead of a stale form. Order id is
+// only known after creation, so this is a navigation target, not the payload
+// return_url.
+export const buildTopUpOrderReturnURL = (orderID = '') => {
+  const normalized = String(orderID || '').trim();
+  if (!normalized) {
+    return '';
+  }
+  return `/workspace/topup/return?order=${encodeURIComponent(normalized)}`;
+};
+
 export const normalizeTopUpResult = (raw) => {
   if (!raw || typeof raw !== 'object') {
     return null;

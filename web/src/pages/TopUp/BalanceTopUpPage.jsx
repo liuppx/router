@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { showError } from '../../helpers';
 import {
   SupportedModelsSummary,
+  buildTopUpOrderReturnURL,
   buildTopUpReturnURL,
   useTopUpWorkspace,
 } from './shared.jsx';
@@ -28,6 +30,7 @@ const renderPlanValidity = (validityDays, t) => {
 
 const BalanceTopUpPage = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { topupPlans, createTopupOrder, userBalanceAmount, renderDisplayAmount } =
     useTopUpWorkspace();
   const [creatingPlanID, setCreatingPlanID] = useState('');
@@ -40,11 +43,21 @@ const BalanceTopUpPage = () => {
     }
     setCreatingPlanID(planID);
     try {
-      await createTopupOrder({
+      const created = await createTopupOrder({
         business_type: 'balance_topup',
         plan_id: planID,
         return_url: buildTopUpReturnURL(),
       });
+      const status = String(created?.status || '').trim();
+      if (
+        created &&
+        typeof created === 'object' &&
+        created.id &&
+        status !== 'paid' &&
+        status !== 'fulfilled'
+      ) {
+        navigate(buildTopUpOrderReturnURL(created.id));
+      }
     } finally {
       setCreatingPlanID('');
     }

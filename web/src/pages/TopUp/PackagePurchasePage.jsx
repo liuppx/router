@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { API, showError, showInfo, timestamp2string } from '../../helpers';
 import {
   SupportedModelsSummary,
+  buildTopUpOrderReturnURL,
   buildTopUpReturnURL,
   useTopUpWorkspace,
 } from './shared.jsx';
@@ -138,6 +140,7 @@ const resolvePackagePurchaseOperation = (slotPackage, targetPackage) => {
 
 const PackagePurchasePage = () => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const { renderDisplayAmount, createTopupOrder, previewPackagePurchase } =
     useTopUpWorkspace();
   const [packages, setPackages] = useState([]);
@@ -232,6 +235,16 @@ const PackagePurchasePage = () => {
       });
       if (created) {
         closePreviewModal();
+        const status = String(created?.status || '').trim();
+        if (
+          created &&
+          typeof created === 'object' &&
+          created.id &&
+          status !== 'paid' &&
+          status !== 'fulfilled'
+        ) {
+          navigate(buildTopUpOrderReturnURL(created.id));
+        }
       }
     } finally {
       setCreatingPackageId('');

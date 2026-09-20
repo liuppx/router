@@ -9,6 +9,7 @@ import {
   AppTag,
 } from '../../router-ui';
 import {
+  buildTopUpOrderReturnURL,
   buildTopUpReturnURL,
   renderTopupIntegerAmountWithExactPopup,
   SupportedModelsSummary,
@@ -560,11 +561,7 @@ const CurrentPackagePage = () => {
         const orderID = String(created?.id || '').trim();
         const orderStatus = normalizeTopupOrderStatus(created?.status);
         if (orderID !== '' && PACKAGE_ORDER_PENDING_STATUSES.has(orderStatus)) {
-          pollPackageOrderUntilFinal(orderID).then(() => {
-            if (mountedRef.current) {
-              loadPackageStatus().then();
-            }
-          });
+          navigate(buildTopUpOrderReturnURL(orderID));
         } else {
           await loadPackageStatus();
         }
@@ -576,9 +573,9 @@ const CurrentPackagePage = () => {
     closePackagePreviewModal,
     createTopupOrder,
     loadPackageStatus,
+    navigate,
     packagePreviewState.packageId,
     packagePreviewState?.preview?.operation_type,
-    pollPackageOrderUntilFinal,
     t,
   ]);
 

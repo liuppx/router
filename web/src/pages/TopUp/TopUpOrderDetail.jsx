@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -37,6 +37,8 @@ const normalizeRecordKey = (value = '') => {
 };
 
 const SYNCABLE_TOPUP_ORDER_STATUSES = new Set(['created', 'pending', 'paid']);
+const TOPUP_ORDER_POLL_INTERVAL_MS = 5000;
+const TOPUP_ORDER_POLL_TIMEOUT_MS = 180000;
 
 const TopUpOrderDetailInner = () => {
   const { t } = useTranslation();
@@ -48,6 +50,10 @@ const TopUpOrderDetailInner = () => {
   const [order, setOrder] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [canceling, setCanceling] = useState(false);
+  const pollTimerRef = useRef(null);
+  const pollDeadlineRef = useRef(0);
+  const orderRef = useRef(null);
+  const refreshOrderStatusRef = useRef(null);
 
   const loadDetail = useCallback(async () => {
     const normalizedOrderID = String(id || '').trim();
@@ -75,6 +81,49 @@ const TopUpOrderDetailInner = () => {
   useEffect(() => {
     loadDetail().then();
   }, [loadDetail]);
+
+  useEffect(() => {
+    orderRef.current = order;
+  }, [order]);
+
+  // Auto-poll payment status for syncable orders while the detail page is open.
+  // Stops on terminal status or when the timeout elapses; cleans up on unmount.
+  useEffect(() => {
+    const orderStatus = String(order?.status || '').trim();
+    if (!order?.id || !SYNCABLE_TOPUP_ORDER_STATUSES.has(orderStatus)) {
+      return undefined;
+    }
+    pollDeadlineRef.current = Date.now() + TOPUP_ORDER_POLL_TIMEOUT_MS;
+
+    const tick = () => {
+      const current = String(orderRef.current?.status || '').trim();
+      if (!SYNCABLE_TOPUP_ORDER_STATUSES.has(current)) {
+        return;
+      }
+      if (Date.now() > pollDeadlineRef.current) {
+        return;
+      }
+      refreshOrderStatusRef.current?.();
+    };
+
+    pollTimerRef.current = window.setInterval(tick, TOPUP_ORDER_POLL_INTERVAL_MS);
+
+    const onFocus = () => {
+      const current = String(orderRef.current?.status || '').trim();
+      if (SYNCABLE_TOPUP_ORDER_STATUSES.has(current)) {
+        refreshOrderStatusRef.current?.();
+      }
+    };
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      if (pollTimerRef.current) {
+        window.clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [order?.id, order?.status]);
 
   const recordKey = useMemo(() => {
     const stateRecordKey = normalizeRecordKey(location.state?.recordKey || '');
@@ -116,6 +165,10 @@ const TopUpOrderDetailInner = () => {
       setRefreshing(false);
     }
   }, [order?.id, t]);
+
+  useEffect(() => {
+    refreshOrderStatusRef.current = refreshOrderStatus;
+  }, [refreshOrderStatus]);
 
   const continuePay = useCallback(async () => {
     const refreshed = await refreshOrderStatus();

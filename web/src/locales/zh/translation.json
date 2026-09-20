@@ -259,6 +259,18 @@
       "amount_invalid": "请输入大于 0 的充值金额",
       "request_failed": "创建充值订单失败",
       "popup_blocked": "浏览器拦截了新窗口，请允许弹窗后重试",
+      "sync": {
+        "polling": "正在同步支付状态...",
+        "auto_refresh_hint": "切回本页面时自动同步支付结果",
+        "return_title": "支付结果确认",
+        "return_confirming": "正在确认支付结果…",
+        "return_success": "支付成功,额度已到账",
+        "return_pending": "支付尚未完成,稍后将自动确认",
+        "return_failed": "支付未成功,请重试或联系管理员",
+        "return_retry": "重新同步",
+        "return_view_detail": "查看订单详情",
+        "return_back_pricing": "返回套餐页"
+      },
       "no_link": "超级管理员未设置充值链接！",
       "plan_hint": "请选择固定充值额度进行下单。",
       "pay_label": "支付 {{amount}}",
