@@ -48,14 +48,9 @@ const BalanceTopUpPage = () => {
         plan_id: planID,
         return_url: buildTopUpReturnURL(),
       });
-      const status = String(created?.status || '').trim();
-      if (
-        created &&
-        typeof created === 'object' &&
-        created.id &&
-        status !== 'paid' &&
-        status !== 'fulfilled'
-      ) {
+      // 需跳转支付的订单与即时到账(paid/fulfilled)的充值都落到承接页,
+      // 由承接页确认状态并给出「下一步」引导(创建令牌/看指南)。
+      if (created && typeof created === 'object' && created.id) {
         navigate(buildTopUpOrderReturnURL(created.id));
       }
     } finally {

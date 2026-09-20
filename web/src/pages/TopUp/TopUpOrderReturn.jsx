@@ -134,6 +134,29 @@ const TopUpOrderReturn = () => {
           <div className='router-empty-cell'>
             {t('topup.external_topup.sync.return_success')}
           </div>
+          <div className='router-topup-return-next'>
+            <div className='router-topup-return-next-title'>
+              {t('topup.external_topup.sync.next_steps_title')}
+            </div>
+            <div className='router-topup-return-next-hint'>
+              {t('topup.external_topup.sync.next_steps_hint')}
+            </div>
+            <div className='router-topup-return-next-actions'>
+              <AppButton
+                className='router-section-button'
+                color='blue'
+                onClick={() => navigate('/workspace/token')}
+              >
+                {t('topup.external_topup.sync.next_create_token')}
+              </AppButton>
+              <AppButton
+                className='router-section-button'
+                onClick={() => navigate('/workspace/service/cli-guide')}
+              >
+                {t('topup.external_topup.sync.next_view_guide')}
+              </AppButton>
+            </div>
+          </div>
         </AppSection>
       );
     }

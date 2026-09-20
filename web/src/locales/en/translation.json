@@ -280,7 +280,11 @@
         "return_failed_hint": "Open the order details to reorder with the same parameters.",
         "return_retry": "Re-sync",
         "return_view_detail": "View order detail",
-        "return_back_pricing": "Back to subscriptions"
+        "return_back_pricing": "Back to subscriptions",
+        "next_steps_title": "Next steps",
+        "next_steps_hint": "Balance credited. Create an API token and make your first call.",
+        "next_create_token": "Create API token",
+        "next_view_guide": "View setup guide"
       },
       "no_link": "Admin has not set up the top-up link!",
       "plan_hint": "Choose a preset top-up plan to place the order.",

@@ -280,7 +280,11 @@
         "return_failed_hint": "可打开订单详情,用原参数重新下单。",
         "return_retry": "重新同步",
         "return_view_detail": "查看订单详情",
-        "return_back_pricing": "返回套餐页"
+        "return_back_pricing": "返回套餐页",
+        "next_steps_title": "下一步",
+        "next_steps_hint": "额度已到账,现在去创建 API 令牌并发起首次调用。",
+        "next_create_token": "创建 API 令牌",
+        "next_view_guide": "查看接入指南"
       },
       "no_link": "超级管理员未设置充值链接！",
       "plan_hint": "请选择固定充值额度进行下单。",

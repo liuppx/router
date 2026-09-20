@@ -235,14 +235,9 @@ const PackagePurchasePage = () => {
       });
       if (created) {
         closePreviewModal();
-        const status = String(created?.status || '').trim();
-        if (
-          created &&
-          typeof created === 'object' &&
-          created.id &&
-          status !== 'paid' &&
-          status !== 'fulfilled'
-        ) {
+        // 无论是需跳转支付的订单,还是即时到账(paid/fulfilled)的套餐,
+        // 都落到承接页:承接页会确认状态并给出「下一步」引导(创建令牌/看指南)。
+        if (created && typeof created === 'object' && created.id) {
           navigate(buildTopUpOrderReturnURL(created.id));
         }
       }

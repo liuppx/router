@@ -572,6 +572,44 @@ html[data-theme='dark'] .router-error-boundary-detail {
     color: rgba(226, 232, 240, 0.42);
 }
 
+/* 充值/购买成功承接页:「下一步」引导块 */
+.router-topup-return-next {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(22, 119, 255, 0.18);
+    background: rgba(22, 119, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.router-topup-return-next-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(15, 23, 42, 0.92);
+}
+.router-topup-return-next-hint {
+    font-size: 13px;
+    color: rgba(15, 23, 42, 0.6);
+    line-height: 1.6;
+}
+.router-topup-return-next-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+html[data-theme='dark'] .router-topup-return-next {
+    border-color: rgba(96, 165, 250, 0.28);
+    background: rgba(96, 165, 250, 0.1);
+}
+html[data-theme='dark'] .router-topup-return-next-title {
+    color: rgba(241, 245, 249, 0.92);
+}
+html[data-theme='dark'] .router-topup-return-next-hint {
+    color: rgba(226, 232, 240, 0.62);
+}
+
 .router-header-message-badge {
     position: absolute;
     top: -4px;

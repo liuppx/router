@@ -3480,6 +3480,51 @@
             }
           }
         }
+      },
+      {
+        "model": "claude-fable-5-1",
+        "type": "text",
+        "status": "active",
+        "description": "Claude Fable 5.1 是 Anthropic 的高能力 Claude 模型。",
+        "supported_endpoints": [
+          "/v1/messages"
+        ],
+        "input_price": 0.01,
+        "output_price": 0.05,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "updated_at": 1700000000
+      },
+      {
+        "model": "claude-opus-5",
+        "type": "text",
+        "status": "active",
+        "description": "Claude Opus 5 是 Anthropic 的旗舰 Claude 模型。",
+        "supported_endpoints": [
+          "/v1/messages"
+        ],
+        "input_price": 0.005,
+        "output_price": 0.025,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "updated_at": 1700000000
+      },
+      {
+        "model": "claude-sonnet-5",
+        "type": "text",
+        "status": "active",
+        "description": "Claude Sonnet 5 是 Anthropic 的均衡型 Claude 模型。",
+        "supported_endpoints": [
+          "/v1/messages"
+        ],
+        "input_price": 0.002,
+        "output_price": 0.01,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "updated_at": 1700000000
       }
     ]
   },
@@ -3523,6 +3568,25 @@
         ],
         "input_price": 0.00066,
         "output_price": 0.00198,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "updated_at": 1700000000
+      },
+      {
+        "model": "deepseek-flash",
+        "type": "text",
+        "tags": [
+          "reasoning"
+        ],
+        "status": "active",
+        "description": "DeepSeek Flash 是 DeepSeek 当前入口模型，支持非思考和思考模式。",
+        "supported_endpoints": [
+          "/v1/chat/completions",
+          "/v1/messages"
+        ],
+        "input_price": 0.0003,
+        "output_price": 0.0012,
         "price_unit": "per_1k_tokens",
         "currency": "USD",
         "source": "migration",
@@ -6508,6 +6572,65 @@
         "currency": "CNY",
         "source": "migration",
         "updated_at": 1700000000
+      },
+      {
+        "model": "qwen3.8-max",
+        "type": "text",
+        "status": "active",
+        "description": "Qwen3.8 Max 是阿里云百炼当前提供的文本和视觉理解模型。",
+        "supported_endpoints": [
+          "/v1/chat/completions",
+          "/v1/responses"
+        ],
+        "price_unit": "per_1k_tokens",
+        "currency": "CNY",
+        "source": "migration",
+        "updated_at": 1700000000
+      },
+      {
+        "model": "qwen3.8-flash",
+        "type": "text",
+        "status": "active",
+        "description": "Qwen3.8 Flash 是阿里云百炼当前提供的低延迟文本和视觉理解模型。",
+        "supported_endpoints": [
+          "/v1/chat/completions",
+          "/v1/responses"
+        ],
+        "price_unit": "per_1k_tokens",
+        "currency": "CNY",
+        "source": "migration",
+        "updated_at": 1700000000
+      },
+      {
+        "model": "qwen3.8-omni-flash",
+        "type": "text",
+        "tags": [
+          "audio",
+          "vision",
+          "tool_calling"
+        ],
+        "status": "active",
+        "description": "Qwen3.8 Omni Flash 是支持文本、图像、音频和视频理解的多模态模型。",
+        "supported_endpoints": [
+          "/v1/chat/completions"
+        ],
+        "price_unit": "per_1k_tokens",
+        "currency": "CNY",
+        "source": "migration",
+        "updated_at": 1700000000
+      },
+      {
+        "model": "qwen-image-3.0-pro",
+        "type": "image",
+        "status": "active",
+        "description": "Qwen Image 3.0 Pro 是阿里云百炼当前提供的图像生成模型。",
+        "supported_endpoints": [
+          "/v1/images/generations"
+        ],
+        "price_unit": "per_image",
+        "currency": "CNY",
+        "source": "migration",
+        "updated_at": 1700000000
       }
     ]
   },
@@ -7567,6 +7690,42 @@
         ],
         "input_price": 0.1,
         "price_unit": "per_image",
+        "currency": "CNY",
+        "source": "migration",
+        "updated_at": 1700000000
+      },
+      {
+        "model": "glm-5.3",
+        "type": "text",
+        "tags": [
+          "reasoning",
+          "tool_calling"
+        ],
+        "status": "active",
+        "description": "GLM-5.3 是智谱当前提供的新一代通用模型。",
+        "supported_endpoints": [
+          "/v1/chat/completions",
+          "/v1/messages"
+        ],
+        "price_unit": "per_1k_tokens",
+        "currency": "CNY",
+        "source": "migration",
+        "updated_at": 1700000000
+      },
+      {
+        "model": "glm-5.3-flash",
+        "type": "text",
+        "tags": [
+          "reasoning",
+          "tool_calling"
+        ],
+        "status": "active",
+        "description": "GLM-5.3 Flash 是智谱当前提供的快速通用模型。",
+        "supported_endpoints": [
+          "/v1/chat/completions",
+          "/v1/messages"
+        ],
+        "price_unit": "per_1k_tokens",
         "currency": "CNY",
         "source": "migration",
         "updated_at": 1700000000
