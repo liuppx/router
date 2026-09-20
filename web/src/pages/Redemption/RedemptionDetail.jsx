@@ -234,10 +234,6 @@ const RedemptionDetail = () => {
       showError(t('redemption.messages.name_required'));
       return;
     }
-    if ((inputs.group_id || '').trim() === '') {
-      showError(t('redemption.messages.group_required'));
-      return;
-    }
     setSaving(true);
     try {
       const res = await API.put('/api/v1/admin/redemption/', {
@@ -333,7 +329,7 @@ const RedemptionDetail = () => {
           bodyClassName='router-page-stack'
         >
                 <AppFormRow>
-                  {isEditing && false ? (
+                  {isEditing ? (
                     <AppField label={t('redemption.edit.name')}>
                       <AppInput
                         className='router-section-input'
@@ -459,29 +455,16 @@ const RedemptionDetail = () => {
                       />
                     </AppField>
                   )}
-                  {isEditing ? (
-                    <AppField label={t('redemption.edit.credit_validity_days')}>
-                      <AppInputNumber
-                        className='router-section-input'
-                        fluid
-                        name='credit_validity_days'
-                        value={inputs.credit_validity_days}
-                        placeholder={t('redemption.edit.credit_validity_days_placeholder')}
-                        onChange={handleInputChange}
-                        min={0}
-                      />
-                    </AppField>
-                  ) : (
-                    <AppField label={t('redemption.detail.credit_validity_days')} readOnly>
-                      <AppInput
-                        className='router-section-input'
-                        value={Number(redemption?.validity_days_snapshot || 0) > 0
-                          ? `${Number(redemption?.validity_days_snapshot || 0)} ${t('common.day')}`
-                          : t('common.never')}
-                        readOnly
-                      />
-                    </AppField>
-                  )}
+                  {/* credit_validity_days 后端更新接口不支持写入,故仅只读展示 */}
+                  <AppField label={t('redemption.detail.credit_validity_days')} readOnly>
+                    <AppInput
+                      className='router-section-input'
+                      value={Number(redemption?.validity_days_snapshot || 0) > 0
+                        ? `${Number(redemption?.validity_days_snapshot || 0)} ${t('common.day')}`
+                        : t('common.never')}
+                      readOnly
+                    />
+                  </AppField>
                 </AppFormRow>
                 <AppFormRow>
                   <AppField label={t('redemption.table.created_time')} readOnly>
