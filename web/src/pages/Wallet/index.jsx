@@ -155,9 +155,11 @@ const WalletPage = () => {
       />
       <h2 className='router-page-title'>钱包工具</h2>
       {!hasWallet && (
-        <AppAlert type='warning' className='router-section-message' title={
-          未检测到 `window.ethereum`，请安装 MetaMask 或打开浏览器钱包后刷新。
-        } />
+        <AppAlert
+          type='warning'
+          className='router-section-message'
+          title='未检测到 window.ethereum,请安装 MetaMask 或打开浏览器钱包后刷新。'
+        />
       )}
       <AppSection>
         <div className='router-page-stack'>
