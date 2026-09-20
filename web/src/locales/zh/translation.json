@@ -2348,6 +2348,35 @@
       "create_token": "创建令牌",
       "open_chat": "打开 Chat"
     },
+    "checklist": {
+      "title": "入门清单",
+      "progress_label": "进度 {done}/{total}",
+      "done_label": "已完成入门",
+      "dismiss": "不再提示",
+      "restore": "重新显示清单",
+      "items": {
+        "token": {
+          "title": "创建令牌",
+          "description": "创建令牌以接入 Router,用于调用 API 或客户端。",
+          "cta": "去创建"
+        },
+        "quota": {
+          "title": "获取额度",
+          "description": "购买套餐或充值余额,让调用有额度可用。",
+          "cta": "去获取"
+        },
+        "first_call": {
+          "title": "发起首次调用",
+          "description": "按使用说明把 Router 接到应用、终端或 Chat。",
+          "cta": "查看说明"
+        },
+        "email": {
+          "title": "绑定邮箱",
+          "description": "绑定邮箱以接收支付回调、密钥通知与低余额提醒。",
+          "cta": "去绑定"
+        }
+      }
+    },
     "steps": {
       "pricing": {
         "title": "获取额度",

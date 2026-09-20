@@ -2348,6 +2348,35 @@
       "create_token": "Create token",
       "open_chat": "Open Chat"
     },
+    "checklist": {
+      "title": "Onboarding checklist",
+      "progress_label": "Progress {done}/{total}",
+      "done_label": "Onboarding complete",
+      "dismiss": "Don't show again",
+      "restore": "Show the checklist again",
+      "items": {
+        "token": {
+          "title": "Create a token",
+          "description": "Create a token to connect Router for API calls or client usage.",
+          "cta": "Create"
+        },
+        "quota": {
+          "title": "Get quota",
+          "description": "Buy a package or top up balance so calls have quota to use.",
+          "cta": "Get quota"
+        },
+        "first_call": {
+          "title": "Send your first request",
+          "description": "Connect Router to your app, terminal, or Chat via the usage guide.",
+          "cta": "View guide"
+        },
+        "email": {
+          "title": "Bind your email",
+          "description": "Bind your email for payment receipts, key notices, and low-balance alerts.",
+          "cta": "Bind"
+        }
+      }
+    },
     "steps": {
       "pricing": {
         "title": "Get quota",

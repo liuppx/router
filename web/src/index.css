@@ -3591,6 +3591,136 @@ body,
     gap: 16px;
 }
 
+.router-workspace-start-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.router-workspace-start-checklist-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.router-workspace-start-checklist-title {
+    color: #111827;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.router-workspace-start-checklist-progress {
+    color: #4b5563;
+    font-size: 13px;
+}
+
+.router-workspace-start-checklist-done {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #047857;
+    font-size: 13px;
+}
+
+.router-workspace-start-checklist-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.router-workspace-start-checklist-item {
+    display: grid;
+    grid-template-columns: 24px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: transparent;
+}
+
+.router-workspace-start-checklist-item.is-done {
+    border-color: rgba(5, 150, 105, 0.4);
+    background: rgba(5, 150, 105, 0.04);
+}
+
+.router-workspace-start-checklist-status {
+    color: #6b7280;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.router-workspace-start-checklist-item.is-done .router-workspace-start-checklist-status {
+    color: #047857;
+}
+
+.router-workspace-start-checklist-body {
+    min-width: 0;
+}
+
+.router-workspace-start-checklist-item-title {
+    color: #111827;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.router-workspace-start-checklist-item-description {
+    color: #4b5563;
+    font-size: 13px;
+    line-height: 1.55;
+    margin-top: 2px;
+}
+
+.router-workspace-start-checklist-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+html[data-theme='dark'] .router-workspace-start-checklist-item {
+    border-color: rgba(148, 163, 184, 0.24);
+}
+
+html[data-theme='dark'] .router-workspace-start-checklist-item.is-done {
+    border-color: rgba(5, 150, 105, 0.6);
+    background: rgba(5, 150, 105, 0.12);
+}
+
+html[data-theme='dark'] .router-workspace-start-checklist-item-title {
+    color: #e5e7eb;
+}
+
+html[data-theme='dark'] .router-workspace-start-checklist-item-description {
+    color: #94a3b8;
+}
+
+html[data-theme='dark'] .router-workspace-start-checklist-title {
+    color: #e5e7eb;
+}
+
+html[data-theme='dark'] .router-workspace-start-checklist-progress {
+    color: #94a3b8;
+}
+
+html[data-theme='dark'] .router-workspace-start-checklist-status {
+    color: #94a3b8;
+}
+
+@media (max-width: 640px) {
+    .router-workspace-start-checklist-item {
+        grid-template-columns: 24px 1fr;
+    }
+    .router-workspace-start-checklist-item .router-inline-button {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+}
+
 .router-workspace-start-grid {
     display: grid;
     gap: 12px;

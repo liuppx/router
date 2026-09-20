@@ -3068,6 +3068,72 @@ func GetCurrentUserQuotaOverview(c *gin.Context) {
 	})
 }
 
+// GetCurrentUserOnboardingProgress 聚合新用户入门完成度信号,前端一个请求即可渲染
+// checklist,避免分别拉令牌/余额/套餐/日志多个接口。均为 best-effort 只读聚合。
+func GetCurrentUserOnboardingProgress(c *gin.Context) {
+	userID := strings.TrimSpace(c.GetString(ctxkey.Id))
+	if userID == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "用户 ID 不能为空",
+		})
+		return
+	}
+
+	var tokenTotal int64
+	if err := model.DB.Model(&model.Token{}).Where("user_id = ?", userID).Count(&tokenTotal).Error; err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	balance, err := loadTopUpBalanceSummaryWithDB(model.DB, userID, helper.GetTimestamp())
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+	hasBalance := balance.TotalBalanceAmount > 0
+
+	packagePayload, err := loadActiveUserPackageSubscriptionPayload(userID)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	var logTotal int64
+	if err := model.DB.Model(&model.Log{}).Where("user_id = ?", userID).Count(&logTotal).Error; err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	emailBound := false
+	if user, err := usersvc.GetByID(userID, false); err == nil && user != nil {
+		emailBound = strings.TrimSpace(user.Email) != ""
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data": gin.H{
+			"has_token":              tokenTotal > 0,
+			"has_balance_or_package": hasBalance || packagePayload.HasActivePackages,
+			"has_api_call":           logTotal > 0,
+			"email_bound":            emailBound,
+		},
+	})
+}
+
 func GetCurrentUserQuotaCards(c *gin.Context) {
 	userID := strings.TrimSpace(c.GetString(ctxkey.Id))
 	if userID == "" {
