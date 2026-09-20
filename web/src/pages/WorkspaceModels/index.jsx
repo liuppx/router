@@ -13,6 +13,7 @@ import {
   AppPopover,
   AppSegmented,
   AppSection,
+  AppSkeleton,
   AppSpin,
   AppTag,
   AppTooltip,
@@ -526,9 +527,13 @@ const WorkspaceModels = () => {
           ))}
         </div>
         {filteredModels.length === 0 ? (
-          <div className='workspace-models-empty'>
-            {loading ? t('common.loading') : t('workspace_models.empty')}
-          </div>
+          loading ? (
+            <AppSkeleton variant='list' count={6} />
+          ) : (
+            <div className='workspace-models-empty'>
+              {t('workspace_models.empty')}
+            </div>
+          )
         ) : (
           <div className='workspace-models-list'>
             {filteredModels.map((item) => {
