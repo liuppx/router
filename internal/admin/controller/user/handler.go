@@ -3134,6 +3134,111 @@ func GetCurrentUserOnboardingProgress(c *gin.Context) {
 	})
 }
 
+// userNotificationSettingsRequest 与用户侧通知偏好 PUT 体对应。
+// LowBalanceThreshold 可空:客户端传 nil 或数字。空指针 / 0 都视为「未设置」(走全局默认)。
+// NotifyOnLowBalance 可空:nil 表示「未设置」(应用层视为 true);显式 true/false 一律持久化。
+type userNotificationSettingsRequest struct {
+	LowBalanceThreshold *int64 `json:"low_balance_threshold"`
+	NotifyOnLowBalance  *bool  `json:"notify_on_low_balance"`
+}
+
+// resolveNotifyOnLowBalance 把 nullable 列翻译为应用层布尔:nil/缺省视为 true。
+func resolveNotifyOnLowBalance(value *bool) bool {
+	if value == nil {
+		return true
+	}
+	return *value
+}
+
+// GetCurrentUserNotificationSettings 返回当前用户的低余额提醒偏好,包含全局默认阈值,
+// 供 PersonalSetting 与 LowBalanceBanner 共用。
+func GetCurrentUserNotificationSettings(c *gin.Context) {
+	userID := strings.TrimSpace(c.GetString(ctxkey.Id))
+	if userID == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "用户 ID 不能为空",
+		})
+		return
+	}
+	user, err := usersvc.GetByID(userID, false)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data": gin.H{
+			"low_balance_threshold": user.LowBalanceThreshold,
+			"notify_on_low_balance": resolveNotifyOnLowBalance(user.NotifyOnLowBalance),
+			"default_threshold":     config.UserBalanceLowNotificationThreshold,
+		},
+	})
+}
+
+// UpdateCurrentUserNotificationSettings 仅持久化低余额提醒相关的两列,绕过 usersvc.Update
+// 的固定列白名单。低余额阈值空值或 0 视为「恢复系统默认」。
+func UpdateCurrentUserNotificationSettings(c *gin.Context) {
+	userID := strings.TrimSpace(c.GetString(ctxkey.Id))
+	if userID == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "用户 ID 不能为空",
+		})
+		return
+	}
+	var req userNotificationSettingsRequest
+	if err := json.NewDecoder(c.Request.Body).Decode(&req); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": i18n.Translate(c, "invalid_parameter"),
+		})
+		return
+	}
+	if req.LowBalanceThreshold != nil && *req.LowBalanceThreshold < 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "低余额阈值必须是非负整数",
+		})
+		return
+	}
+	if _, err := usersvc.GetByID(userID, false); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+	updates := map[string]any{
+		"updated_at": helper.GetTimestamp(),
+	}
+	if req.LowBalanceThreshold != nil {
+		if *req.LowBalanceThreshold > 0 {
+			updates["low_balance_threshold"] = *req.LowBalanceThreshold
+		} else {
+			updates["low_balance_threshold"] = nil
+		}
+	}
+	if req.NotifyOnLowBalance != nil {
+		updates["notify_on_low_balance"] = *req.NotifyOnLowBalance
+	}
+	if err := model.DB.Model(&model.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+	})
+}
+
 func GetCurrentUserQuotaCards(c *gin.Context) {
 	userID := strings.TrimSpace(c.GetString(ctxkey.Id))
 	if userID == "" {

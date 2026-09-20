@@ -95,6 +95,8 @@ func SetApiRouter(engine *gin.Engine) {
 				publicSelfRoute.GET("/tasks/:id", task.GetCurrentUserTask)
 				publicSelfRoute.PUT("/self", user.UpdateSelf)
 				publicSelfRoute.POST("/self/password", user.UpdateSelfPassword)
+				publicSelfRoute.GET("/self/notification", user.GetCurrentUserNotificationSettings)
+				publicSelfRoute.PUT("/self/notification", user.UpdateCurrentUserNotificationSettings)
 				publicSelfRoute.DELETE("/self", user.DeleteSelf)
 				publicSelfRoute.GET("/token", user.GenerateAccessToken)
 				publicSelfRoute.GET("/aff", user.GetAffCode)

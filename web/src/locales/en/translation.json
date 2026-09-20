@@ -4228,19 +4228,38 @@
     "unset": "Not set",
     "set": "Set",
     "section": {
-      "account_info": "Account info"
+      "account_info": "Account info",
+      "notification_preferences": "Notification preferences"
     },
     "placeholder": {
-      "email": "Enter your email address"
+      "email": "Enter your email address",
+      "low_balance_threshold": "Leave empty to use the system default"
     },
     "error": {
       "user_missing": "User information is missing",
       "email_required": "Please enter an email address",
-      "current_password_required": "Please enter your current password"
+      "current_password_required": "Please enter your current password",
+      "low_balance_threshold_invalid": "Threshold must be a non-negative integer",
+      "notification_load_failed": "Failed to load notification preferences"
     },
     "avatar": {
       "alt": "User avatar"
+    },
+    "notification": {
+      "email_low_balance": "Email me when balance is low",
+      "email_low_balance_hint": "When off, low-balance reminder emails are suppressed, but the in-app banner will still appear.",
+      "low_balance_threshold": "Low balance threshold",
+      "low_balance_threshold_hint": "A reminder fires when your available balance drops below this value. Leave empty to use the system default.",
+      "default_threshold_label": "System default: {amount}",
+      "save": "Save notification preferences",
+      "saved": "Notification preferences saved",
+      "save_failed": "Failed to save notification preferences"
     }
+  },
+  "low_balance_banner": {
+    "message": "Your current balance {balance} is below the reminder threshold {threshold}. Please top up soon.",
+    "action": "Top up",
+    "dismiss": "Dismiss"
   },
   "wallet": {
     "not_detected": "No wallet detected. Please install MetaMask or enable a browser wallet.",

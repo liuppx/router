@@ -6012,3 +6012,32 @@ html[data-theme='dark'] .router-workspace-start-checklist-status {
     font-size: 0.9em !important;
   }
 }
+
+/* 站内低余额提醒 banner — 挂在 workspace 内容列顶部 */
+.router-low-balance-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 0 0 4px 0;
+}
+
+.router-low-balance-banner .router-low-balance-banner-alert {
+  margin: 0;
+}
+
+.router-low-balance-banner-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+@media screen and (max-width: 640px) {
+  .router-low-balance-banner-actions {
+    justify-content: stretch;
+  }
+  .router-low-balance-banner-actions .router-section-button {
+    flex: 1 1 auto;
+  }
+}

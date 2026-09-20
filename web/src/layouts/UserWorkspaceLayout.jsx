@@ -5,6 +5,7 @@ import { DoubleLeftOutlined, DoubleRightOutlined } from '@ant-design/icons';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
 import AdminSidebar from '../components/AdminSidebar';
+import LowBalanceBanner from '../components/LowBalanceBanner';
 import { AppButton, AppSider } from '../router-ui';
 
 const USER_SIDEBAR_COMPACT_STORAGE_KEY = 'router_user_sidebar_compact_v1';
@@ -67,6 +68,7 @@ const UserWorkspaceLayout = () => {
           />
         </AppSider>
         <div className='main-content router-admin-main'>
+          <LowBalanceBanner />
           <Outlet />
         </div>
       </div>

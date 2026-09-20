@@ -4228,19 +4228,38 @@
     "unset": "未设置",
     "set": "已设置",
     "section": {
-      "account_info": "账户信息"
+      "account_info": "账户信息",
+      "notification_preferences": "通知偏好"
     },
     "placeholder": {
-      "email": "请输入邮箱地址"
+      "email": "请输入邮箱地址",
+      "low_balance_threshold": "留空表示使用系统默认"
     },
     "error": {
       "user_missing": "用户信息不存在",
       "email_required": "请输入邮箱地址",
-      "current_password_required": "请输入当前密码"
+      "current_password_required": "请输入当前密码",
+      "low_balance_threshold_invalid": "阈值必须是非负整数",
+      "notification_load_failed": "通知偏好加载失败"
     },
     "avatar": {
       "alt": "用户头像"
+    },
+    "notification": {
+      "email_low_balance": "余额不足时邮件提醒",
+      "email_low_balance_hint": "关闭后,可用余额低于阈值时不再发送邮件提醒,但站内 banner 仍会出现。",
+      "low_balance_threshold": "低余额阈值",
+      "low_balance_threshold_hint": "可用余额低于该值时,触发提醒。留空表示使用系统默认阈值。",
+      "default_threshold_label": "系统默认:{amount}",
+      "save": "保存通知偏好",
+      "saved": "通知偏好已保存",
+      "save_failed": "通知偏好保存失败"
     }
+  },
+  "low_balance_banner": {
+    "message": "当前余额 {balance} 已低于提醒阈值 {threshold},建议尽快充值。",
+    "action": "去充值",
+    "dismiss": "关闭"
   },
   "wallet": {
     "not_detected": "未检测到钱包，请安装 MetaMask 或开启浏览器钱包",

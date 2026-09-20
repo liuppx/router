@@ -7,8 +7,10 @@ import {
   AppField,
   AppFormRow,
   AppInput,
+  AppInputNumber,
   AppModal,
   AppSection,
+  AppSwitch,
 } from '../router-ui';
 
 const defaultPasswordModal = {
@@ -50,6 +52,14 @@ const PersonalSetting = () => {
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [profileSubmitting, setProfileSubmitting] = useState(false);
   const [passwordModal, setPasswordModal] = useState(defaultPasswordModal);
+  const [notificationLoading, setNotificationLoading] = useState(false);
+  const [notificationSaving, setNotificationSaving] = useState(false);
+  const [notificationSettings, setNotificationSettings] = useState({
+    low_balance_threshold: null,
+    notify_on_low_balance: true,
+    default_threshold: 0,
+  });
+  const [lowBalanceThresholdInput, setLowBalanceThresholdInput] = useState('');
 
   useEffect(() => {
     setUsername(currentUser?.username || '');
@@ -64,6 +74,95 @@ const PersonalSetting = () => {
     }
     syncCurrentUser();
   }, [currentUser]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadNotificationSettings = async () => {
+      setNotificationLoading(true);
+      try {
+        const res = await API.get('/api/v1/public/user/self/notification');
+        const { success, data } = res?.data || {};
+        if (cancelled) return;
+        if (success && data && typeof data === 'object') {
+          setNotificationSettings({
+            low_balance_threshold:
+              typeof data.low_balance_threshold === 'number'
+                ? data.low_balance_threshold
+                : null,
+            notify_on_low_balance:
+              typeof data.notify_on_low_balance === 'boolean'
+                ? data.notify_on_low_balance
+                : true,
+            default_threshold:
+              typeof data.default_threshold === 'number'
+                ? data.default_threshold
+                : 0,
+          });
+        }
+      } catch (error) {
+        // 设置页不应因加载失败弹出明显错误条幅;静默。
+        if (!cancelled) {
+          showError(
+            error?.message ||
+              t('personal_setting.error.notification_load_failed'),
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setNotificationLoading(false);
+        }
+      }
+    };
+    loadNotificationSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, [t]);
+
+  useEffect(() => {
+    setLowBalanceThresholdInput(
+      typeof notificationSettings.low_balance_threshold === 'number'
+        ? String(notificationSettings.low_balance_threshold)
+        : '',
+    );
+  }, [notificationSettings.low_balance_threshold]);
+
+  const submitNotificationSettings = async () => {
+    const raw = (lowBalanceThresholdInput || '').trim();
+    let payloadThreshold = null;
+    if (raw !== '') {
+      const parsed = Number(raw);
+      if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
+        showError(t('personal_setting.error.low_balance_threshold_invalid'));
+        return;
+      }
+      payloadThreshold = parsed;
+    }
+    setNotificationSaving(true);
+    try {
+      const res = await API.put('/api/v1/public/user/self/notification', {
+        low_balance_threshold: payloadThreshold,
+        notify_on_low_balance: notificationSettings.notify_on_low_balance,
+      });
+      const { success, message } = res?.data || {};
+      if (!success) {
+        showError(message || t('personal_setting.notification.save_failed'));
+        return;
+      }
+      showSuccess(t('personal_setting.notification.saved'));
+      setNotificationSettings((prev) => ({
+        ...prev,
+        low_balance_threshold:
+          payloadThreshold === null ? null : Number(payloadThreshold),
+      }));
+    } catch (error) {
+      showError(
+        error?.message || t('personal_setting.notification.save_failed'),
+      );
+    } finally {
+      setNotificationSaving(false);
+    }
+  };
 
   const walletAddress = currentUser?.wallet_address || '-';
   const avatarURL = currentUser?.avatar_url || '';
@@ -358,6 +457,60 @@ const PersonalSetting = () => {
               </div>
             </div>
           </AppField>
+        </div>
+      </AppSection>
+
+      <AppSection title={t('personal_setting.section.notification_preferences')}>
+        <div className='router-page-stack'>
+          <AppField
+            label={t('personal_setting.notification.email_low_balance')}
+            hint={t('personal_setting.notification.email_low_balance_hint')}
+            extra={
+              <AppSwitch
+                checked={notificationSettings.notify_on_low_balance}
+                onChange={(_, { checked }) =>
+                  setNotificationSettings((prev) => ({
+                    ...prev,
+                    notify_on_low_balance: checked === true,
+                  }))
+                }
+              />
+            }
+          />
+          <AppField
+            label={t('personal_setting.notification.low_balance_threshold')}
+            hint={`${t('personal_setting.notification.low_balance_threshold_hint')} ${t('personal_setting.notification.default_threshold_label', { amount: notificationSettings.default_threshold })}`}
+          >
+            <AppInputNumber
+              fluid
+              min={0}
+              precision={0}
+              disabled={notificationLoading}
+              placeholder={t('personal_setting.placeholder.low_balance_threshold')}
+              value={
+                lowBalanceThresholdInput === '' ? null : Number(lowBalanceThresholdInput)
+              }
+              onChange={(_, { value }) => {
+                if (value === null || value === undefined || value === '') {
+                  setLowBalanceThresholdInput('');
+                  return;
+                }
+                setLowBalanceThresholdInput(String(value));
+              }}
+            />
+          </AppField>
+          <div className='router-setting-inline-actions'>
+            <AppButton
+              className='router-section-button'
+              type='button'
+              color='blue'
+              loading={notificationSaving}
+              disabled={notificationLoading || notificationSaving}
+              onClick={submitNotificationSettings}
+            >
+              {t('personal_setting.notification.save')}
+            </AppButton>
+          </div>
         </div>
       </AppSection>
 

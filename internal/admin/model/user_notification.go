@@ -164,9 +164,11 @@ func FailUserNotificationEventWithDB(db *gorm.DB, id string, message string, nex
 }
 
 type userVerifiedNotificationBalance struct {
-	UserID           string `gorm:"column:user_id"`
-	Email            string `gorm:"column:email"`
-	AvailableBalance int64  `gorm:"column:available_balance"`
+	UserID            string `gorm:"column:user_id"`
+	Email             string `gorm:"column:email"`
+	AvailableBalance  int64  `gorm:"column:available_balance"`
+	LowBalanceThreshold *int64 `gorm:"column:low_balance_threshold"`
+	NotifyOnLowBalance bool   `gorm:"column:notify_on_low_balance"`
 }
 
 func RefreshUserBalanceLowNotificationEventsWithDB(db *gorm.DB, threshold int64, now int64) error {
@@ -182,29 +184,37 @@ func RefreshUserBalanceLowNotificationEventsWithDB(db *gorm.DB, threshold int64,
 	rows := make([]userVerifiedNotificationBalance, 0)
 	err := db.Raw(`
 		SELECT u.id AS user_id, u.email,
+		       u.low_balance_threshold AS low_balance_threshold,
+		       u.notify_on_low_balance AS notify_on_low_balance,
 		       COALESCE(SUM(CASE
 		           WHEN l.status = ? AND l.remaining_amount > 0 AND (l.expires_at = 0 OR l.expires_at > ?)
 		           THEN l.remaining_amount ELSE 0 END), 0) AS available_balance
 		FROM users u
 		LEFT JOIN user_balance_lots l ON l.user_id = u.id
 		WHERE COALESCE(TRIM(u.email), '') <> ''
-		GROUP BY u.id, u.email
+		  AND COALESCE(u.notify_on_low_balance, 1) <> 0
+		GROUP BY u.id, u.email, u.low_balance_threshold, u.notify_on_low_balance
 	`, UserBalanceLotStatusActive, now).Scan(&rows).Error
 	if err != nil {
 		return err
 	}
 	for _, row := range rows {
 		row := row
+		// Per-user threshold overrides global default. NULL/0 = use global default.
+		effectiveThreshold := threshold
+		if row.LowBalanceThreshold != nil && *row.LowBalanceThreshold > 0 {
+			effectiveThreshold = *row.LowBalanceThreshold
+		}
 		if err := db.Transaction(func(tx *gorm.DB) error {
 			state := UserBalanceNotificationState{UserID: row.UserID}
 			lookupErr := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&state, "user_id = ?", row.UserID).Error
 			if lookupErr != nil && lookupErr != gorm.ErrRecordNotFound {
 				return lookupErr
 			}
-			below := row.AvailableBalance < threshold
+			below := row.AvailableBalance < effectiveThreshold
 			if below && (lookupErr == gorm.ErrRecordNotFound || !state.IsBelow) {
 				state.Cycle++
-				payload, err := json.Marshal(map[string]int64{"balance": row.AvailableBalance, "threshold": threshold})
+				payload, err := json.Marshal(map[string]int64{"balance": row.AvailableBalance, "threshold": effectiveThreshold})
 				if err != nil {
 					return err
 				}
@@ -221,7 +231,7 @@ func RefreshUserBalanceLowNotificationEventsWithDB(db *gorm.DB, threshold int64,
 			}
 			state.IsBelow = below
 			state.LastBalance = row.AvailableBalance
-			state.Threshold = threshold
+			state.Threshold = effectiveThreshold
 			state.UpdatedAt = now
 			return tx.Save(&state).Error
 		}); err != nil {

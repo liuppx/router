@@ -2033,6 +2033,13 @@ func runMainVersionedMigrations(db *gorm.DB) error {
 				return ensureChannelBillingSnapshotPurchaseFieldsWithDB(tx)
 			},
 		},
+		{
+			Version:     "202609201000_user_low_balance_preferences",
+			Description: "add per-user low balance threshold and notify switch to users",
+			Up: func(tx *gorm.DB) error {
+				return tx.AutoMigrate(&User{})
+			},
+		},
 	}
 	return runVersionedMigrations(db, migrationScopeMain, migrations)
 }
