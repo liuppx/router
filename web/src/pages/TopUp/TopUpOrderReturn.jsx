@@ -32,6 +32,12 @@ const TopUpOrderReturn = () => {
   const deadlineRef = useRef(0);
   const timerRef = useRef(null);
   const activeRef = useRef(true);
+  const orderRef = useRef(null);
+
+  // 轮询回调从 ref 读最新订单,避免闭包捕获首帧 null 导致终态判定永不命中。
+  useEffect(() => {
+    orderRef.current = order;
+  }, [order]);
 
   const refreshOrder = useCallback(async () => {
     if (!orderID) {
@@ -77,7 +83,7 @@ const TopUpOrderReturn = () => {
         // Stop polling; leave phase as the last observed status.
         return;
       }
-      const status = String(order?.status || '').trim();
+      const status = String(orderRef.current?.status || '').trim();
       if (!TERMINAL_STATUSES.has(status)) {
         await refreshOrder();
       }
@@ -89,7 +95,7 @@ const TopUpOrderReturn = () => {
 
     const onFocus = () => {
       if (!activeRef.current) return;
-      const status = String(order?.status || '').trim();
+      const status = String(orderRef.current?.status || '').trim();
       if (!TERMINAL_STATUSES.has(status)) {
         refreshOrder();
       }
@@ -104,7 +110,7 @@ const TopUpOrderReturn = () => {
       }
       window.removeEventListener('focus', onFocus);
     };
-    // order intentionally not in deps; we read it from the latest render via ref.
+    // order 从 orderRef 读取最新值,故不进依赖数组。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshOrder, orderID]);
 
