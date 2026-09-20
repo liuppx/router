@@ -400,6 +400,14 @@
   white-space: nowrap;
 }
 
+.workspace-model-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 @media (max-width: 1180px) {
   .workspace-model-health-row {
     grid-template-columns: 1fr;

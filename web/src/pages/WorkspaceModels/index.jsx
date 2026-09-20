@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { API } from '../../helpers/api';
-import { showError } from '../../helpers';
+import { copy, showError, showSuccess } from '../../helpers';
 import { useIsAdmin } from '../../hooks/useAuth';
 import ModelSectionTabs from '../../components/ModelSectionTabs';
 import {
@@ -244,6 +244,32 @@ const WorkspaceModels = () => {
       const id = String(channelId || '').trim();
       if (!id) return;
       navigate(`/admin/channel/detail/${id}?tab=publish`);
+    },
+    [navigate],
+  );
+
+  const handleCopyModel = useCallback(
+    async (model) => {
+      const value = String(model || '').trim();
+      if (!value) return;
+      const ok = await copy(value);
+      if (ok) {
+        showSuccess(t('workspace_models.card.copied', { model: value }));
+      } else {
+        showError(t('workspace_models.card.copy_failed'));
+      }
+    },
+    [t],
+  );
+
+  const handleCreateToken = useCallback(
+    (model) => {
+      const value = String(model || '').trim();
+      navigate(
+        value
+          ? `/workspace/token/add?model=${encodeURIComponent(value)}`
+          : '/workspace/token/add',
+      );
     },
     [navigate],
   );
@@ -622,6 +648,27 @@ const WorkspaceModels = () => {
                         time: formatUpdatedAt(item.last_tested_at),
                       })}
                     </div>
+                  </div>
+                  <div className='workspace-model-actions'>
+                    <AppButton
+                      size='small'
+                      className='router-inline-button'
+                      icon={<AppIcon name='copy outline' />}
+                      onClick={() => handleCopyModel(item.model)}
+                      disabled={!item.model}
+                    >
+                      {t('workspace_models.card.copy_model')}
+                    </AppButton>
+                    <AppButton
+                      size='small'
+                      color='blue'
+                      className='router-inline-button'
+                      icon={<AppIcon name='plus' />}
+                      onClick={() => handleCreateToken(item.model)}
+                      disabled={!item.model}
+                    >
+                      {t('workspace_models.card.create_token')}
+                    </AppButton>
                   </div>
                 </div>
               );

@@ -532,11 +532,19 @@ const EditToken = () => {
         });
         setModelOptions(options);
         if (isCreateMode) {
-          setUnrestrictedModels(options.length > 0);
-          setInputs((prev) => ({
-            ...prev,
-            models: options.map((option) => option.value),
-          }));
+          const presetModel = (new URLSearchParams(location.search).get('model') || '').trim();
+          const hasPresetModel =
+            presetModel && options.some((option) => option.value === presetModel);
+          if (hasPresetModel) {
+            setUnrestrictedModels(false);
+            setInputs((prev) => ({ ...prev, models: [presetModel] }));
+          } else {
+            setUnrestrictedModels(options.length > 0);
+            setInputs((prev) => ({
+              ...prev,
+              models: options.map((option) => option.value),
+            }));
+          }
         }
       } else {
         showError(message || 'Failed to load models');
@@ -544,7 +552,7 @@ const EditToken = () => {
     } catch (error) {
       showError(error.message || 'Network error');
     }
-  }, [isCreateMode]);
+  }, [isCreateMode, location.search]);
 
   useEffect(() => {
     if (isDetailMode) {
