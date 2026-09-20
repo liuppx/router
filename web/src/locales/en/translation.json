@@ -2681,7 +2681,8 @@
           "usd": "USD",
           "token": "Token"
         },
-        "empty": "No data"
+        "empty": "No data",
+        "total_label": "Range total"
       },
       "details": {
         "title": "Spending Details",

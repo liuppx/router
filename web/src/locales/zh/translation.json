@@ -2681,7 +2681,8 @@
           "usd": "美元",
           "token": "Token"
         },
-        "empty": "暂无数据"
+        "empty": "暂无数据",
+        "total_label": "区间合计"
       },
       "details": {
         "title": "花费明细",

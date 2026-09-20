@@ -136,12 +136,6 @@ const QuotaPage = () => {
         </div>
       </AppSection>
 
-      <div className='dashboard-spend-section'>
-        <div className='dashboard-spend-stack'>
-          <SpendingCalendar />
-        </div>
-      </div>
-
       <AppSection
         title={t('topup.quota_cards.active_title')}
         extra={
@@ -171,6 +165,12 @@ const QuotaPage = () => {
           </div>
         )}
       </AppSection>
+
+      <div className='dashboard-spend-section'>
+        <div className='dashboard-spend-stack'>
+          <SpendingCalendar />
+        </div>
+      </div>
     </div>
   );
 };

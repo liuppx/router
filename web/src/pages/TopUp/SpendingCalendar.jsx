@@ -407,6 +407,25 @@ const SpendingCalendar = () => {
     });
   }, [calendarData, calendarGranularity, calendarUnit, toUsd]);
 
+  // Only the day view is laid out as a real weekday grid, so the "日一二…六"
+  // header lines up with the columns. Pad the front with blanks equal to the
+  // first bucket's weekday (0=Sun…6=Sat) so the earliest day sits under its
+  // actual column instead of always starting in column one.
+  const dayLeadingBlankCount = useMemo(() => {
+    if (calendarGranularity !== 'day') return 0;
+    const first = calendarBuckets[0];
+    if (!first) return 0;
+    const parsed = parseDateInput(first.label);
+    if (!parsed || Number.isNaN(parsed.getTime())) return 0;
+    return parsed.getDay();
+  }, [calendarGranularity, calendarBuckets]);
+
+  const calendarTotal = useMemo(
+    () =>
+      calendarBuckets.reduce((sum, bucket) => sum + (Number(bucket.value) || 0), 0),
+    [calendarBuckets],
+  );
+
   const calendarViewOptions = useMemo(
     () =>
       CALENDAR_VIEW_OPTIONS.map((item) => ({
@@ -459,6 +478,16 @@ const SpendingCalendar = () => {
     <AppSection
       className='dashboard-spend-card'
       title={t('dashboard.spending.calendar.title')}
+      extra={
+        <div className='dashboard-calendar-total'>
+          <span className='dashboard-calendar-total-label'>
+            {t('dashboard.spending.calendar.total_label')}
+          </span>
+          <strong className='dashboard-calendar-total-value'>
+            {formatCalendarValue(calendarTotal)}
+          </strong>
+        </div>
+      }
     >
       <AppToolbar
         className='dashboard-calendar-toolbar'
@@ -514,19 +543,28 @@ const SpendingCalendar = () => {
                 {t('dashboard.spending.calendar.empty')}
               </div>
             ) : (
-              calendarBuckets.map((item) => (
-                <button
-                  type='button'
-                  key={item.label}
-                  className='dashboard-calendar-cell dashboard-calendar-cell-button'
-                  onClick={() => handleCalendarBucketClick(item)}
-                >
-                  <div className='dashboard-calendar-label'>{item.label}</div>
-                  <div className='dashboard-calendar-value'>
-                    {formatCalendarValue(item.value)}
-                  </div>
-                </button>
-              ))
+              <>
+                {Array.from({ length: dayLeadingBlankCount }).map((_, index) => (
+                  <div
+                    key={`calendar-blank-${index}`}
+                    className='dashboard-calendar-cell-placeholder'
+                    aria-hidden='true'
+                  />
+                ))}
+                {calendarBuckets.map((item) => (
+                  <button
+                    type='button'
+                    key={item.label}
+                    className='dashboard-calendar-cell dashboard-calendar-cell-button'
+                    onClick={() => handleCalendarBucketClick(item)}
+                  >
+                    <div className='dashboard-calendar-label'>{item.label}</div>
+                    <div className='dashboard-calendar-value'>
+                      {formatCalendarValue(item.value)}
+                    </div>
+                  </button>
+                ))}
+              </>
             )}
           </div>
         </>

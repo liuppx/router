@@ -53,6 +53,9 @@ const TopUpLayout = () => {
     }
   };
 
+  const activeTabLabelKey =
+    TABS.find((tab) => tab.key === activeTab)?.labelKey || 'topup.mine.quota';
+
   return (
     <TopUpWorkspaceProvider>
       <div className='dashboard-container'>
@@ -60,7 +63,7 @@ const TopUpLayout = () => {
           breadcrumbs={[
             { key: 'workspace', label: t('header.user_workspace') },
             { key: 'mine', label: t('header.mine') },
-            { key: 'topup', label: t('topup.mine.quota'), active: true },
+            { key: 'topup', label: t(activeTabLabelKey), active: true },
           ]}
           query={
             <SectionTabs
