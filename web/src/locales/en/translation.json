@@ -285,7 +285,8 @@
         "next_steps_title": "Next steps",
         "next_steps_hint": "Balance credited. Create an API token and make your first call.",
         "next_create_token": "Create API token",
-        "next_view_guide": "View setup guide"
+        "next_view_guide": "View setup guide",
+        "next_view_quota": "View my quota"
       },
       "no_link": "Admin has not set up the top-up link!",
       "plan_hint": "Choose a preset top-up plan to place the order.",

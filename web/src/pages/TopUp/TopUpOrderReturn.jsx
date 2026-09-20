@@ -131,6 +131,15 @@ const TopUpOrderReturn = () => {
           <div className='router-empty-cell'>
             {t('topup.external_topup.sync.return_failed_hint')}
           </div>
+          <div className='router-topup-return-next-actions'>
+            <AppButton
+              className='router-section-button'
+              color='blue'
+              onClick={() => navigate('/workspace/service/pricing')}
+            >
+              {t('topup.external_topup.sync.return_back_pricing')}
+            </AppButton>
+          </div>
         </AppSection>
       );
     }
@@ -154,6 +163,12 @@ const TopUpOrderReturn = () => {
                 onClick={() => navigate('/workspace/token')}
               >
                 {t('topup.external_topup.sync.next_create_token')}
+              </AppButton>
+              <AppButton
+                className='router-section-button'
+                onClick={() => navigate('/workspace/topup?tab=quota')}
+              >
+                {t('topup.external_topup.sync.next_view_quota')}
               </AppButton>
               <AppButton
                 className='router-section-button'
