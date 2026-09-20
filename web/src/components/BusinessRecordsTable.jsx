@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API, showError, timestamp2string } from '../helpers';
 import { ITEMS_PER_PAGE } from '../constants';
+import useUrlState, { parsePageParam } from '../hooks/useUrlState';
 import {
   BUSINESS_FLOW_COLUMN_WIDTHS,
 } from '../constants/tableWidthPresets';
@@ -135,12 +136,30 @@ const BusinessRecordsTable = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  // 已应用的筛选(keyword/status/page)持久化到 URL,刷新/分享链接可复原;
+  // 排序为客户端行为且随 kind/config 重置,不入 URL。
+  const [, patchQuery] = useUrlState({
+    q: { param: 'q', default: '' },
+    status: { param: 'status', default: '' },
+    page: { param: 'page', default: 1, parse: parsePageParam },
+  });
+  const initialListQuery = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      keyword: (params.get('q') || '').trim(),
+      status: (params.get('status') || '').trim(),
+      page: parsePageParam(params.get('page')),
+    };
+    // 仅在挂载时读取一次;后续以组件内 state 为准。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const kindMountedRef = useRef(false);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activePage, setActivePage] = useState(1);
+  const [activePage, setActivePage] = useState(initialListQuery.page);
   const [totalCount, setTotalCount] = useState(0);
-  const [keyword, setKeyword] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [keyword, setKeyword] = useState(initialListQuery.keyword);
+  const [statusFilter, setStatusFilter] = useState(initialListQuery.status);
   const [refreshingRowID, setRefreshingRowID] = useState('');
   const [fulfillingRowID, setFulfillingRowID] = useState('');
   const [tableSorter, setTableSorter] = useState({
@@ -763,14 +782,20 @@ const BusinessRecordsTable = ({
         }
         setItems(Array.isArray(data?.items) ? data.items : []);
         setTotalCount(Number(data?.total || 0));
-        setActivePage(Number(data?.page || page || 1));
+        const resolvedPage = Number(data?.page || page || 1);
+        setActivePage(resolvedPage);
+        patchQuery({
+          q: (nextKeyword || '').toString().trim(),
+          status: (nextStatus || '').toString().trim(),
+          page: resolvedPage,
+        });
       } catch (error) {
         showError(error?.message || error);
       } finally {
         setLoading(false);
       }
     },
-    [config.endpoint, requestParams, t],
+    [config.endpoint, patchQuery, requestParams, t],
   );
 
   useEffect(() => {
@@ -778,13 +803,24 @@ const BusinessRecordsTable = ({
   }, [loadCurrencyCatalog]);
 
   useEffect(() => {
+    if (!kindMountedRef.current) {
+      // 首次挂载:按 URL 复原已应用的筛选并加载,而非清空。
+      kindMountedRef.current = true;
+      loadItems(
+        initialListQuery.page,
+        initialListQuery.keyword,
+        initialListQuery.status,
+      ).then();
+      return;
+    }
+    // 真正切换 kind:重置筛选并回到第一页(loadItems 内部会同步清空 URL)。
     setKeyword('');
     setStatusFilter('');
     setItems([]);
     setTotalCount(0);
     setActivePage(1);
     loadItems(1, '', '').then();
-  }, [kind, loadItems]);
+  }, [initialListQuery, kind, loadItems]);
 
   const onSearchSubmit = useCallback(() => {
     loadItems(1, keyword, statusFilter).then();
