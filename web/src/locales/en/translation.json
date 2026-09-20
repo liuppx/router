@@ -146,6 +146,7 @@
       "history_title": "Quota History",
       "history_section": "Quota Card Records",
       "history_empty": "No quota card records",
+      "history_empty_cta": "Top up / buy a package",
       "back_to_quota": "Back to Quota",
       "load_failed": "Failed to load quota cards",
       "detail_title": "Quota Card Details",

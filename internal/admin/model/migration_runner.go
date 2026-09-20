@@ -2040,6 +2040,13 @@ func runMainVersionedMigrations(db *gorm.DB) error {
 				return tx.AutoMigrate(&User{})
 			},
 		},
+		{
+			Version:     "202609201100_refresh_official_provider_catalog",
+			Description: "refresh official provider models and verified pricing from the September catalog review",
+			Up: func(tx *gorm.DB) error {
+				return replaceProviderMigrationSeedsWithDB(tx)
+			},
+		},
 	}
 	return runVersionedMigrations(db, migrationScopeMain, migrations)
 }

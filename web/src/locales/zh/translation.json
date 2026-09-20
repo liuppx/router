@@ -146,6 +146,7 @@
       "history_title": "历史流水",
       "history_section": "额度卡片记录",
       "history_empty": "暂无额度卡片记录",
+      "history_empty_cta": "去充值 / 购买套餐",
       "back_to_quota": "返回额度",
       "load_failed": "加载额度卡片失败",
       "detail_title": "额度卡片详情",

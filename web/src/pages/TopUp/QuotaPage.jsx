@@ -197,7 +197,9 @@ const QuotaPage = () => {
               />
             ))}
           </div>
-        ) : loading ? null : (
+        ) : loading ? (
+          <div className='router-empty-cell'>{t('common.loading')}</div>
+        ) : (
           <div className='router-empty'>
             <div className='router-empty-cta'>
               <div className='router-empty-cta-text'>

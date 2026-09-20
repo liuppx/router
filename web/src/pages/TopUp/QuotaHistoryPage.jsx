@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { API, showError } from '../../helpers';
 import {
   AppButton,
+  AppEmpty,
   AppFilterHeader,
   AppPagination,
   AppSelect,
@@ -111,10 +112,21 @@ export const QuotaHistoryPageInner = ({ embedded = false }) => {
             />
           ))}
         </div>
-      ) : loading ? null : (
-        <div className='router-empty'>
+      ) : loading ? (
+        <div className='router-empty-cell'>{t('common.loading')}</div>
+      ) : (
+        <AppEmpty
+          action={
+            <AppButton
+              color='blue'
+              onClick={() => navigate('/workspace/service/pricing')}
+            >
+              {t('topup.quota_cards.history_empty_cta')}
+            </AppButton>
+          }
+        >
           {t('topup.quota_cards.history_empty')}
-        </div>
+        </AppEmpty>
       )}
       {totalPages > 1 ? (
         <div className='router-pagination-wrap-md'>
