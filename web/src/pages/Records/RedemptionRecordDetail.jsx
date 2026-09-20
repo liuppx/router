@@ -93,7 +93,7 @@ const RedemptionRecordDetail = () => {
           },
           {
             key: 'flow-redemption-list',
-            label: '兑换记录',
+            label: t('flow.records.redemption_title'),
             onClick: () => navigate(listPath),
           },
           {

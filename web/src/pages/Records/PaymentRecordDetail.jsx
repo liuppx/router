@@ -187,7 +187,7 @@ const PaymentRecordDetail = () => {
       return t('topup.payment_history.title');
     }
     if (listPath.startsWith('/admin/entitlement/payments')) {
-      return '支付记录';
+      return t('flow.records.purchase_title');
     }
     return t('flow.topup_reconcile.title');
   }, [fromUserDetail, listPath, t]);
@@ -346,7 +346,7 @@ const PaymentRecordDetail = () => {
                       {t('flow.topup_reconcile.detail.fields.business_type')}
                     </div>
                     <pre className='router-detail-value'>
-                      {productKind === 'subscription' ? '订阅' : formatTopupBusinessType(order?.business_type, t)}
+                      {productKind === 'subscription' ? t('flow.purchase.kind.subscription') : formatTopupBusinessType(order?.business_type, t)}
                     </pre>
                   </div>
                   <div className='router-detail-item'>

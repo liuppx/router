@@ -5,14 +5,14 @@ import BusinessRecordsTable from '../../components/BusinessRecordsTable';
 
 const RECORD_CONFIG = {
   purchase: {
-    title: '支付记录',
+    titleKey: 'flow.records.purchase_title',
     parentPath: '/admin/entitlement',
     tableKind: 'purchase',
     scope: 'entitlement',
     hideParentBreadcrumb: true,
   },
   redemption: {
-    title: '兑换记录',
+    titleKey: 'flow.records.redemption_title',
     parentKey: 'header.redemption',
     parentPath: '/admin/redemption',
     detailBasePath: '/admin/redemption/records',
@@ -41,7 +41,7 @@ const RecordListPage = ({ kind }) => {
     <div className='dashboard-container'>
       <BusinessRecordsTable
         kind={config.tableKind || kind}
-        title={config.title}
+        title={t(config.titleKey)}
         detailBasePath={config.detailBasePath}
         breadcrumbs={[
           { key: 'admin', label: t('header.admin_workspace') },
@@ -55,7 +55,7 @@ const RecordListPage = ({ kind }) => {
               }]),
           {
             key: `${kind}-records`,
-            label: config.title,
+            label: t(config.titleKey),
             active: true,
           },
         ]}

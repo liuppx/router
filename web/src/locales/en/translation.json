@@ -566,6 +566,10 @@
       "title": "Redemption",
       "search_placeholder": "Search user, redemption name, group, record ID...",
       "empty": "No redemption records"
+    },
+    "records": {
+      "purchase_title": "Payment records",
+      "redemption_title": "Redemption records"
     }
   },
   "channel": {

@@ -566,6 +566,10 @@
       "title": "兑换",
       "search_placeholder": "搜索用户、兑换名称、分组、记录 ID...",
       "empty": "暂无兑换记录"
+    },
+    "records": {
+      "purchase_title": "支付记录",
+      "redemption_title": "兑换记录"
     }
   },
   "channel": {
