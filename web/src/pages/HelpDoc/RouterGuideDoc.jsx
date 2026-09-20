@@ -33,6 +33,12 @@ const RouterGuideDoc = () => {
                   <a href='#router-guide-api' className='toc-item toc-item--sub'>
                     直接调用 API
                   </a>
+                  <a href='#router-guide-sdk' className='toc-item toc-item--sub'>
+                    SDK 示例
+                  </a>
+                  <a href='#router-guide-streaming' className='toc-item toc-item--sub'>
+                    流式响应
+                  </a>
                   <a href='#router-guide-routing' className='toc-item toc-item--sub'>
                     路由与计费
                   </a>
@@ -186,6 +192,86 @@ const RouterGuideDoc = () => {
     "model": "your-model-name",
     "input": "用一句话介绍 Router 的作用"
   }'`}</code>
+                    </pre>
+
+                    <h2 id='router-guide-sdk'>SDK 示例</h2>
+                    <p>
+                      Router 兼容 OpenAI 协议，可直接复用官方 OpenAI SDK，只需把{' '}
+                      <code>base_url</code> 指向 Router，并把 API Key 换成 Router 令牌。
+                    </p>
+                    <h3>Python（openai&gt;=1.0）</h3>
+                    <pre>
+                      <code className='language-python'>{`from openai import OpenAI
+
+client = OpenAI(
+    api_key="your-api-key-here",
+    base_url="https://router.yeying.pub/v1",
+)
+
+resp = client.chat.completions.create(
+    model="your-model-name",
+    messages=[{"role": "user", "content": "用一句话介绍 Router 的作用"}],
+)
+print(resp.choices[0].message.content)`}</code>
+                    </pre>
+                    <h3>Node.js（openai 包）</h3>
+                    <pre>
+                      <code className='language-javascript'>{`import OpenAI from 'openai';
+
+const client = new OpenAI({
+  apiKey: 'your-api-key-here',
+  baseURL: 'https://router.yeying.pub/v1',
+});
+
+const resp = await client.chat.completions.create({
+  model: 'your-model-name',
+  messages: [{ role: 'user', content: '用一句话介绍 Router 的作用' }],
+});
+console.log(resp.choices[0].message.content);`}</code>
+                    </pre>
+                    <blockquote>
+                      <p>
+                        Anthropic / Claude SDK 同理：把 base URL 指向{' '}
+                        <code>https://router.yeying.pub</code>，调用{' '}
+                        <code>/v1/messages</code> 端点即可。
+                      </p>
+                    </blockquote>
+
+                    <h2 id='router-guide-streaming'>流式响应</h2>
+                    <p>
+                      在请求体加上 <code>"stream": true</code>，Router 会以 SSE
+                      逐段返回增量内容，适合聊天与长文本场景。
+                    </p>
+                    <pre>
+                      <code className='language-bash'>{`curl https://router.yeying.pub/v1/chat/completions \\
+  -H "Authorization: Bearer your-api-key-here" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "your-model-name",
+    "messages": [{"role": "user", "content": "写一首关于路由的短诗"}],
+    "stream": true
+  }'`}</code>
+                    </pre>
+                    <h3>Python 流式</h3>
+                    <pre>
+                      <code className='language-python'>{`stream = client.chat.completions.create(
+    model="your-model-name",
+    messages=[{"role": "user", "content": "写一首关于路由的短诗"}],
+    stream=True,
+)
+for chunk in stream:
+    print(chunk.choices[0].delta.content or "", end="", flush=True)`}</code>
+                    </pre>
+                    <h3>Node.js 流式</h3>
+                    <pre>
+                      <code className='language-javascript'>{`const stream = await client.chat.completions.create({
+  model: 'your-model-name',
+  messages: [{ role: 'user', content: '写一首关于路由的短诗' }],
+  stream: true,
+});
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content || '');
+}`}</code>
                     </pre>
 
                     <h2 id='router-guide-routing'>路由与计费</h2>
