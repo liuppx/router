@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API, timestamp2string, showError, showSuccess, withCardLabels } from '../../helpers';
+import { exportCSV } from '../../helpers/csv';
 import {
   TOPUP_RECORD_COLUMN_WIDTHS,
   TOPUP_RECORD_TABLE_MIN_WIDTH,
@@ -520,6 +521,66 @@ const TopUpRecordsPage = ({ recordKey = 'topup', embedded = false }) => {
         ? t('topup.records.gift_title', '赠送记录')
         : t('topup.records.title', '充值订单');
   const shouldShowSectionExtra = !(embedded && isPaymentRecord);
+  const handleExportCsv = useCallback(() => {
+    const stamp = timestamp2string(Math.floor(Date.now() / 1000)).replace(
+      /[^0-9]/g,
+      '',
+    );
+    if (isRedemptionRecord) {
+      exportCSV(
+        `topup-${recordKey}-${stamp}.csv`,
+        [
+          {
+            key: 'created_at',
+            label: t('topup.redemption_records.columns.time'),
+            format: (v) => (v ? timestamp2string(v) : ''),
+          },
+          {
+            key: 'chargeAmount',
+            label: t('topup.redemption_records.columns.amount'),
+          },
+          {
+            key: 'redemptionCode',
+            label: t('topup.redemption_records.columns.redemption_code'),
+          },
+        ],
+        redemptionRecords,
+      );
+      return;
+    }
+    exportCSV(
+      `topup-${recordKey}-${stamp}.csv`,
+      [
+        {
+          key: 'created_at',
+          label: t('topup.external_topup_orders.columns.time'),
+          format: (v) => (v ? timestamp2string(v) : ''),
+        },
+        {
+          key: 'business_type',
+          label: t('topup.external_topup_orders.columns.business_type'),
+          format: (v) => formatTopupBusinessType(v, t),
+        },
+        {
+          key: 'status',
+          label: t('topup.external_topup_orders.columns.status'),
+        },
+        {
+          key: 'amount',
+          label: t('topup.external_topup_orders.columns.amount'),
+        },
+        {
+          key: 'quota',
+          label: t('topup.external_topup_orders.columns.quota'),
+        },
+        {
+          key: 'package_name',
+          label: t('topup.external_topup_orders.columns.package_name'),
+        },
+      ],
+      orders,
+    );
+  }, [isRedemptionRecord, orders, recordKey, redemptionRecords, t]);
   const sectionExtra = shouldShowSectionExtra ? (
     <>
       {isPaymentRecord ? (
@@ -539,6 +600,17 @@ const TopUpRecordsPage = ({ recordKey = 'topup', embedded = false }) => {
           {actionButton.label}
         </AppButton>
       ) : null}
+      <AppButton
+        className='router-section-button'
+        onClick={handleExportCsv}
+        disabled={
+          isRedemptionRecord
+            ? redemptionRecords.length === 0
+            : orders.length === 0
+        }
+      >
+        {t('common.export_csv')}
+      </AppButton>
       <AppButton
         className='router-section-button'
         onClick={refreshCurrent}

@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import UnitDropdown from './UnitDropdown';
 
 import { ITEMS_PER_PAGE } from '../constants';
+import { exportCSV } from '../helpers/csv';
 import {
   renderColorLabel,
   isChargeDisplayedInCurrency,
@@ -1313,6 +1314,43 @@ const LogsTable = () => {
     return nextLogs;
   }, [filteredLogs, tableSorter]);
 
+  const handleExportCsv = useCallback(() => {
+    const stamp = timestamp2string(Math.floor(Date.now() / 1000)).replace(
+      /[^0-9]/g,
+      '',
+    );
+    const columns = [
+      {
+        key: 'created_at',
+        label: t('log.table.time'),
+        format: (v) => (v ? timestamp2string(v) : ''),
+      },
+    ];
+    if (isAdminScope) {
+      columns.push({ key: 'channel', label: t('log.table.channel') });
+      columns.push({ key: 'username', label: t('log.table.username') });
+    }
+    columns.push(
+      { key: 'token_name', label: t('log.table.token_name') },
+      { key: 'publicModelName', label: t('log.table.model') },
+      { key: 'prompt_tokens', label: t('log.table.prompt_tokens') },
+      { key: 'completion_tokens', label: t('log.table.completion_tokens') },
+      { key: 'chargeAmount', label: t('log.table.quota') },
+      { key: 'content', label: t('log.table.detail') },
+    );
+    // csv.js 的 format 只接收单元格值,无法访问整行,故此处把派生字段(渠道名)
+    // 先摊平成普通对象再导出。
+    const rows = sortedFilteredLogs.map((log) => ({
+      ...log,
+      channel: getLogChannelLabel(log),
+    }));
+    exportCSV(
+      `logs-${isAdminScope ? 'admin' : 'mine'}-${stamp}.csv`,
+      columns,
+      rows,
+    );
+  }, [isAdminScope, sortedFilteredLogs, t]);
+
   const resolveOptionLabel = useCallback(
     (filterKey, value) => {
       if (filterKey === 'channel') {
@@ -1532,8 +1570,16 @@ const LogsTable = () => {
         breadcrumbs={breadcrumbs}
         title={t('header.log')}
         actions={
-          isAdminScope ? (
-            <div className='router-log-cleanup-actions'>
+          <div className='router-log-cleanup-actions'>
+            <AppButton
+              type='button'
+              className='router-section-button'
+              onClick={handleExportCsv}
+              disabled={loading || sortedFilteredLogs.length === 0}
+            >
+              {t('common.export_csv')}
+            </AppButton>
+            {isAdminScope ? (
               <AppButton
                 type='button'
                 className='router-section-button router-danger-button'
@@ -1542,8 +1588,8 @@ const LogsTable = () => {
               >
                 {t('log.cleanup.button')}
               </AppButton>
-            </div>
-          ) : null
+            ) : null}
+          </div>
         }
         picker={
             <AppPopover
