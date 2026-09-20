@@ -548,6 +548,20 @@
         "amount": "金额"
       }
     },
+    "purchase": {
+      "search_placeholder": "搜索用户、商品或记录 ID",
+      "empty": "暂无支付记录",
+      "columns": {
+        "type": "类型",
+        "entitlement": "权益",
+        "status": "状态",
+        "amount": "金额"
+      },
+      "kind": {
+        "subscription": "订阅",
+        "topup": "充值"
+      }
+    },
     "redemption": {
       "title": "兑换",
       "search_placeholder": "搜索用户、兑换名称、分组、记录 ID...",

@@ -383,8 +383,8 @@ const BusinessRecordsTable = ({
     if (kind === 'purchase') {
       return {
         endpoint: '/api/v1/admin/entitlement/payments',
-        searchPlaceholder: searchPlaceholder || '搜索用户、商品或记录 ID',
-        emptyText: emptyText || '暂无支付记录',
+        searchPlaceholder: searchPlaceholder || t('flow.purchase.search_placeholder'),
+        emptyText: emptyText || t('flow.purchase.empty'),
         onRowClick: (row) => {
           const rowID = readOnlyText(row?.id);
           if (rowID === '-') return;
@@ -395,19 +395,21 @@ const BusinessRecordsTable = ({
           compactUserColumn,
           {
             key: 'product_kind',
-            label: '类型',
+            label: t('flow.purchase.columns.type'),
             width: BUSINESS_FLOW_COLUMN_WIDTHS.type,
-            render: (row) => row?.product_kind === 'subscription' ? '订阅' : '充值',
+            render: (row) => row?.product_kind === 'subscription'
+              ? t('flow.purchase.kind.subscription')
+              : t('flow.purchase.kind.topup'),
           },
           {
             key: 'product_name',
-            label: '权益',
+            label: t('flow.purchase.columns.entitlement'),
             width: BUSINESS_FLOW_COLUMN_WIDTHS.packageName,
             render: (row) => renderText(readOnlyText(row?.product_name), 28),
           },
           {
             key: 'status',
-            label: '状态',
+            label: t('flow.purchase.columns.status'),
             width: BUSINESS_FLOW_COLUMN_WIDTHS.status,
             render: (row) => row?.product_kind === 'subscription'
               ? renderPackageStatus(row?.status, t)
@@ -415,7 +417,7 @@ const BusinessRecordsTable = ({
           },
           {
             key: 'amount',
-            label: '金额',
+            label: t('flow.purchase.columns.amount'),
             width: BUSINESS_FLOW_COLUMN_WIDTHS.amount,
             render: (row) => Number(row?.amount || 0) > 0
               ? `${row.currency || 'CNY'} ${Number(row.amount).toFixed(2)}`

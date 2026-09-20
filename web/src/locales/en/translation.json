@@ -548,6 +548,20 @@
         "amount": "Amount"
       }
     },
+    "purchase": {
+      "search_placeholder": "Search user, product, or record ID",
+      "empty": "No payment records",
+      "columns": {
+        "type": "Type",
+        "entitlement": "Entitlement",
+        "status": "Status",
+        "amount": "Amount"
+      },
+      "kind": {
+        "subscription": "Subscription",
+        "topup": "Top-up"
+      }
+    },
     "redemption": {
       "title": "Redemption",
       "search_placeholder": "Search user, redemption name, group, record ID...",
