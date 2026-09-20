@@ -1553,6 +1553,7 @@
       "edit": "Edit",
       "add_channel": "Add Channel",
       "remove_channel": "Remove",
+      "confirm_remove_channel": "Remove this channel from the group? It will no longer be assigned to this group.",
       "view_channel": "View Channel",
       "bind_channels": "Configure Channels",
       "enable": "Enable",

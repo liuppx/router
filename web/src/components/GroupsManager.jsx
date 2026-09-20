@@ -1537,13 +1537,21 @@ const GroupsManager = ({ detailGroupId = '' }) => {
                       title={t('group_manage.buttons.view_channel')}
                       onClick={() => openChannelDetailFromCurrentPage(channelID)}
                     />
-                    <AppTableActionButton
-                      icon='trash'
-                      title={t('group_manage.buttons.remove_channel')}
-                      color='red'
+                    <AppPopconfirm
+                      title={t('group_manage.buttons.confirm_remove_channel')}
+                      okButtonProps={{ danger: true }}
+                      onConfirm={() => removeDetailChannel(item)}
                       disabled={submitting || detailChannelsEditLocked || detailChannelModalOpen}
-                      onClick={() => removeDetailChannel(item)}
-                    />
+                    >
+                      <span>
+                        <AppTableActionButton
+                          icon='trash'
+                          title={t('group_manage.buttons.remove_channel')}
+                          color='red'
+                          disabled={submitting || detailChannelsEditLocked || detailChannelModalOpen}
+                        />
+                      </span>
+                    </AppPopconfirm>
                   </div>
                 );
               },
