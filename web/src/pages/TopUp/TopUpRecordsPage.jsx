@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { API, timestamp2string, showError, showSuccess } from '../../helpers';
+import { API, timestamp2string, showError, showSuccess, withCardLabels } from '../../helpers';
 import {
   TOPUP_RECORD_COLUMN_WIDTHS,
   TOPUP_RECORD_TABLE_MIN_WIDTH,
@@ -552,7 +552,7 @@ const TopUpRecordsPage = ({ recordKey = 'topup', embedded = false }) => {
     <>
       <div className='router-table-scroll-x'>
         <AppTable
-          className='router-list-table router-table-fit-page'
+          className='router-list-table router-table-fit-page router-table-cardify'
           rowKey={(log) =>
             log.id || log.trace_id || `${log.created_at}-${log.content}`
           }
@@ -573,7 +573,7 @@ const TopUpRecordsPage = ({ recordKey = 'topup', embedded = false }) => {
             ),
           }}
           dataSource={redemptionRecords}
-          columns={redemptionColumns}
+          columns={withCardLabels(redemptionColumns)}
         />
       </div>
       {redemptionTotalPages > 1 ? (
@@ -593,7 +593,7 @@ const TopUpRecordsPage = ({ recordKey = 'topup', embedded = false }) => {
     <>
       <div className='router-table-scroll-x'>
         <AppTable
-          className='router-list-table router-table-fit-page'
+          className='router-list-table router-table-fit-page router-table-cardify'
           rowKey='id'
           pagination={false}
           scroll={{ x: TOPUP_RECORD_TABLE_MIN_WIDTH }}
@@ -615,7 +615,7 @@ const TopUpRecordsPage = ({ recordKey = 'topup', embedded = false }) => {
             ),
           }}
           dataSource={orders}
-          columns={orderColumns}
+          columns={withCardLabels(orderColumns)}
           onRow={(order) => ({
             onClick: () => openOrderDetailPage(order),
             style: { cursor: 'pointer' },

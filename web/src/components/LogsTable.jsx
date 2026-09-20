@@ -1513,6 +1513,15 @@ const LogsTable = () => {
             clearColumnDragState();
           },
         }),
+        onCell: (record, index) => {
+          const previous =
+            typeof column.onCell === 'function'
+              ? column.onCell(record, index) || {}
+              : {};
+          return typeof originalTitle === 'string'
+            ? { ...previous, 'data-label': originalTitle }
+            : previous;
+        },
       };
     });
   };
@@ -1781,7 +1790,7 @@ const LogsTable = () => {
       </AppModal>
       <div className='router-table-scroll-x'>
         <AppTable
-          className='router-list-table router-table-fit-page router-log-table'
+          className='router-list-table router-table-fit-page router-log-table router-table-cardify'
           pagination={false}
           scroll={{ x: logTableScrollWidth }}
           onChange={handleTableChange}

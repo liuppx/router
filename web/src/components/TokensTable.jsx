@@ -10,6 +10,7 @@ import {
   timestamp2string,
   hasLoadedPagedRows,
   writePagedRows,
+  withCardLabels,
 } from '../helpers';
 
 import { ITEMS_PER_PAGE } from '../constants';
@@ -419,7 +420,7 @@ const TokensTable = () => {
 
       <div className='router-table-scroll-x'>
         <AppTable
-          className='router-list-table router-table-fit-page'
+          className='router-list-table router-table-fit-page router-table-cardify'
           pagination={false}
           loading={loading}
           scroll={{ x: TOKEN_LIST_TABLE_MIN_WIDTH }}
@@ -459,7 +460,7 @@ const TokensTable = () => {
                 },
               }),
           })}
-          columns={[
+          columns={withCardLabels([
           {
             title: t('token.table.name'),
             dataIndex: 'name',
@@ -677,7 +678,7 @@ const TokensTable = () => {
               );
             },
           },
-          ]}
+          ])}
           footer={() => (
             <AppToolbar
               className='router-toolbar-compact'

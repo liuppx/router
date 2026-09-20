@@ -2665,6 +2665,78 @@ body,
     line-height: 1.6;
 }
 
+/* Narrow-screen card view: opt-in via `router-table-cardify` on the table.
+   Hides the header, stacks each row into a bordered card, and prints the
+   column label (from data-label injected by withCardLabels) beside each cell,
+   so a horizontally-scrolling table becomes readable on phones. */
+@media (max-width: 640px) {
+    .router-ui-table.router-table-cardify .ant-table {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+    .router-ui-table.router-table-cardify table {
+        min-width: 0 !important;
+        width: 100% !important;
+        table-layout: auto !important;
+    }
+    .router-ui-table.router-table-cardify colgroup {
+        display: none !important;
+    }
+    .router-ui-table.router-table-cardify .ant-table-thead {
+        display: none !important;
+    }
+    .router-ui-table.router-table-cardify .ant-table-tbody > tr.ant-table-row {
+        display: block;
+        margin-bottom: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 12px;
+        overflow: hidden;
+        background: transparent;
+    }
+    .router-ui-table.router-table-cardify .ant-table-tbody > tr.ant-table-row > td {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        width: auto !important;
+        white-space: normal;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        padding: 8px 14px !important;
+    }
+    .router-ui-table.router-table-cardify .ant-table-tbody > tr.ant-table-row > td:last-child {
+        border-bottom: none;
+    }
+    .router-ui-table.router-table-cardify .ant-table-tbody > tr.ant-table-row > td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        max-width: 45%;
+        color: rgba(0, 0, 0, 0.5);
+        font-size: 12px;
+        font-weight: 600;
+        text-align: left;
+    }
+    .router-ui-table.router-table-cardify .ant-table-tbody > tr.ant-table-row > td.ant-table-cell-fix-left,
+    .router-ui-table.router-table-cardify .ant-table-tbody > tr.ant-table-row > td.ant-table-cell-fix-right {
+        position: static !important;
+    }
+    /* The placeholder empty row should stay full-width, not a labelled card. */
+    .router-ui-table.router-table-cardify .ant-table-tbody > tr.ant-table-placeholder > td {
+        display: block;
+    }
+    .router-ui-table.router-table-cardify .ant-table-tbody > tr.ant-table-placeholder > td::before {
+        content: none;
+    }
+    [data-theme='dark'] .router-ui-table.router-table-cardify .ant-table-tbody > tr.ant-table-row {
+        border-color: rgba(148, 163, 184, 0.28);
+    }
+    [data-theme='dark'] .router-ui-table.router-table-cardify .ant-table-tbody > tr.ant-table-row > td {
+        border-bottom-color: rgba(148, 163, 184, 0.18);
+    }
+    [data-theme='dark'] .router-ui-table.router-table-cardify .ant-table-tbody > tr.ant-table-row > td::before {
+        color: #94a3b8;
+    }
+}
+
 .router-ui-table.router-table-fit-page .ant-table {
     width: 100% !important;
     table-layout: fixed;

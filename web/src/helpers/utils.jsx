@@ -74,6 +74,35 @@ export async function copy(text) {
   return okay;
 }
 
+// withCardLabels attaches each column's (string) title to its rendered <td> as a
+// `data-label` attribute, so the narrow-screen `.router-table-cardify` CSS can
+// stack rows into labelled cards without duplicating the table markup.
+export function withCardLabels(columns) {
+  if (!Array.isArray(columns)) {
+    return columns;
+  }
+  return columns.map((column) => {
+    if (!column || typeof column !== 'object') {
+      return column;
+    }
+    const label = typeof column.title === 'string' ? column.title : '';
+    if (!label) {
+      return column;
+    }
+    const previousOnCell = column.onCell;
+    return {
+      ...column,
+      onCell: (record, index) => {
+        const previous =
+          typeof previousOnCell === 'function'
+            ? previousOnCell(record, index) || {}
+            : {};
+        return { ...previous, 'data-label': label };
+      },
+    };
+  });
+}
+
 export function isMobile() {
   return window.innerWidth <= 600;
 }
