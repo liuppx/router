@@ -8,6 +8,7 @@ import {
   timestamp2string,
 } from '../../helpers';
 import TopUpWorkspaceProvider from './provider.jsx';
+import CopyButton from '../../components/CopyButton';
 import {
   buildTopUpOrderReturnURL,
   buildTopUpReturnURL,
@@ -303,7 +304,14 @@ const TopUpOrderDetailInner = () => {
       {
         key: 'order_id',
         label: t('topup.external_topup_orders.columns.order_id'),
-        value: order?.id || '-',
+        value: order?.id ? (
+          <div className='router-action-group-tight'>
+            <span>{order.id}</span>
+            <CopyButton value={order.id} size='small' basic />
+          </div>
+        ) : (
+          '-'
+        ),
       },
       {
         key: 'business_type',

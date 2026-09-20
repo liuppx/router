@@ -534,11 +534,11 @@ func TestBuildProviderMigrationSeeds_OpenAIIncludesGPTImage2Pricing(t *testing.T
 			if detail.Type != ProviderModelTypeImage {
 				t.Fatalf("gpt-image-2 type=%q, want %q", detail.Type, ProviderModelTypeImage)
 			}
-			if detail.InputPrice != 0.008 {
-				t.Fatalf("gpt-image-2 input_price=%v, want 0.008", detail.InputPrice)
+			if detail.InputPrice != 0.004 {
+				t.Fatalf("gpt-image-2 input_price=%v, want 0.004", detail.InputPrice)
 			}
-			if detail.OutputPrice != 0.03 {
-				t.Fatalf("gpt-image-2 output_price=%v, want 0.03", detail.OutputPrice)
+			if detail.OutputPrice != 0.015 {
+				t.Fatalf("gpt-image-2 output_price=%v, want 0.015", detail.OutputPrice)
 			}
 			if detail.PriceUnit != ProviderPriceUnitPer1KTokens {
 				t.Fatalf("gpt-image-2 price_unit=%q, want %q", detail.PriceUnit, ProviderPriceUnitPer1KTokens)
@@ -1080,6 +1080,13 @@ func TestBuildProviderMigrationSeeds_OpenAIIncludesNewOfficialModels(t *testing.
 		"gpt-5.6-sol":            {modelType: ProviderModelTypeText},
 		"gpt-5.6-terra":          {modelType: ProviderModelTypeText},
 		"gpt-5.6-luna":           {modelType: ProviderModelTypeText},
+		"gpt-6-astra":            {modelType: ProviderModelTypeText},
+		"gpt-5.6-cyber":          {modelType: ProviderModelTypeText},
+		"gpt-realtime-2.1":       {modelType: ProviderModelTypeAudio},
+		"gpt-realtime-2.1-mini":  {modelType: ProviderModelTypeAudio},
+		"gpt-image-2.5-flare":    {modelType: ProviderModelTypeImage},
+		"gpt-image-2.5-sunburst": {modelType: ProviderModelTypeImage},
+		"gpt-transcribe":         {modelType: ProviderModelTypeAudio},
 		"gpt-image-1.5":          {modelType: ProviderModelTypeImage},
 		"gpt-image-1-mini":       {modelType: ProviderModelTypeImage},
 		"gpt-realtime-translate": {modelType: ProviderModelTypeAudio},
@@ -1245,6 +1252,7 @@ func TestBuildProviderMigrationSeeds_DeprecatedStatusApplied(t *testing.T) {
 			"claude-opus-4-1-20250805":  false,
 		},
 		"deepseek": {
+			"deepseek-v4-flash": false,
 			"deepseek-chat":     false,
 			"deepseek-reasoner": false,
 		},
@@ -1372,13 +1380,20 @@ func TestBuildProviderMigrationSeeds_OfficialPricingBackfillForPreviouslyUnprice
 		currency  string
 	}{
 		"openai": {
-			"gpt-audio":      {modelType: ProviderModelTypeAudio, input: 0.032, output: 0.064, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
-			"gpt-audio-mini": {modelType: ProviderModelTypeAudio, input: 0.01, output: 0.02, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
-			"whisper-1":      {modelType: ProviderModelTypeAudio, input: 0.006, priceUnit: ProviderPriceUnitPerMinute, currency: ProviderPriceCurrencyUSD},
-			"tts-1":          {modelType: ProviderModelTypeAudio, input: 0.015, priceUnit: ProviderPriceUnitPer1KChars, currency: ProviderPriceCurrencyUSD},
-			"tts-1-hd":       {modelType: ProviderModelTypeAudio, input: 0.03, priceUnit: ProviderPriceUnitPer1KChars, currency: ProviderPriceCurrencyUSD},
-			"sora-2":         {modelType: ProviderModelTypeVideo, input: 0.1, priceUnit: ProviderPriceUnitPerSecond, currency: ProviderPriceCurrencyUSD},
-			"sora-2-pro":     {modelType: ProviderModelTypeVideo, input: 0.3, priceUnit: ProviderPriceUnitPerSecond, currency: ProviderPriceCurrencyUSD},
+			"gpt-6-astra":            {modelType: ProviderModelTypeText, input: 0.01, output: 0.05, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
+			"gpt-5.6-cyber":          {modelType: ProviderModelTypeText, input: 0.0125, output: 0.075, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
+			"gpt-realtime-2.1":       {modelType: ProviderModelTypeAudio, input: 0.032, output: 0.064, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
+			"gpt-realtime-2.1-mini":  {modelType: ProviderModelTypeAudio, input: 0.01, output: 0.02, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
+			"gpt-image-2.5-flare":    {modelType: ProviderModelTypeImage, input: 0.008, output: 0.03, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
+			"gpt-image-2.5-sunburst": {modelType: ProviderModelTypeImage, input: 0.008, output: 0.03, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
+			"gpt-transcribe":         {modelType: ProviderModelTypeAudio, input: 0.0045, priceUnit: ProviderPriceUnitPerMinute, currency: ProviderPriceCurrencyUSD},
+			"gpt-audio":              {modelType: ProviderModelTypeAudio, input: 0.032, output: 0.064, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
+			"gpt-audio-mini":         {modelType: ProviderModelTypeAudio, input: 0.01, output: 0.02, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
+			"whisper-1":              {modelType: ProviderModelTypeAudio, input: 0.006, priceUnit: ProviderPriceUnitPerMinute, currency: ProviderPriceCurrencyUSD},
+			"tts-1":                  {modelType: ProviderModelTypeAudio, input: 0.015, priceUnit: ProviderPriceUnitPer1KChars, currency: ProviderPriceCurrencyUSD},
+			"tts-1-hd":               {modelType: ProviderModelTypeAudio, input: 0.03, priceUnit: ProviderPriceUnitPer1KChars, currency: ProviderPriceCurrencyUSD},
+			"sora-2":                 {modelType: ProviderModelTypeVideo, input: 0.1, priceUnit: ProviderPriceUnitPerSecond, currency: ProviderPriceCurrencyUSD},
+			"sora-2-pro":             {modelType: ProviderModelTypeVideo, input: 0.3, priceUnit: ProviderPriceUnitPerSecond, currency: ProviderPriceCurrencyUSD},
 		},
 		"google": {
 			"gemini-2.5-pro":                    {modelType: ProviderModelTypeText, input: 0.00125, output: 0.01, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
@@ -1390,10 +1405,11 @@ func TestBuildProviderMigrationSeeds_OfficialPricingBackfillForPreviouslyUnprice
 			"grok-2-image-1212": {modelType: ProviderModelTypeImage, input: 0.07, priceUnit: ProviderPriceUnitPerImage, currency: ProviderPriceCurrencyUSD},
 		},
 		"deepseek": {
-			"deepseek-v4-flash": {modelType: ProviderModelTypeText, input: 0.00014, output: 0.00028, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
-			"deepseek-v4-pro":   {modelType: ProviderModelTypeText, input: 0.000435, output: 0.00087, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
-			"deepseek-chat":     {modelType: ProviderModelTypeText, input: 0.00014, output: 0.00028, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
-			"deepseek-reasoner": {modelType: ProviderModelTypeText, input: 0.00014, output: 0.00028, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
+			"deepseek-flash":    {modelType: ProviderModelTypeText, input: 0.0003, output: 0.0012, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
+			"deepseek-v4-flash": {modelType: ProviderModelTypeText, input: 0.0003, output: 0.0012, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
+			"deepseek-v4-pro":   {modelType: ProviderModelTypeText, input: 0.00066, output: 0.00198, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
+			"deepseek-chat":     {modelType: ProviderModelTypeText, input: 0.0003, output: 0.0012, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
+			"deepseek-reasoner": {modelType: ProviderModelTypeText, input: 0.0003, output: 0.0012, priceUnit: ProviderPriceUnitPer1KTokens, currency: ProviderPriceCurrencyUSD},
 		},
 		"stepfun": {
 			"step-1o-turbo-vision": {modelType: ProviderModelTypeImage, input: 0.0025, output: 0.008, priceUnit: ProviderPriceUnitPer1KTokens, currency: "CNY"},
@@ -2137,6 +2153,14 @@ func TestBuildProviderMigrationSeeds_RemainingUnpricedModelsAreExplicitlyTracked
 			"cogvideox-flash": false,
 			"glm-4.6v-flash":  false,
 			"glm-4.7-flash":   false,
+			"glm-5.3":         false,
+			"glm-5.3-flash":   false,
+		},
+		"qwen": {
+			"qwen3.8-max":        false,
+			"qwen3.8-flash":      false,
+			"qwen3.8-omni-flash": false,
+			"qwen-image-3.0-pro": false,
 		},
 		"mistral": {
 			"pixtral-large-latest": false,

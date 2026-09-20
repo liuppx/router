@@ -7,6 +7,7 @@ import {
   TOPUP_RESULT_TABLE_MIN_WIDTH,
 } from '../../constants/tableWidthPresets';
 import { useTopUpWorkspace } from './shared.jsx';
+import CopyButton from '../../components/CopyButton';
 import { AppButton, AppInput, AppModal, AppTable } from '../../router-ui';
 
 const RedeemCodePage = ({ open, onClose, onRedeemed }) => {
@@ -48,9 +49,16 @@ const RedeemCodePage = ({ open, onClose, onRedeemed }) => {
           leftValue: recentResult.redemption_name || '-',
           rightLabel: t('topup.redemption_result.fields.redemption_id'),
           rightValue: recentResult.redemption_id ? (
-            <span className='router-monospace-value'>
-              {recentResult.redemption_id}
-            </span>
+            <div className='router-action-group-tight'>
+              <span className='router-monospace-value'>
+                {recentResult.redemption_id}
+              </span>
+              <CopyButton
+                value={recentResult.redemption_id}
+                size='small'
+                basic
+              />
+            </div>
           ) : (
             '-'
           ),
