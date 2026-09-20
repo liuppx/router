@@ -620,6 +620,60 @@ const LogsTable = () => {
   const draggingColumnKeyRef = useRef('');
   const resizingColumnRef = useRef(null);
 
+  // Write active filters back to the URL so a refresh or shared link restores
+  // them. The written set mirrors parseLogFiltersFromSearch exactly, so the
+  // round-trip is symmetric; `source` (breadcrumb origin) is preserved and
+  // navigate replace avoids spamming history. A diff guard prevents loops.
+  useEffect(() => {
+    const query = new URLSearchParams();
+    const source = new URLSearchParams(location.search || '').get('source');
+    if (source) {
+      query.set('source', source);
+    }
+    if (activeFilterKeys.includes('log_type') && Number(logType) > 0) {
+      query.set('log_type', String(logType));
+    }
+    if (activeFilterKeys.includes('time_range')) {
+      if ((inputs.start_timestamp || '').trim() !== '') {
+        query.set('start_timestamp', inputs.start_timestamp);
+      }
+      if ((inputs.end_timestamp || '').trim() !== '') {
+        query.set('end_timestamp', inputs.end_timestamp);
+      }
+    }
+    const textFilterKeys = ['token_name', 'model_name'];
+    if (isAdminScope) {
+      textFilterKeys.push('channel', 'group_id', 'username');
+    }
+    textFilterKeys.forEach((key) => {
+      if (activeFilterKeys.includes(key) && (inputs[key] || '').trim() !== '') {
+        query.set(key, inputs[key].trim());
+      }
+    });
+    const nextSearch = query.toString();
+    const currentSearch = location.search.startsWith('?')
+      ? location.search.slice(1)
+      : location.search;
+    if (nextSearch === currentSearch) {
+      return;
+    }
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true },
+    );
+  }, [
+    activeFilterKeys,
+    inputs,
+    logType,
+    isAdminScope,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
+
   const LOG_OPTIONS = [
     { key: '0', text: t('log.type.all'), value: 0 },
     { key: '1', text: t('log.type.topup'), value: 1 },
