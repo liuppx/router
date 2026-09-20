@@ -443,6 +443,11 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
                     onClick: () => navigate('/workspace/service/router-guide'),
                   },
                   {
+                    key: 'my-cli-guide',
+                    label: t('header.cli_guide'),
+                    onClick: () => navigate('/workspace/service/cli-guide'),
+                  },
+                  {
                     key: 'logout',
                     label: t('header.logout'),
                     onClick: logout,

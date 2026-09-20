@@ -23,7 +23,7 @@ export const buildUserWorkspaceMenuItems = () => {
   // Normal-user workspace: a flat list of the day-to-day functional entries.
   // Secondary personal entries (account / logs / guides) live in the header
   // avatar dropdown, mirroring the admin console.
-  return [
+  const items = [
     {
       name: 'workspace_models.title',
       to: '/workspace/service/models',
@@ -40,4 +40,19 @@ export const buildUserWorkspaceMenuItems = () => {
       icon: 'credit card',
     },
   ];
+  // Chat is an embedded iframe that only works once an operator configures a
+  // workspace/chat URL (persisted to localStorage from site status). Surface it
+  // only when that link exists so we never route users to a blank iframe.
+  const chatLink =
+    typeof localStorage !== 'undefined'
+      ? String(localStorage.getItem('chat_link') || '').trim()
+      : '';
+  if (chatLink) {
+    items.push({
+      name: 'header.chat',
+      to: '/workspace/chat',
+      icon: 'comments',
+    });
+  }
+  return items;
 };
