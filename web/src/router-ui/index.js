@@ -16,6 +16,7 @@ export { default as AppPopconfirm } from './primitives/AppPopconfirm';
 export { default as AppSelect } from './primitives/AppSelect';
 export { default as AppSegmented } from './primitives/AppSegmented';
 export { default as AppSider } from './primitives/AppSider';
+export { default as AppSkeleton } from './primitives/AppSkeleton';
 export { default as AppSpin } from './primitives/AppSpin';
 export { default as AppStatistic } from './primitives/AppStatistic';
 export { default as AppSwitch } from './primitives/AppSwitch';

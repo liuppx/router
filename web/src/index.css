@@ -2777,6 +2777,54 @@ html[data-theme='dark'] .router-topup-return-next-hint {
     line-height: 1.6;
 }
 
+/* Loading skeletons (AppSkeleton). Light-mode defaults with dark overrides,
+   since the antd theme sets colors via tokens only (no darkAlgorithm), so the
+   skeleton fill would otherwise stay a too-bright gray on dark surfaces. */
+.router-skeleton {
+    width: 100%;
+}
+
+.router-skeleton-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.router-skeleton-row.ant-skeleton,
+.router-skeleton-row.ant-skeleton .ant-skeleton-input {
+    width: 100% !important;
+}
+
+.router-skeleton-row .ant-skeleton-input {
+    height: 44px !important;
+    min-width: 0 !important;
+    border-radius: 8px;
+}
+
+.router-skeleton-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.router-skeleton-card {
+    padding: 16px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+html[data-theme='dark'] .router-skeleton-card {
+    border-color: rgba(226, 232, 240, 0.12);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+html[data-theme='dark'] .router-skeleton .ant-skeleton-title,
+html[data-theme='dark'] .router-skeleton .ant-skeleton-paragraph > li,
+html[data-theme='dark'] .router-skeleton .ant-skeleton-input {
+    background: rgba(226, 232, 240, 0.1);
+}
+
 /* Narrow-screen card view: opt-in via `router-table-cardify` on the table.
    Hides the header, stacks each row into a bordered card, and prints the
    column label (from data-label injected by withCardLabels) beside each cell,
