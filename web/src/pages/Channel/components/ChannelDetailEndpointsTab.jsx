@@ -3,6 +3,7 @@ import {
   AppAlert,
   AppDetailSection,
   AppIcon,
+  AppPopconfirm,
   AppSwitch,
   AppTable,
   AppTableActionButton,
@@ -215,22 +216,34 @@ const ChannelDetailEndpointsTab = ({
                             {label}
                           </span>
                           <AppTooltip title={t('channel.edit.endpoint_policies.remove_action')}>
-                            <button
-                              type='button'
-                              className='router-endpoint-policy-chip-remove'
+                            <AppPopconfirm
+                              title={t('channel.edit.endpoint_policies.confirm_remove')}
+                              okButtonProps={{ danger: true }}
+                              onConfirm={() => removeEndpointPolicy(policyRow)}
                               disabled={
                                 endpointPolicyReadonly ||
                                 deleting ||
                                 policyID === ''
                               }
-                              onClick={() => removeEndpointPolicy(policyRow)}
                             >
-                              {deleting ? (
-                                <AppIcon name='spinner' />
-                              ) : (
-                                <AppIcon name='close' />
-                              )}
-                            </button>
+                              <span>
+                                <button
+                                  type='button'
+                                  className='router-endpoint-policy-chip-remove'
+                                  disabled={
+                                    endpointPolicyReadonly ||
+                                    deleting ||
+                                    policyID === ''
+                                  }
+                                >
+                                  {deleting ? (
+                                    <AppIcon name='spinner' />
+                                  ) : (
+                                    <AppIcon name='close' />
+                                  )}
+                                </button>
+                              </span>
+                            </AppPopconfirm>
                           </AppTooltip>
                         </span>
                       );

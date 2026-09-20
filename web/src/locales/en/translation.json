@@ -1192,6 +1192,7 @@
         "action": "Configure",
         "add_action": "Add Policy",
         "remove_action": "Remove Policy",
+        "confirm_remove": "Remove this endpoint policy? It will stop applying immediately.",
         "status": {
           "enabled": "Enabled",
           "disabled": "Disabled",

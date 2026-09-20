@@ -1192,6 +1192,7 @@
         "action": "配置",
         "add_action": "增加策略",
         "remove_action": "移除策略",
+        "confirm_remove": "确认移除该端点策略？移除后该规则将立即失效。",
         "status": {
           "enabled": "已启用",
           "disabled": "已停用",
