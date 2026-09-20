@@ -5,6 +5,7 @@ import { API, showError } from '../../helpers';
 import { AppButton, AppSection, AppSkeleton, AppStatistic } from '../../router-ui';
 import QuotaCardItem from './QuotaCardItem';
 import SpendingCalendar from './SpendingCalendar';
+import RedeemCodePage from './RedeemCodePage';
 import {
   renderTopupIntegerAmountWithExactPopup,
   useTopUpWorkspace,
@@ -19,6 +20,7 @@ const QuotaPage = () => {
   const [spend, setSpend] = useState(null);
   const [tokenTotal, setTokenTotal] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [redeemOpen, setRedeemOpen] = useState(false);
 
   const loadQuotaPage = useCallback(async () => {
     setLoading(true);
@@ -114,6 +116,12 @@ const QuotaPage = () => {
               onClick={() => navigate('/workspace/service/pricing')}
             >
               {t('workspace_start.actions.view_pricing')}
+            </AppButton>
+            <AppButton
+              className='router-section-button'
+              onClick={() => setRedeemOpen(true)}
+            >
+              {t('topup.redeem.entry_button')}
             </AppButton>
             <AppButton
               className='router-section-button'
@@ -221,6 +229,12 @@ const QuotaPage = () => {
           <SpendingCalendar />
         </div>
       </div>
+
+      <RedeemCodePage
+        open={redeemOpen}
+        onClose={() => setRedeemOpen(false)}
+        onRedeemed={() => loadQuotaPage()}
+      />
     </div>
   );
 };

@@ -465,6 +465,7 @@
     },
     "redeem": {
       "title": "Redeem Code",
+      "entry_button": "Redeem code",
       "description": "If you already have a redemption code, you can credit it here directly.",
       "placeholder": "Please enter redemption code",
       "paste": "Paste",

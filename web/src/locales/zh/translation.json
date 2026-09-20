@@ -465,6 +465,7 @@
     },
     "redeem": {
       "title": "兑换码充值",
+      "entry_button": "兑换码",
       "description": "如果你已经拿到兑换码，可以在这里直接完成入账。",
       "placeholder": "请输入兑换码",
       "paste": "粘贴",
