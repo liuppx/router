@@ -124,24 +124,17 @@ function UserWorkspaceEntryRedirect() {
 
     const resolveTargetPath = async () => {
       try {
-        const [packageResponse, balanceResponse] = await Promise.all([
-          API.get('/api/v1/public/user/package/subscription'),
-          API.get('/api/v1/public/user/topup/balance/summary'),
-        ]);
-        const packageData = packageResponse?.data?.success
-          ? packageResponse?.data?.data || null
+        const response = await API.get(
+          '/api/v1/public/user/onboarding/progress',
+        );
+        const data = response?.data?.success
+          ? response?.data?.data || null
           : null;
-        const balanceData = balanceResponse?.data?.success
-          ? balanceResponse?.data?.data || null
-          : null;
-        const hasActivePackage = Array.isArray(packageData?.active_packages) &&
-          packageData.active_packages.length > 0;
-        const totalBalance = Number(balanceData?.total_balance_amount ?? 0);
-        const hasBalance = Number.isFinite(totalBalance) && totalBalance > 0;
+        const hasApiCall = !!data?.has_api_call;
         if (!active) {
           return;
         }
-        setTargetPath(hasActivePackage || hasBalance ? '/workspace/topup?tab=quota' : '/workspace/start');
+        setTargetPath(hasApiCall ? '/workspace/topup?tab=quota' : '/workspace/start');
       } catch (error) {
         if (!active) {
           return;
