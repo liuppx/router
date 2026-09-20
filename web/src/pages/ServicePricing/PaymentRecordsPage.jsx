@@ -13,11 +13,12 @@ const PaymentRecordsPageInner = () => {
     <div className='dashboard-container router-payment-history-page'>
       <AppFilterHeader
         breadcrumbs={[
-          { key: 'service', label: t('header.service') },
+          { key: 'workspace', label: t('header.user_workspace') },
+          { key: 'mine', label: t('header.mine') },
           {
-            key: 'pricing',
-            label: t('topup.pricing.title'),
-            onClick: () => navigate('/workspace/service/pricing'),
+            key: 'quota',
+            label: t('topup.mine.quota'),
+            onClick: () => navigate('/workspace/topup?tab=quota'),
           },
           {
             key: 'payment-history',

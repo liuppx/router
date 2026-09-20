@@ -402,7 +402,12 @@ const TopUpOrderDetailInner = () => {
       <AppFilterHeader
         breadcrumbs={[
           { key: 'workspace', label: t('header.user_workspace') },
-          { key: 'records', label: t('header.records') },
+          { key: 'mine', label: t('header.mine') },
+          {
+            key: 'quota',
+            label: t('topup.mine.quota'),
+            onClick: () => navigate('/workspace/topup?tab=quota'),
+          },
           {
             key: 'topup-order-list',
             label: detailPathLabel,

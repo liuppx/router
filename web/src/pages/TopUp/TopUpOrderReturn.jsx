@@ -195,7 +195,12 @@ const TopUpOrderReturn = () => {
       <AppFilterHeader
         breadcrumbs={[
           { key: 'workspace', label: t('header.user_workspace') },
-          { key: 'service', label: t('header.service') },
+          { key: 'mine', label: t('header.mine') },
+          {
+            key: 'quota',
+            label: t('topup.mine.quota'),
+            onClick: () => navigate('/workspace/topup?tab=quota'),
+          },
           {
             key: 'pricing',
             label: t('topup.pricing.title'),
