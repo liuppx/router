@@ -36,8 +36,20 @@ func NormalizeProvider(provider string) string {
 		return "volcengine"
 	case "minimax", "abab":
 		return "minimax"
+	case "moonshot", "moonshotai", "kimi":
+		return "moonshot"
+	case "amazon-nova", "amazon_nova":
+		return "amazon-nova"
 	case "black-forest-labs", "blackforestlabs", "bfl":
 		return "black-forest-labs"
+	case "perplexity":
+		return "perplexity"
+	case "voyage", "voyageai", "voyage-ai", "voyage ai":
+		return "voyageai"
+	case "deepgram":
+		return "deepgram"
+	case "assemblyai", "assembly-ai":
+		return "assemblyai"
 	default:
 		return lower
 	}
@@ -51,11 +63,16 @@ func ResolveProvider(modelName string) string {
 	}
 	if strings.Contains(name, "/") {
 		parts := strings.SplitN(name, "/", 2)
-		prefix := NormalizeProvider(parts[0])
-		if prefix == "" {
+		prefix := strings.ToLower(strings.TrimSpace(parts[0]))
+		suffix := strings.ToLower(strings.TrimSpace(parts[1]))
+		if prefix == "amazon" && strings.HasPrefix(suffix, "nova") {
+			return "amazon-nova"
+		}
+		normalizedPrefix := NormalizeProvider(parts[0])
+		if normalizedPrefix == "" {
 			return "unknown"
 		}
-		return prefix
+		return normalizedPrefix
 	}
 	lower := strings.ToLower(name)
 	switch {
@@ -103,10 +120,19 @@ func ResolveProvider(modelName string) string {
 		return "minimax"
 	case strings.HasPrefix(lower, "ernie-"):
 		return "baidu"
+	case strings.HasPrefix(lower, "moonshot-"),
+		strings.HasPrefix(lower, "kimi-"):
+		return "moonshot"
 	case strings.HasPrefix(lower, "llama"):
 		return "meta"
 	case strings.HasPrefix(lower, "flux"):
 		return "black-forest-labs"
+	case strings.HasPrefix(lower, "sonar"):
+		return "perplexity"
+	case strings.HasPrefix(lower, "voyage"):
+		return "voyageai"
+	case strings.HasPrefix(lower, "universal-"):
+		return "assemblyai"
 	default:
 		return "unknown"
 	}
@@ -160,10 +186,24 @@ func ResolveOwnedByProvider(ownedBy string) string {
 	case strings.Contains(value, "minimax"),
 		strings.Contains(value, "abab"):
 		return "minimax"
+	case strings.Contains(value, "moonshot"),
+		strings.Contains(value, "kimi"):
+		return "moonshot"
+	case strings.Contains(value, "amazon nova"):
+		return "amazon-nova"
 	case strings.Contains(value, "black-forest-labs"),
 		strings.Contains(value, "black forest labs"),
 		strings.Contains(value, "blackforestlabs"):
 		return "black-forest-labs"
+	case strings.Contains(value, "perplexity"):
+		return "perplexity"
+	case strings.Contains(value, "voyage"):
+		return "voyageai"
+	case strings.Contains(value, "deepgram"):
+		return "deepgram"
+	case strings.Contains(value, "assemblyai"),
+		strings.Contains(value, "assembly ai"):
+		return "assemblyai"
 	default:
 		return value
 	}

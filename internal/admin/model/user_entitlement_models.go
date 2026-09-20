@@ -287,10 +287,22 @@ func providerLabel(provider string) string {
 		return "Cohere"
 	case "minimax":
 		return "MiniMax"
+	case "moonshot":
+		return "Moonshot AI / Kimi"
+	case "amazon-nova":
+		return "Amazon Nova"
 	case "meta":
 		return "Meta"
 	case "black-forest-labs":
 		return "Black Forest Labs"
+	case "perplexity":
+		return "Perplexity"
+	case "voyageai":
+		return "Voyage AI"
+	case "deepgram":
+		return "Deepgram"
+	case "assemblyai":
+		return "AssemblyAI"
 	default:
 		normalized := commonutils.NormalizeProvider(provider)
 		if normalized == "" || normalized == "unknown" {

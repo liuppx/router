@@ -34,7 +34,7 @@ func normalizeProviderMigrationSeedModelDetails(provider string, details []Provi
 		next.IsDeleted = defaultProviderModelDeleted(normalizedProvider, next.Model)
 		if explicitEndpoints, handled := explicitProviderModelSupportedEndpoints(normalizedProvider, next.Type, next.Model, next.SupportedEndpoints); handled {
 			next.SupportedEndpoints = explicitEndpoints
-		} else if len(next.SupportedEndpoints) == 0 {
+		} else if len(next.SupportedEndpoints) == 0 && !ProviderModelTagsContain(next.Tags, ProviderModelTagNativeAdapterRequired) {
 			next.SupportedEndpoints = DefaultProviderModelSupportedEndpoints(normalizedProvider, next.Type, next.Model)
 		} else {
 			next.SupportedEndpoints = NormalizeProviderModelSupportedEndpointsForModel(next.Type, next.Model, next.SupportedEndpoints)

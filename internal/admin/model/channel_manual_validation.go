@@ -142,6 +142,9 @@ func ExplainManualChannelEndpointEnableBlockWithDB(db *gorm.DB, channelID string
 	if officialType == "" {
 		return fmt.Sprintf("模型 %s 缺少供应商官方 tags，不能启用端点 %s", displayOfficialModelName(row, official.Model), normalizedEndpoint), nil
 	}
+	if ProviderModelTagsContain(splitProviderModelTags(official.Tags), ProviderModelTagNativeAdapterRequired) {
+		return fmt.Sprintf("模型 %s 需要 Router 原生渠道适配，当前不能启用端点 %s", displayOfficialModelName(row, official.Model), normalizedEndpoint), nil
+	}
 	officialEndpoints := NormalizeProviderModelSupportedEndpoints(
 		officialType,
 		splitProviderModelSupportedEndpoints(official.SupportedEndpoints),
@@ -176,6 +179,9 @@ func ExplainManualChannelModelEnableBlockWithDB(db *gorm.DB, channelID string, r
 	}
 	if normalizeManualValidationProviderModelStatus(official.Status) != ProviderModelStatusActive {
 		return fmt.Sprintf("模型 %s 当前官方状态不是 active，不能启用", displayOfficialModelName(row, official.Model)), nil
+	}
+	if ProviderModelTagsContain(splitProviderModelTags(official.Tags), ProviderModelTagNativeAdapterRequired) {
+		return fmt.Sprintf("模型 %s 需要 Router 原生渠道适配，当前不能启用", displayOfficialModelName(row, official.Model)), nil
 	}
 	ok, err := HasReturnedChannelModelSyncResultWithDB(db, channelID, row.Model, row.UpstreamModel)
 	if err != nil {

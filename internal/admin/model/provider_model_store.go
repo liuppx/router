@@ -101,7 +101,7 @@ func LoadProviderModelDetailsMapForProviders(db *gorm.DB, providers []string) (m
 		}
 		detail.Specification = specification
 		detail.Type = ProviderModelTypeFromTags(detail.Tags)
-		if len(detail.SupportedEndpoints) == 0 {
+		if len(detail.SupportedEndpoints) == 0 && !ProviderModelTagsContain(detail.Tags, ProviderModelTagNativeAdapterRequired) {
 			if detail.Type == "" {
 				continue
 			}

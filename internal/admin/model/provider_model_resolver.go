@@ -309,7 +309,7 @@ func LoadProviderModelEndpointMapByModelsWithDB(db *gorm.DB, provider string, mo
 			modelType,
 			splitProviderModelSupportedEndpoints(row.SupportedEndpoints),
 		)
-		if len(endpoints) == 0 {
+		if len(endpoints) == 0 && !ProviderModelTagsContain(splitProviderModelTags(row.Tags), ProviderModelTagNativeAdapterRequired) {
 			endpoints = DefaultProviderModelSupportedEndpoints(
 				normalizedProvider,
 				modelType,

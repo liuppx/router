@@ -26,6 +26,10 @@ const (
 	ProviderModelTagRealtime         = "realtime"
 	ProviderModelTagStructuredOutput = "structured_output"
 	ProviderModelTagFileInput        = "file_input"
+	// ProviderModelTagNativeAdapterRequired marks a catalogued model whose
+	// provider protocol cannot yet be routed by Router. It must not gain a
+	// guessed default endpoint or become publishable through a generic adapter.
+	ProviderModelTagNativeAdapterRequired = "native_adapter_required"
 
 	ProviderPriceUnitPer1KTokens = "per_1k_tokens"
 	ProviderPriceUnitPer1KChars  = "per_1k_chars"
@@ -60,6 +64,19 @@ type ProviderModelPriceComponentDetail struct {
 	SourceURL   string  `json:"source_url,omitempty"`
 	SortOrder   int     `json:"sort_order,omitempty"`
 	UpdatedAt   int64   `json:"updated_at,omitempty"`
+}
+
+func ProviderModelTagsContain(tags []string, target string) bool {
+	want := strings.TrimSpace(strings.ToLower(target))
+	if want == "" {
+		return false
+	}
+	for _, tag := range NormalizeProviderModelTags(tags) {
+		if tag == want {
+			return true
+		}
+	}
+	return false
 }
 
 type ProviderModelDetail struct {

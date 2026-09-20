@@ -1367,10 +1367,29 @@ const normalizeProviderIdentifier = (value) => {
     case 'minimax':
     case 'abab':
       return 'minimax';
+    case 'moonshot':
+    case 'moonshotai':
+    case 'kimi':
+      return 'moonshot';
+    case 'amazon-nova':
+    case 'amazon_nova':
+      return 'amazon-nova';
     case 'black-forest-labs':
     case 'blackforestlabs':
     case 'bfl':
       return 'black-forest-labs';
+    case 'perplexity':
+      return 'perplexity';
+    case 'voyage':
+    case 'voyageai':
+    case 'voyage-ai':
+    case 'voyage ai':
+      return 'voyageai';
+    case 'deepgram':
+      return 'deepgram';
+    case 'assemblyai':
+    case 'assembly-ai':
+      return 'assemblyai';
     default:
       return normalized;
   }
@@ -1382,7 +1401,13 @@ const resolveProviderIdentifierFromModelName = (modelName) => {
     return '';
   }
   if (name.includes('/')) {
-    const [prefix] = name.split('/', 1);
+    const [prefix, suffix] = name.split('/', 2);
+    if (
+      prefix.toLowerCase() === 'amazon' &&
+      suffix?.toLowerCase().startsWith('nova')
+    ) {
+      return 'amazon-nova';
+    }
     const normalizedPrefix = normalizeProviderIdentifier(prefix);
     if (normalizedPrefix !== '') {
       return normalizedPrefix;
@@ -1440,6 +1465,9 @@ const resolveProviderIdentifierFromModelName = (modelName) => {
     return 'moonshot';
   if (lower.startsWith('llama')) return 'meta';
   if (lower.startsWith('flux')) return 'black-forest-labs';
+  if (lower.startsWith('sonar')) return 'perplexity';
+  if (lower.startsWith('voyage')) return 'voyageai';
+  if (lower.startsWith('universal-')) return 'assemblyai';
   if (lower.startsWith('baichuan-')) return 'baichuan';
   if (lower.startsWith('yi-')) return 'lingyiwanwu';
   if (lower.startsWith('step-')) return 'stepfun';

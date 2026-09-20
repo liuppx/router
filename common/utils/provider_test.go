@@ -43,6 +43,26 @@ func TestResolveProvider(t *testing.T) {
 			model: "black-forest-labs/flux-1.1-pro",
 			want:  "black-forest-labs",
 		},
+		{
+			name:  "moonshot kimi prefix",
+			model: "moonshotai/kimi-k2.5",
+			want:  "moonshot",
+		},
+		{
+			name:  "amazon nova prefixed model",
+			model: "amazon/nova-2-lite-v1",
+			want:  "amazon-nova",
+		},
+		{
+			name:  "perplexity sonar prefix",
+			model: "sonar-pro",
+			want:  "perplexity",
+		},
+		{
+			name:  "voyage prefix",
+			model: "voyage-4",
+			want:  "voyageai",
+		},
 	}
 
 	for _, tt := range tests {
@@ -64,6 +84,10 @@ func TestNormalizeProviderAliases(t *testing.T) {
 		{input: "meta", want: "meta"},
 		{input: "Meta_Llama", want: "meta"},
 		{input: "mistralai", want: "mistral"},
+		{input: "MoonshotAI", want: "moonshot"},
+		{input: "amazon_nova", want: "amazon-nova"},
+		{input: "Voyage AI", want: "voyageai"},
+		{input: "Assembly-AI", want: "assemblyai"},
 	}
 	for _, tt := range tests {
 		if got := NormalizeProvider(tt.input); got != tt.want {

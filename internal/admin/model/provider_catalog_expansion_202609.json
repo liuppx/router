@@ -12,10 +12,6 @@
         "tags": ["reasoning", "tool_calling"],
         "description": "Kimi K2.5 是 Moonshot AI 的通用推理和 Agent 模型。",
         "supported_endpoints": ["/v1/chat/completions"],
-        "input_price": 0.00045,
-        "output_price": 0.00225,
-        "price_unit": "per_1k_tokens",
-        "currency": "USD",
         "source": "migration"
       },
       {
@@ -24,10 +20,6 @@
         "tags": ["reasoning", "tool_calling"],
         "description": "Kimi K2.6 是 Moonshot AI 的通用推理模型。",
         "supported_endpoints": ["/v1/chat/completions"],
-        "input_price": 0.00095,
-        "output_price": 0.004,
-        "price_unit": "per_1k_tokens",
-        "currency": "USD",
         "source": "migration"
       },
       {
@@ -36,10 +28,6 @@
         "tags": ["reasoning", "tool_calling"],
         "description": "Kimi K2.7 Code 是 Moonshot AI 面向代码任务的推理模型。",
         "supported_endpoints": ["/v1/chat/completions"],
-        "input_price": 0.0007062,
-        "output_price": 0.00321,
-        "price_unit": "per_1k_tokens",
-        "currency": "USD",
         "source": "migration"
       }
     ]
@@ -199,10 +187,6 @@
         "tags": ["web_search"],
         "description": "Sonar 是 Perplexity 的联网回答模型；搜索请求和引用相关费用需在渠道层单独核验。",
         "supported_endpoints": ["/v1/chat/completions"],
-        "input_price": 0.001,
-        "output_price": 0.001,
-        "price_unit": "per_1k_tokens",
-        "currency": "USD",
         "source": "migration"
       },
       {
@@ -211,10 +195,6 @@
         "tags": ["web_search"],
         "description": "Sonar Pro 是 Perplexity 的高能力联网回答模型；搜索请求和引用相关费用需在渠道层单独核验。",
         "supported_endpoints": ["/v1/chat/completions"],
-        "input_price": 0.003,
-        "output_price": 0.015,
-        "price_unit": "per_1k_tokens",
-        "currency": "USD",
         "source": "migration"
       },
       {
@@ -223,10 +203,6 @@
         "tags": ["reasoning", "web_search"],
         "description": "Sonar Reasoning Pro 是 Perplexity 的联网推理模型；搜索请求和引用相关费用需在渠道层单独核验。",
         "supported_endpoints": ["/v1/chat/completions"],
-        "input_price": 0.002,
-        "output_price": 0.008,
-        "price_unit": "per_1k_tokens",
-        "currency": "USD",
         "source": "migration"
       },
       {
@@ -235,10 +211,6 @@
         "tags": ["reasoning", "web_search"],
         "description": "Sonar Deep Research 是 Perplexity 的深度联网研究模型；搜索请求和引用相关费用需在渠道层单独核验。",
         "supported_endpoints": ["/v1/chat/completions"],
-        "input_price": 0.002,
-        "output_price": 0.008,
-        "price_unit": "per_1k_tokens",
-        "currency": "USD",
         "source": "migration"
       }
     ]
@@ -293,6 +265,7 @@
       {
         "model": "rerank-3",
         "type": "text",
+        "tags": ["native_adapter_required"],
         "description": "Rerank 3 是 Voyage AI 的文档重排序模型，需要原生 rerank 渠道适配后才能发布。",
         "supported_endpoints": ["/v1/rerank"],
         "input_price": 0.00005,
@@ -303,6 +276,7 @@
       {
         "model": "rerank-3-lite",
         "type": "text",
+        "tags": ["native_adapter_required"],
         "description": "Rerank 3 Lite 是 Voyage AI 的低成本文档重排序模型，需要原生 rerank 渠道适配后才能发布。",
         "supported_endpoints": ["/v1/rerank"],
         "input_price": 0.00002,
@@ -322,12 +296,14 @@
       {
         "model": "nova-3",
         "type": "audio",
+        "tags": ["native_adapter_required"],
         "description": "Nova-3 是 Deepgram 的语音转写模型；Router 尚未提供 Deepgram 原生请求和实时协议适配。",
         "source": "migration"
       },
       {
         "model": "nova-2",
         "type": "audio",
+        "tags": ["native_adapter_required"],
         "description": "Nova-2 是 Deepgram 的语音转写模型；Router 尚未提供 Deepgram 原生请求和实时协议适配。",
         "source": "migration"
       }
@@ -343,12 +319,14 @@
       {
         "model": "universal-3-pro",
         "type": "audio",
+        "tags": ["native_adapter_required"],
         "description": "Universal-3 Pro 是 AssemblyAI 的高精度语音转写模型；Router 尚未提供 AssemblyAI 原生异步任务适配。",
         "source": "migration"
       },
       {
         "model": "universal-3",
         "type": "audio",
+        "tags": ["native_adapter_required"],
         "description": "Universal-3 是 AssemblyAI 的语音转写模型；Router 尚未提供 AssemblyAI 原生异步任务适配。",
         "source": "migration"
       }

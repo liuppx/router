@@ -254,3 +254,24 @@ func TestValidateManualChannelEndpointEnableBlocksUnsupportedRouterRoute(t *test
 		t.Fatalf("ValidateManualChannelEndpointEnableWithDB error=%v, want unsupported router route", err)
 	}
 }
+
+func TestValidateManualChannelModelChangesBlocksNativeAdapterRequiredModels(t *testing.T) {
+	db := newChannelManualValidationTestDB(t)
+	if err := db.Create(&ProviderModel{
+		Provider: "deepgram",
+		Model:    "nova-3",
+		Tags:     ProviderModelTypeAudio + "," + ProviderModelTagNativeAdapterRequired,
+		Status:   ProviderModelStatusActive,
+	}).Error; err != nil {
+		t.Fatalf("create provider model: %v", err)
+	}
+	err := ValidateManualChannelModelChangesWithDB(
+		db,
+		"channel-1",
+		[]ChannelModel{{Model: "nova-3", UpstreamModel: "nova-3", Provider: "deepgram", Type: ProviderModelTypeAudio, Selected: false}},
+		[]ChannelModel{{Model: "nova-3", UpstreamModel: "nova-3", Provider: "deepgram", Type: ProviderModelTypeAudio, Selected: true}},
+	)
+	if err == nil || !strings.Contains(err.Error(), "需要 Router 原生渠道适配") {
+		t.Fatalf("ValidateManualChannelModelChangesWithDB error=%v, want native adapter block", err)
+	}
+}
