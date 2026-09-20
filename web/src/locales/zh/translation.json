@@ -4294,6 +4294,32 @@
       "save": "保存通知偏好",
       "saved": "通知偏好已保存",
       "save_failed": "通知偏好保存失败"
+    },
+    "field": {
+      "wallet": "钱包地址",
+      "avatar": "头像",
+      "email": "邮箱",
+      "password": "密码",
+      "current_password": "当前密码",
+      "new_password": "新密码",
+      "confirm_password": "确认新密码"
+    },
+    "button": {
+      "save": "保存",
+      "edit": "编辑",
+      "set": "设置",
+      "modify_password": "修改密码",
+      "set_password": "设置密码"
+    },
+    "password_modal": {
+      "modify_title": "修改密码",
+      "set_title": "设置密码",
+      "confirm_modify": "确认修改",
+      "confirm_set": "确认设置"
+    },
+    "messages": {
+      "password_modify_success": "密码修改成功",
+      "password_set_success": "密码设置成功"
     }
   },
   "low_balance_banner": {

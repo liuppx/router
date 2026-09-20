@@ -4294,6 +4294,32 @@
       "save": "Save notification preferences",
       "saved": "Notification preferences saved",
       "save_failed": "Failed to save notification preferences"
+    },
+    "field": {
+      "wallet": "Wallet address",
+      "avatar": "Avatar",
+      "email": "Email",
+      "password": "Password",
+      "current_password": "Current password",
+      "new_password": "New password",
+      "confirm_password": "Confirm new password"
+    },
+    "button": {
+      "save": "Save",
+      "edit": "Edit",
+      "set": "Set",
+      "modify_password": "Change password",
+      "set_password": "Set password"
+    },
+    "password_modal": {
+      "modify_title": "Change password",
+      "set_title": "Set password",
+      "confirm_modify": "Confirm change",
+      "confirm_set": "Confirm"
+    },
+    "messages": {
+      "password_modify_success": "Password changed successfully",
+      "password_set_success": "Password set successfully"
     }
   },
   "low_balance_banner": {
