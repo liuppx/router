@@ -898,14 +898,23 @@ const EditToken = () => {
   // copy-paste first request instead of leaving them with a bare token.
   const apiBaseUrl = `${String(window.location.origin || '').replace(/\/$/, '')}/v1`;
   const createdTokenValue = createdToken ? renderFullToken(createdToken.key) : '';
-  const createdTokenCurl = createdToken
-    ? [
-        `curl ${apiBaseUrl}/chat/completions \\`,
-        `  -H "Authorization: Bearer ${createdTokenValue}" \\`,
-        '  -H "Content-Type: application/json" \\',
-        "  -d '{\"model\": \"gpt-4o-mini\", \"messages\": [{\"role\": \"user\", \"content\": \"Hello\"}]}'",
-      ].join('\n')
-    : '';
+  // Prefer the token's own first allowed model so the example is runnable as-is;
+  // fall back to a placeholder when the token is unrestricted / has none picked.
+  const exampleModel =
+    Array.isArray(selectedModels) && selectedModels.length > 0 && selectedModels[0]
+      ? selectedModels[0]
+      : '<model>';
+  const buildTokenCurl = (bearer) =>
+    [
+      `curl ${apiBaseUrl}/chat/completions \\`,
+      `  -H "Authorization: Bearer ${bearer}" \\`,
+      '  -H "Content-Type: application/json" \\',
+      `  -d '{"model": "${exampleModel}", "messages": [{"role": "user", "content": "Hello"}]}'`,
+    ].join('\n');
+  const createdTokenCurl = createdToken ? buildTokenCurl(createdTokenValue) : '';
+  // Detail mode never has the raw key (shown once at creation), so the example
+  // uses a placeholder the user swaps for their own token.
+  const detailTokenCurl = buildTokenCurl('$ROUTER_API_KEY');
 
   return (
     <div className='dashboard-container'>
@@ -1200,6 +1209,7 @@ const EditToken = () => {
               items={[
                 { key: 'basic', label: t('common.basic_info') },
                 { key: 'models', label: t('token.detail.sections.models') },
+                { key: 'usage', label: t('token.detail.sections.usage') },
               ]}
             />
           </div>
@@ -1405,6 +1415,67 @@ const EditToken = () => {
               >
                   {renderModelScopeControls(modelsReadonly)}
             </AppDetailSection>
+            ) : null}
+            {activeDetailTab === 'usage' ? (
+              <AppDetailSection title={t('token.created.usage_title')}>
+                <div className='router-section-message'>
+                  {t('token.created.usage_desc')}
+                </div>
+                <AppFormRow className='router-token-basic-info-row'>
+                  <AppField label={t('token.created.base_url_label')} readOnly>
+                    <AppInput
+                      className='router-section-input'
+                      value={apiBaseUrl}
+                      readOnly
+                    />
+                  </AppField>
+                </AppFormRow>
+                <AppFormRow className='router-token-basic-info-row'>
+                  <AppField label={t('token.created.example_label')} readOnly>
+                    <AppTextarea
+                      className='router-section-input'
+                      value={detailTokenCurl}
+                      readOnly
+                      autoSize={{ minRows: 4, maxRows: 10 }}
+                    />
+                  </AppField>
+                </AppFormRow>
+                <div className='router-form-hint'>
+                  {t('token.detail.usage_key_note')}
+                </div>
+                <AppFormActions>
+                  <AppButton
+                    className='router-page-button'
+                    onClick={async () => {
+                      if (await copy(apiBaseUrl)) {
+                        showSuccess(t('token.messages.copy_success'));
+                        return;
+                      }
+                      showError(t('token.messages.copy_failed'));
+                    }}
+                  >
+                    {t('token.created.copy_base_url')}
+                  </AppButton>
+                  <AppButton
+                    className='router-page-button'
+                    onClick={async () => {
+                      if (await copy(detailTokenCurl)) {
+                        showSuccess(t('token.messages.copy_success'));
+                        return;
+                      }
+                      showError(t('token.messages.copy_failed'));
+                    }}
+                  >
+                    {t('token.created.copy_curl')}
+                  </AppButton>
+                  <AppButton
+                    className='router-page-button'
+                    onClick={() => navigate('/workspace/service/cli-guide')}
+                  >
+                    {t('token.created.view_guide')}
+                  </AppButton>
+                </AppFormActions>
+              </AppDetailSection>
             ) : null}
           </div>
         </div>

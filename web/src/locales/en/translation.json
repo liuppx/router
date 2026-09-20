@@ -1795,8 +1795,10 @@
       "title": "Token Detail",
       "sections": {
         "models": "Model Scope",
+        "usage": "Usage",
         "limits": "Limits"
       },
+      "usage_key_note": "Replace $ROUTER_API_KEY in the example with your token (the full token is shown only once at creation — recreate the token if lost).",
       "buttons": {
         "back": "Back"
       }

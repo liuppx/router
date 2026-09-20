@@ -1795,8 +1795,10 @@
       "title": "令牌详情",
       "sections": {
         "models": "模型范围",
+        "usage": "如何调用",
         "limits": "限制设置"
       },
+      "usage_key_note": "示例中的 $ROUTER_API_KEY 请替换为你的令牌(完整令牌仅在创建时展示一次,如遗失请重建令牌)。",
       "buttons": {
         "back": "返回"
       }
