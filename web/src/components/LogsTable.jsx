@@ -333,7 +333,25 @@ function normalizeLogEntry(log) {
 function toDatetimeLocalValue(value) {
   const raw = (value || '').toString().trim();
   if (raw === '') {
-  return '';
+    return '';
+  }
+  if (raw.includes('T')) {
+    return raw.slice(0, 16);
+  }
+  if (raw.includes(' ')) {
+    return raw.replace(' ', 'T').slice(0, 16);
+  }
+  const parsed = Date.parse(raw);
+  if (!Number.isFinite(parsed)) {
+    return '';
+  }
+  const date = new Date(parsed);
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  const hour = `${date.getHours()}`.padStart(2, '0');
+  const minute = `${date.getMinutes()}`.padStart(2, '0');
+  return `${year}-${month}-${day}T${hour}:${minute}`;
 }
 
 function toUserFilterOption(item) {
@@ -362,24 +380,6 @@ function toTokenFilterOption(item) {
     text: [tokenName, tokenID].filter(Boolean).join(' / '),
     value: tokenName,
   };
-}
-  if (raw.includes('T')) {
-    return raw.slice(0, 16);
-  }
-  if (raw.includes(' ')) {
-    return raw.replace(' ', 'T').slice(0, 16);
-  }
-  const parsed = Date.parse(raw);
-  if (!Number.isFinite(parsed)) {
-    return '';
-  }
-  const date = new Date(parsed);
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  const hour = `${date.getHours()}`.padStart(2, '0');
-  const minute = `${date.getMinutes()}`.padStart(2, '0');
-  return `${year}-${month}-${day}T${hour}:${minute}`;
 }
 
 function parseDatetimeInput(value) {
