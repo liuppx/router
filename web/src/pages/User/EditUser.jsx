@@ -27,6 +27,7 @@ import {
   AppInputNumber,
   AppModal,
   AppPagination,
+  AppPopconfirm,
   AppSelect,
   AppTable,
   AppTabs,
@@ -381,6 +382,8 @@ const UserDetail = () => {
     created_at: 0,
     updated_at: 0,
   });
+  const [rolePopOpen, setRolePopOpen] = useState(false);
+  const [pendingRole, setPendingRole] = useState(null);
   const [basicEditInputs, setBasicEditInputs] = useState({
     username: '',
     email: '',
@@ -781,53 +784,84 @@ const UserDetail = () => {
     }
   }, [balanceLotTotalPages, balanceLotsPage]);
 
+  const commitRoleChange = useCallback(async () => {
+    if (!persistedUsername || pendingRole == null) {
+      setRolePopOpen(false);
+      setPendingRole(null);
+      return;
+    }
+    const action = Number(pendingRole) === 10 ? 'promote' : 'demote';
+    setActionLoading(action);
+    try {
+      const res = await API.post('/api/v1/admin/user/manage', {
+        username: persistedUsername,
+        action,
+      });
+      const { success, message } = res.data || {};
+      if (!success) {
+        showError(message);
+        return;
+      }
+      showSuccess(t('user.messages.operation_success'));
+      await loadUser();
+    } catch (error) {
+      showError(error?.message || error);
+    } finally {
+      setActionLoading('');
+      setRolePopOpen(false);
+      setPendingRole(null);
+    }
+  }, [loadUser, pendingRole, persistedUsername, t]);
+
   const roleControl = useMemo(() => {
     return (
-      <AppSelect
-        className='router-section-input'
-        options={ROLE_OPTIONS(t)}
-        value={Number(inputs.role || 1)}
-        disabled={!canManageRole || loading || actionLoading !== '' || editSection !== ''}
-        onChange={(e, { value }) => {
-          const nextRole = Number(value);
-          if (!Number.isFinite(nextRole) || nextRole === Number(inputs.role)) {
-            return;
+      <AppPopconfirm
+        open={rolePopOpen}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setRolePopOpen(false);
+            setPendingRole(null);
           }
-          const action = nextRole === 10 ? 'promote' : 'demote';
-          if (!persistedUsername || actionLoading !== '') {
-            return;
-          }
-          setActionLoading(action);
-          API.post('/api/v1/admin/user/manage', {
-            username: persistedUsername,
-            action,
-          })
-            .then((res) => {
-              const { success, message } = res.data || {};
-              if (!success) {
-                showError(message);
-                return;
-              }
-              showSuccess(t('user.messages.operation_success'));
-              return loadUser();
-            })
-            .catch((error) => {
-              showError(error?.message || error);
-            })
-            .finally(() => {
-              setActionLoading('');
-            });
         }}
-      />
+        title={
+          Number(pendingRole) === 10
+            ? t('user.edit.role.confirm_promote')
+            : t('user.edit.role.confirm_demote')
+        }
+        okText={t('user.edit.role.confirm_action')}
+        cancelText={t('user.edit.role.cancel_action')}
+        okButtonProps={{ danger: true }}
+        onConfirm={commitRoleChange}
+      >
+        <AppSelect
+          className='router-section-input'
+          options={ROLE_OPTIONS(t)}
+          value={Number(inputs.role || 1)}
+          disabled={!canManageRole || loading || actionLoading !== '' || editSection !== ''}
+          onChange={(e, { value }) => {
+            const nextRole = Number(value);
+            if (!Number.isFinite(nextRole) || nextRole === Number(inputs.role)) {
+              return;
+            }
+            if (!persistedUsername || actionLoading !== '') {
+              return;
+            }
+            setPendingRole(nextRole);
+            setRolePopOpen(true);
+          }}
+        />
+      </AppPopconfirm>
     );
   }, [
     actionLoading,
     canManageRole,
+    commitRoleChange,
     editSection,
     inputs.role,
-    loadUser,
     loading,
+    pendingRole,
     persistedUsername,
+    rolePopOpen,
     t,
   ]);
 

@@ -2544,6 +2544,12 @@
       "wechat_id_placeholder": "此项只读，需要用户通过个人设置页面的相关绑定按钮进行绑定，不可直接修改",
       "email": "邮箱",
       "email_placeholder": "未设置",
+      "role": {
+        "confirm_promote": "确认将该用户提升为管理员？提升后用户可访问管理后台，请确认已通知本人。",
+        "confirm_demote": "确认将该用户降为普通用户？降级后用户将失去管理后台访问权限。",
+        "confirm_action": "确认变更",
+        "cancel_action": "取消"
+      },
       "buttons": {
         "submit": "确认",
         "cancel": "取消"

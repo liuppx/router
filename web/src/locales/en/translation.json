@@ -2544,6 +2544,12 @@
       "wechat_id_placeholder": "Read-only, user must link through personal settings page, cannot be modified directly",
       "email": "Email",
       "email_placeholder": "Not set",
+      "role": {
+        "confirm_promote": "Promote this user to admin? They will gain access to the admin console. Please confirm the user has been notified.",
+        "confirm_demote": "Demote this user to a regular user? They will lose access to the admin console.",
+        "confirm_action": "Confirm Change",
+        "cancel_action": "Cancel"
+      },
       "buttons": {
         "submit": "Confirm",
         "cancel": "Cancel"
