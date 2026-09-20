@@ -6041,3 +6041,49 @@ html[data-theme='dark'] .router-workspace-start-checklist-status {
     flex: 1 1 auto;
   }
 }
+
+/* 新用户欢迎遮罩 — modal 内分步文案 */
+.router-welcome-overlay .router-welcome-overlay-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.router-welcome-overlay-subtitle {
+  color: var(--router-text-color-secondary, #6b7280);
+  font-size: 0.95em;
+}
+
+.router-welcome-overlay-steps {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.router-welcome-overlay-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--router-border-color, #e5e7eb);
+  transition: background 0.15s ease;
+}
+
+.router-welcome-overlay-dot.is-active {
+  background: var(--router-primary-color, #1677ff);
+}
+
+.router-welcome-overlay-step-meta {
+  font-size: 0.85em;
+  color: var(--router-text-color-secondary, #6b7280);
+}
+
+.router-welcome-overlay-step-title {
+  font-size: 1.15em;
+  font-weight: 600;
+  color: var(--router-text-color, #111827);
+}
+
+.router-welcome-overlay-step-description {
+  color: var(--router-text-color-secondary, #4b5563);
+  line-height: 1.55;
+}

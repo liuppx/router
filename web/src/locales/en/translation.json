@@ -4261,6 +4261,32 @@
     "action": "Top up",
     "dismiss": "Dismiss"
   },
+  "welcome_overlay": {
+    "title": "Welcome",
+    "subtitle": "Three steps to make your first API call",
+    "step_of": "Step {current} of {total}",
+    "steps": {
+      "quota": {
+        "title": "Top up or subscribe a package",
+        "description": "Your first call needs available balance or a package quota. Pick what fits you on the pricing page.",
+        "cta": "Top up"
+      },
+      "token": {
+        "title": "Create an API token",
+        "description": "Open the Tokens page, create one, and keep the displayed key safe.",
+        "cta": "Create token"
+      },
+      "call": {
+        "title": "Make your first call",
+        "description": "Follow the integration guide to wire the token into your client and run your first request.",
+        "cta": "Open integration guide"
+      }
+    },
+    "prev": "Back",
+    "next": "Next",
+    "finish": "Start",
+    "skip": "Skip onboarding"
+  },
   "wallet": {
     "not_detected": "No wallet detected. Please install MetaMask or enable a browser wallet.",
     "plugin_missing": "No wallet plugin detected. Please install or enable a wallet plugin and try again.",

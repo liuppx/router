@@ -4261,6 +4261,32 @@
     "action": "去充值",
     "dismiss": "关闭"
   },
+  "welcome_overlay": {
+    "title": "欢迎使用",
+    "subtitle": "三步开始你的第一次 API 调用",
+    "step_of": "第 {current} / {total} 步",
+    "steps": {
+      "quota": {
+        "title": "充值或订阅套餐",
+        "description": "首次调用需要可用余额或套餐额度。前往定价页选择适合你的方式。",
+        "cta": "去充值"
+      },
+      "token": {
+        "title": "创建 API 令牌",
+        "description": "在「令牌」页新建一个,妥善保存好显示的密钥。",
+        "cta": "创建令牌"
+      },
+      "call": {
+        "title": "发起首次调用",
+        "description": "跟随接入指南把令牌接到你的客户端,跑通第一次请求。",
+        "cta": "查看接入指南"
+      }
+    },
+    "prev": "上一步",
+    "next": "下一步",
+    "finish": "开始使用",
+    "skip": "跳过引导"
+  },
   "wallet": {
     "not_detected": "未检测到钱包，请安装 MetaMask 或开启浏览器钱包",
     "plugin_missing": "未检测到钱包插件，请安装或启用钱包插件后重试",
