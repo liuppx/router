@@ -148,9 +148,10 @@ const TopUpOrderReturn = () => {
       <AppFilterHeader
         breadcrumbs={[
           { key: 'workspace', label: t('header.user_workspace') },
+          { key: 'service', label: t('header.service') },
           {
             key: 'pricing',
-            label: t('header.subscriptions') || t('header.pricing'),
+            label: t('topup.pricing.title'),
             onClick: () => navigate('/workspace/service/pricing'),
           },
           {
