@@ -7,11 +7,6 @@ import {
   showSuccess,
   timestamp2string,
 } from '../helpers';
-import { ITEMS_PER_PAGE } from '../constants';
-import {
-  PROVIDER_LIST_COLUMN_WIDTHS,
-  PROVIDER_LIST_TABLE_MIN_WIDTH,
-} from '../constants/tableWidthPresets';
 import {
   AppButton,
   AppDetailSection,
@@ -35,6 +30,7 @@ import {
 } from '../router-ui';
 
 const PROVIDER_DETAIL_MODEL_PAGE_SIZE = 20;
+const PROVIDER_CATALOG_REQUEST_PAGE_SIZE = 100;
 const PROVIDER_MODEL_STATUS_FILTER_ALL = 'all';
 const PROVIDER_ENDPOINT_SORT_ORDER = {
   '/v1/chat/completions': 10,
@@ -132,6 +128,29 @@ const normalizeProvider = (provider) => {
     case 'minimax':
     case 'abab':
       return 'minimax';
+    case 'moonshot':
+    case 'moonshotai':
+    case 'kimi':
+      return 'moonshot';
+    case 'amazon-nova':
+    case 'amazon_nova':
+      return 'amazon-nova';
+    case 'black-forest-labs':
+    case 'blackforestlabs':
+    case 'bfl':
+      return 'black-forest-labs';
+    case 'perplexity':
+      return 'perplexity';
+    case 'voyage':
+    case 'voyageai':
+    case 'voyage-ai':
+    case 'voyage ai':
+      return 'voyageai';
+    case 'deepgram':
+      return 'deepgram';
+    case 'assemblyai':
+    case 'assembly-ai':
+      return 'assemblyai';
     default:
       if (trimmed === '千问' || trimmed === '通义千问') return 'qwen';
       if (trimmed === '智谱' || trimmed === '智谱AI') return 'zhipu';
@@ -155,6 +174,64 @@ const PROVIDER_DISPLAY_NAME_MAP = {
   baidu: 'BaiDu',
   zhipu: 'ZhiPu',
   volcengine: 'VolcEngine',
+  moonshot: 'Moonshot AI / Kimi',
+  'amazon-nova': 'Amazon Nova',
+  meta: 'Meta / Llama',
+  'black-forest-labs': 'Black Forest Labs / FLUX',
+  perplexity: 'Perplexity',
+  voyageai: 'Voyage AI',
+  deepgram: 'Deepgram',
+  assemblyai: 'AssemblyAI',
+};
+
+const PROVIDER_ICON_PATHS = {
+  openai: '/provider/icons/openai.ico',
+  anthropic: '/provider/icons/anthropic.svg',
+  google: '/provider/icons/google.svg',
+  xai: '/provider/icons/xai.svg',
+  mistral: '/provider/icons/mistral.svg',
+  cohere: '/provider/icons/cohere.ico',
+  deepseek: '/provider/icons/deepseek.svg',
+  qwen: '/provider/icons/qwen.svg',
+  zhipu: '/provider/icons/zhipu.png',
+  baidu: '/provider/icons/baidu.svg',
+  hunyuan: '/provider/icons/hunyuan.ico',
+  volcengine: '/provider/icons/volcengine.png',
+  minimax: '/provider/icons/minimax.ico',
+  stepfun: '/provider/icons/stepfun.png',
+  moonshot: '/provider/icons/moonshot.ico',
+  'amazon-nova': '/provider/icons/amazon-nova.ico',
+  meta: '/provider/icons/meta.svg',
+  'black-forest-labs': '/provider/icons/black-forest-labs.ico',
+  perplexity: '/provider/icons/perplexity.svg',
+  voyageai: '/provider/icons/voyageai.ico',
+  deepgram: '/provider/icons/deepgram.svg',
+  assemblyai: '/provider/icons/assemblyai.ico',
+};
+
+const PROVIDER_BRAND_TONES = {
+  openai: 'ink',
+  anthropic: 'clay',
+  google: 'blue',
+  xai: 'ink',
+  mistral: 'orange',
+  cohere: 'coral',
+  deepseek: 'blue',
+  qwen: 'orange',
+  zhipu: 'teal',
+  baidu: 'blue',
+  hunyuan: 'teal',
+  volcengine: 'red',
+  minimax: 'red',
+  stepfun: 'blue',
+  moonshot: 'ink',
+  'amazon-nova': 'orange',
+  meta: 'blue',
+  'black-forest-labs': 'ink',
+  perplexity: 'ink',
+  voyageai: 'violet',
+  deepgram: 'violet',
+  assemblyai: 'violet',
 };
 
 const formatProviderDisplayId = (provider) => {
@@ -175,6 +252,37 @@ const formatProviderDisplayName = (provider, name) => {
   if (!normalized) return '';
   return PROVIDER_DISPLAY_NAME_MAP[normalized] || normalized;
 };
+
+const providerMonogram = (provider, name) => {
+  const value = (name || provider || '').toString().trim();
+  if (!value) return '?';
+  const compact = value.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '');
+  return (compact.slice(0, 2) || value.slice(0, 1)).toUpperCase();
+};
+
+function ProviderBrandMark({ provider, name }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const normalized = normalizeProvider(provider);
+  const source = PROVIDER_ICON_PATHS[normalized];
+  const displayName = formatProviderDisplayName(normalized, name) || normalized;
+  const tone = PROVIDER_BRAND_TONES[normalized] || 'slate';
+
+  return (
+    <span
+      className={`router-provider-brand-mark router-provider-brand-mark-${tone}`}
+      aria-label={displayName}
+      title={displayName}
+    >
+      {source && !imageFailed ? (
+        <img src={source} alt='' onError={() => setImageFailed(true)} />
+      ) : (
+        <span className='router-provider-brand-monogram'>
+          {providerMonogram(normalized, displayName)}
+        </span>
+      )}
+    </span>
+  );
+}
 
 const buildPriceComponentRowKey = (scope, component) =>
   [
@@ -829,8 +937,6 @@ const ProvidersManager = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [activePage, setActivePage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const [deletingRow, setDeletingRow] = useState(null);
   const [creating, setCreating] = useState(false);
   const [createRow, setCreateRow] = useState(createEmptyRow());
@@ -858,34 +964,44 @@ const ProvidersManager = () => {
     [searchKeyword],
   );
 
-  const totalPages = useMemo(() => {
-    if (totalCount <= 0) return 1;
-    return Math.ceil(totalCount / ITEMS_PER_PAGE);
-  }, [totalCount]);
-
   const loadCatalog = useCallback(
-    async (page, keyword, options = {}) => {
+    async (keyword, options = {}) => {
       const withRefreshIndicator = options.withRefreshIndicator === true;
       setLoading(true);
       if (withRefreshIndicator) {
         setRefreshing(true);
       }
       try {
-        const res = await API.get('/api/v1/admin/providers', {
-          params: {
-            page: Math.max(page || 1, 1),
-            page_size: ITEMS_PER_PAGE,
-            keyword: keyword || undefined,
-          },
-        });
-        const { success, message, data } = res.data || {};
-        if (!success) {
-          showError(message || t('channel.providers.messages.load_failed'));
-          return;
-        }
-        const items = Array.isArray(data?.items) ? data.items : [];
-        setRows(toEditableRows(items));
-        setTotalCount(Number(data?.total || 0));
+        const items = [];
+        let page = 1;
+        let total = 0;
+
+        do {
+          const res = await API.get('/api/v1/admin/providers', {
+            params: {
+              page,
+              page_size: PROVIDER_CATALOG_REQUEST_PAGE_SIZE,
+              keyword: keyword || undefined,
+            },
+          });
+          const { success, message, data } = res.data || {};
+          if (!success) {
+            showError(message || t('channel.providers.messages.load_failed'));
+            return;
+          }
+          const pageItems = Array.isArray(data?.items) ? data.items : [];
+          items.push(...pageItems);
+          total = Number(data?.total || items.length);
+          page += 1;
+          if (pageItems.length === 0) break;
+        } while (items.length < total);
+
+        setRows(
+          toEditableRows(items).sort(
+            (left, right) =>
+              Number(right.created_at || 0) - Number(left.created_at || 0),
+          ),
+        );
       } catch (error) {
         showError(error);
       } finally {
@@ -899,14 +1015,8 @@ const ProvidersManager = () => {
   );
 
   useEffect(() => {
-    loadCatalog(activePage, normalizedSearchKeyword).then();
-  }, [activePage, normalizedSearchKeyword, loadCatalog]);
-
-  useEffect(() => {
-    if (activePage > totalPages) {
-      setActivePage(totalPages);
-    }
-  }, [activePage, totalPages]);
+    loadCatalog(normalizedSearchKeyword).then();
+  }, [normalizedSearchKeyword, loadCatalog]);
 
   const setCreateValue = (key, value) => {
     setCreateRow((prev) => ({
@@ -1277,8 +1387,8 @@ const ProvidersManager = () => {
     });
   };
 
-  const reloadCurrentPage = async () => {
-    await loadCatalog(activePage, normalizedSearchKeyword, {
+  const reloadCatalog = async () => {
+    await loadCatalog(normalizedSearchKeyword, {
       withRefreshIndicator: true,
     });
   };
@@ -1481,7 +1591,7 @@ const ProvidersManager = () => {
       showSuccess(
         options.successMessage || t('channel.providers.messages.save_success'),
       );
-      await reloadCurrentPage();
+      await reloadCatalog();
       return savedRow;
     } catch (error) {
       const message =
@@ -1525,11 +1635,7 @@ const ProvidersManager = () => {
       if (viewingProvider === provider) {
         closeViewer();
       }
-      if (rows.length === 1 && activePage > 1) {
-        setActivePage((prev) => Math.max(prev - 1, 1));
-      } else {
-        await reloadCurrentPage();
-      }
+      await reloadCatalog();
       setDeletingRow(null);
     } catch (error) {
       showError(error);
@@ -3072,7 +3178,7 @@ const ProvidersManager = () => {
             className='router-page-button'
             disabled={saving || refreshing}
             loading={refreshing}
-            onClick={reloadCurrentPage}
+            onClick={reloadCatalog}
           >
             {t('channel.providers.buttons.refresh')}
           </AppButton>
@@ -3085,117 +3191,74 @@ const ProvidersManager = () => {
             value={searchKeyword}
             onChange={(e, { value }) => {
               setSearchKeyword(value || '');
-              setActivePage(1);
             }}
           />
         }
       />
-      <div className='router-table-scroll-x'>
-        <AppTable
-          className='router-hover-table router-list-table router-table-fit-page'
-          size='small'
-          pagination={false}
-          scroll={{ x: PROVIDER_LIST_TABLE_MIN_WIDTH }}
-          rowKey={(row) =>
-            row?.id ||
-            `${row?.name || 'provider'}-${row?.created_at || 0}-${row?.updated_at || 0}`
-          }
-          dataSource={rows}
-          locale={{
-            emptyText: (
-              <AppEmpty>
-                {loading ? t('common.loading') : t('channel.providers.table.empty')}
-              </AppEmpty>
-            ),
-          }}
-          onRow={(row) =>
-            creating || saving
-              ? {}
-              : {
-                  onClick: () => {
-                    openViewer(row);
-                  },
-                }
-          }
-          rowClassName={() =>
-            creating || saving ? '' : 'router-row-clickable'
-          }
-          columns={[
-          {
-            title: t('channel.providers.table.provider'),
-            dataIndex: 'id',
-            key: 'id',
-            width: PROVIDER_LIST_COLUMN_WIDTHS.id,
-            render: (value) =>
-              value ? (
-                <span className='router-monospace-value router-monospace-truncate' title={value}>
-                  {formatProviderDisplayId(value)}
-                </span>
-              ) : (
-                '-'
+      {rows.length > 0 ? (
+        <div className='router-provider-card-grid'>
+          {rows.map((row) => {
+            const displayName =
+              formatProviderDisplayName(row.id, row.name) ||
+              formatProviderDisplayId(row.id) ||
+              '-';
+            const modelDetails = Array.isArray(row.model_details)
+              ? row.model_details
+              : [];
+            const modelTypes = Array.from(
+              new Set(
+                modelDetails
+                  .map((detail) =>
+                    providerModelTypeFromTags(detail?.tags, detail?.model),
+                  )
+                  .filter(Boolean),
               ),
-          },
-          {
-            title: t('channel.providers.table.name'),
-            key: 'name',
-            width: PROVIDER_LIST_COLUMN_WIDTHS.name,
-            render: (_, row) => formatProviderDisplayName(row.id, row.name) || '-',
-          },
-          {
-            title: t('channel.providers.table.created_at'),
-            dataIndex: 'created_at',
-            key: 'created_at',
-            className: 'router-table-col-datetime',
-            width: PROVIDER_LIST_COLUMN_WIDTHS.createdAt,
-            sorter: (a, b) => Number(a.created_at || 0) - Number(b.created_at || 0),
-            defaultSortOrder: 'descend',
-            render: (value) => (value ? timestamp2string(value) : '-'),
-          },
-          {
-            title: t('channel.providers.table.updated_at'),
-            dataIndex: 'updated_at',
-            key: 'updated_at',
-            className: 'router-table-col-datetime',
-            width: PROVIDER_LIST_COLUMN_WIDTHS.updatedAt,
-            sorter: (a, b) => Number(a.updated_at || 0) - Number(b.updated_at || 0),
-            render: (value) => (value ? timestamp2string(value) : '-'),
-          },
-          {
-            title: t('channel.providers.table.actions'),
-            key: 'actions',
-            className: 'router-table-col-actions-icon',
-            width: PROVIDER_LIST_COLUMN_WIDTHS.actions,
-            render: (_, row) => (
-              <div className='router-action-group-tight router-table-actions-icon-compact'>
-                <AppTableActionButton
-                  icon='edit'
-                  title={t('common.edit')}
-                  color='blue'
-                  disabled={creating || saving}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openViewer(row);
-                    startDetailSectionEdit('basic', row);
-                  }}
-                />
-              </div>
-            ),
-          },
-          ]}
-        />
-      </div>
-      {totalPages > 1 ? (
-        <div className='router-pagination-wrap-md'>
-          <AppPagination
-            className='router-section-pagination'
-            activePage={activePage}
-            totalPages={totalPages}
-            onPageChange={(e, { activePage: nextActivePage }) => {
-              setActivePage(Number(nextActivePage) || 1);
-            }}
-          />
+            ).slice(0, 3);
+
+            return (
+              <button
+                type='button'
+                className='router-provider-card'
+                key={
+                  row?.id ||
+                  `${row?.name || 'provider'}-${row?.created_at || 0}-${row?.updated_at || 0}`
+                }
+                disabled={creating || saving}
+                onClick={() => openViewer(row)}
+              >
+                <span className='router-provider-card-header'>
+                  <ProviderBrandMark provider={row.id} name={row.name} />
+                  <AppIcon
+                    name='right chevron'
+                    className='router-provider-card-arrow'
+                    aria-hidden='true'
+                  />
+                </span>
+                <span className='router-provider-card-name'>{displayName}</span>
+                <span className='router-provider-card-id'>
+                  {formatProviderDisplayId(row.id)}
+                </span>
+                <span className='router-provider-card-footer'>
+                  <span>
+                    {t('channel.providers.table.model_count', {
+                      count: modelDetails.length,
+                    })}
+                  </span>
+                  {modelTypes.length > 0 ? (
+                    <span className='router-provider-card-types'>
+                      {modelTypes.join(' / ')}
+                    </span>
+                  ) : null}
+                </span>
+              </button>
+            );
+          })}
         </div>
-      ) : null}
+      ) : (
+        <AppEmpty>
+          {loading ? t('common.loading') : t('channel.providers.table.empty')}
+        </AppEmpty>
+      )}
     </div>
   );
 

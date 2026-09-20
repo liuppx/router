@@ -3096,6 +3096,218 @@ html[data-theme='dark'] .router-skeleton .ant-skeleton-input {
     white-space: nowrap;
 }
 
+.router-provider-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 12px;
+    width: 100%;
+}
+
+.router-provider-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+    min-height: 166px;
+    padding: 14px;
+    overflow: hidden;
+    color: rgba(31, 35, 41, 0.88);
+    text-align: left;
+    background: #ffffff;
+    border: 1px solid rgba(34, 36, 38, 0.12);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.router-provider-card:hover:not(:disabled) {
+    border-color: rgba(22, 119, 255, 0.48);
+    box-shadow: 0 4px 12px rgba(31, 35, 41, 0.08);
+    transform: translateY(-1px);
+}
+
+.router-provider-card:focus-visible {
+    outline: 2px solid #1677ff;
+    outline-offset: 2px;
+}
+
+.router-provider-card:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+}
+
+.router-provider-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    min-height: 42px;
+    margin-bottom: 12px;
+}
+
+.router-provider-brand-mark {
+    display: inline-flex;
+    flex: 0 0 42px;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid rgba(34, 36, 38, 0.1);
+    border-radius: 8px;
+}
+
+.router-provider-brand-mark img {
+    display: block;
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.router-provider-brand-mark-clay {
+    background: #f6f3ee;
+}
+
+.router-provider-brand-mark-blue {
+    background: #f1f6ff;
+}
+
+.router-provider-brand-mark-coral,
+.router-provider-brand-mark-orange {
+    background: #fff5ed;
+}
+
+.router-provider-brand-mark-ink {
+    background: #f5f6f7;
+}
+
+.router-provider-brand-mark-red {
+    background: #fff1f0;
+}
+
+.router-provider-brand-mark-teal {
+    background: #edfafa;
+}
+
+.router-provider-brand-mark-violet {
+    background: #f5f3ff;
+}
+
+.router-provider-brand-monogram {
+    display: inline-block;
+    max-width: 34px;
+    overflow: hidden;
+    color: rgba(31, 35, 41, 0.78);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.router-provider-card-arrow {
+    margin: 4px 1px 0 0;
+    color: rgba(31, 35, 41, 0.42);
+    font-size: 16px;
+}
+
+.router-provider-card-name {
+    display: -webkit-box;
+    min-height: 40px;
+    overflow: hidden;
+    color: rgba(31, 35, 41, 0.9);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.router-provider-card-id {
+    min-height: 18px;
+    margin-top: 2px;
+    overflow: hidden;
+    color: rgba(31, 35, 41, 0.54);
+    font-family: var(--router-monospace-font, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+    font-size: 12px;
+    line-height: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.router-provider-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+    margin-top: auto;
+    padding-top: 12px;
+    color: rgba(31, 35, 41, 0.56);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.router-provider-card-types {
+    min-width: 0;
+    overflow: hidden;
+    color: rgba(31, 35, 41, 0.46);
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+html[data-theme='dark'] .router-provider-card {
+    color: rgba(226, 232, 240, 0.9);
+    background: #1f2937;
+    border-color: rgba(148, 163, 184, 0.24);
+}
+
+html[data-theme='dark'] .router-provider-card:hover:not(:disabled) {
+    border-color: rgba(96, 165, 250, 0.78);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.24);
+}
+
+html[data-theme='dark'] .router-provider-brand-mark {
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+html[data-theme='dark'] .router-provider-card-name {
+    color: #e5e7eb;
+}
+
+html[data-theme='dark'] .router-provider-card-id,
+html[data-theme='dark'] .router-provider-card-footer {
+    color: #94a3b8;
+}
+
+html[data-theme='dark'] .router-provider-card-types,
+html[data-theme='dark'] .router-provider-card-arrow {
+    color: #64748b;
+}
+
+html[data-theme='dark'] .router-provider-brand-monogram {
+    color: #e2e8f0;
+}
+
+@media (max-width: 720px) {
+    .router-provider-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .router-provider-card {
+        min-height: 160px;
+        padding: 12px;
+    }
+}
+
+@media (max-width: 440px) {
+    .router-provider-card-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 .router-ui-table.router-list-table .ant-table-thead > tr > th.router-topup-reconcile-message-cell,
 .router-ui-table.router-list-table .ant-table-tbody > tr > td.router-topup-reconcile-message-cell {
     width: 180px !important;
