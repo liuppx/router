@@ -601,18 +601,6 @@ const TokensTable = () => {
             render: (value) => renderTimestamp(value),
           },
           {
-            title: t('token.table.updated_time'),
-            dataIndex: 'updatedTime',
-            key: 'updatedTime',
-            className: 'router-table-col-datetime',
-            width: TOKEN_LIST_COLUMN_WIDTHS.updatedTime,
-            sorter: (a, b) => compareNumberValue(a.updatedTime, b.updatedTime),
-            sortDirections: ['ascend', 'descend'],
-            sortOrder:
-              tableSorter.columnKey === 'updatedTime' ? tableSorter.order : null,
-            render: (value) => renderTimestamp(value),
-          },
-          {
             title: t('token.table.expired_time'),
             dataIndex: 'expiredTime',
             key: 'expiredTime',
