@@ -337,6 +337,8 @@
       "title": "购买",
       "page_title": "购买",
       "subtitle": "你可以购买或调整套餐，也可以充值余额按需使用服务。",
+      "balance_vs_package_title": "余额 vs 套餐",
+      "balance_vs_package_body": "余额按量计费,用多少扣多少,适合弹性或试用;套餐定额包时段,适合稳定使用且成本更清晰。两者可以叠加:套餐额度用完后会自动消耗余额。",
       "package_mode_title": "套餐使用",
       "package_hint": "适合稳定使用，按套餐获取每日额度和应急额度，成本与边界更清晰。图片模型按张计次，例如 n=4 记 4 次。",
       "balance_mode_title": "余额使用",

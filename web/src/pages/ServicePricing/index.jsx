@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import BalanceTopUpPage from '../TopUp/BalanceTopUpPage';
 import PackagePurchasePage from '../TopUp/PackagePurchasePage';
 import TopUpWorkspaceProvider from '../TopUp/provider.jsx';
-import { AppFilterHeader } from '../../router-ui';
+import { AppAlert, AppFilterHeader } from '../../router-ui';
 
 const ServicePricing = () => {
   const { t } = useTranslation();
@@ -28,6 +28,21 @@ const ServicePricing = () => {
             </Link>
           }
           metaClassName='router-service-pricing-history-link-wrap'
+        />
+        <AppAlert
+          type='info'
+          showIcon
+          className='router-service-pricing-info'
+          message={
+            <div className='router-service-pricing-info-body'>
+              <div className='router-service-pricing-info-title'>
+                {t('topup.pricing.balance_vs_package_title')}
+              </div>
+              <div className='router-service-pricing-info-text'>
+                {t('topup.pricing.balance_vs_package_body')}
+              </div>
+            </div>
+          }
         />
         <div id='pricing-package-section'>
           <PackagePurchasePage />

@@ -337,6 +337,8 @@
       "title": "Purchase",
       "page_title": "Purchase",
       "subtitle": "Purchase or adjust a package, or top up balance for on-demand usage.",
+      "balance_vs_package_title": "Balance vs packages",
+      "balance_vs_package_body": "Balance is pay-as-you-go: only charged for what you actually use, ideal for elastic or trial usage. Packages are flat-rate plans for a fixed window: predictable cost and clearer boundaries. The two stack — once a package's quota is used up, balance covers any remaining calls automatically.",
       "package_mode_title": "Package Plans",
       "package_hint": "Best for stable usage. You get a daily allowance plus emergency capacity with clearer cost boundaries. Image models count by generated image count, for example n=4 uses 4 package units.",
       "balance_mode_title": "Balance Usage",
