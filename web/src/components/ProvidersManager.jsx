@@ -958,6 +958,10 @@ const ProvidersManager = () => {
   const [modelDetailEditorMode, setModelDetailEditorMode] = useState('edit');
   const [pricingDetailOpen, setPricingDetailOpen] = useState(false);
   const [pricingDetailModel, setPricingDetailModel] = useState(null);
+  const [modelDeleteConfirmOpen, setModelDeleteConfirmOpen] = useState(false);
+  const [pendingModelDeleteIndex, setPendingModelDeleteIndex] = useState(-1);
+  const [modelBatchDeleteConfirmOpen, setModelBatchDeleteConfirmOpen] = useState(false);
+  const [pendingModelBatchDeleteIndexes, setPendingModelBatchDeleteIndexes] = useState([]);
 
   const normalizedSearchKeyword = useMemo(
     () => (typeof searchKeyword === 'string' ? searchKeyword.trim() : ''),
@@ -1496,65 +1500,107 @@ const ProvidersManager = () => {
     t,
   ]);
 
-  const deleteDetailModel = useCallback(
-    async (index) => {
-      const sourceRow = cloneEditableRow(viewRow);
-      const details = Array.isArray(sourceRow.model_details)
-        ? [...sourceRow.model_details]
-        : [];
-      if (saving || creating || index < 0 || index >= details.length) {
+  const requestDeleteDetailModel = useCallback(
+    (index) => {
+      if (saving || creating || index < 0) {
         return;
       }
-      if (
-        typeof window !== 'undefined' &&
-        !window.confirm(
-          t('channel.providers.model_detail_table.delete_confirm'),
-        )
-      ) {
-        return;
-      }
-      details.splice(index, 1);
-      await persistViewerModelDetails(details);
+      setPendingModelDeleteIndex(index);
+      setModelDeleteConfirmOpen(true);
     },
-    [creating, persistViewerModelDetails, saving, t, viewRow],
+    [creating, saving],
   );
 
-  const deleteDetailModels = useCallback(
-    async (indexes) => {
-      const sourceRow = cloneEditableRow(viewRow);
-      const details = Array.isArray(sourceRow.model_details)
-        ? [...sourceRow.model_details]
-        : [];
+  const performDeleteDetailModel = useCallback(async () => {
+    const index = pendingModelDeleteIndex;
+    if (saving || creating || index < 0) {
+      setModelDeleteConfirmOpen(false);
+      setPendingModelDeleteIndex(-1);
+      return;
+    }
+    const sourceRow = cloneEditableRow(viewRow);
+    const details = Array.isArray(sourceRow.model_details)
+      ? [...sourceRow.model_details]
+      : [];
+    if (index >= details.length) {
+      setModelDeleteConfirmOpen(false);
+      setPendingModelDeleteIndex(-1);
+      return;
+    }
+    details.splice(index, 1);
+    try {
+      await persistViewerModelDetails(details);
+    } finally {
+      setModelDeleteConfirmOpen(false);
+      setPendingModelDeleteIndex(-1);
+    }
+  }, [
+    creating,
+    pendingModelDeleteIndex,
+    persistViewerModelDetails,
+    saving,
+    viewRow,
+  ]);
+
+  const requestDeleteDetailModels = useCallback(
+    (indexes) => {
+      if (saving || creating) {
+        return;
+      }
       const normalizedIndexes = Array.from(
         new Set(
           (Array.isArray(indexes) ? indexes : [])
             .map((item) => Number(item))
-            .filter((item) => Number.isInteger(item) && item >= 0 && item < details.length),
+            .filter((item) => Number.isInteger(item) && item >= 0),
         ),
-      ).sort((a, b) => b - a);
-      if (saving || creating || normalizedIndexes.length === 0) {
-        return false;
+      );
+      if (normalizedIndexes.length === 0) {
+        return;
       }
-      if (
-        typeof window !== 'undefined' &&
-        !window.confirm(
-          t('channel.providers.model_detail_table.batch_delete_confirm', {
-            count: normalizedIndexes.length,
-          }),
-        )
-      ) {
-        return false;
-      }
-      normalizedIndexes.forEach((index) => {
-        details.splice(index, 1);
-      });
+      setPendingModelBatchDeleteIndexes(normalizedIndexes);
+      setModelBatchDeleteConfirmOpen(true);
+    },
+    [creating, saving],
+  );
+
+  const performDeleteDetailModels = useCallback(async () => {
+    const sourceRow = cloneEditableRow(viewRow);
+    const details = Array.isArray(sourceRow.model_details)
+      ? [...sourceRow.model_details]
+      : [];
+    const normalizedIndexes = Array.from(
+      new Set(
+        pendingModelBatchDeleteIndexes
+          .map((item) => Number(item))
+          .filter(
+            (item) => Number.isInteger(item) && item >= 0 && item < details.length,
+          ),
+      ),
+    ).sort((a, b) => b - a);
+    if (normalizedIndexes.length === 0) {
+      setModelBatchDeleteConfirmOpen(false);
+      setPendingModelBatchDeleteIndexes([]);
+      return false;
+    }
+    normalizedIndexes.forEach((index) => {
+      details.splice(index, 1);
+    });
+    try {
       await persistViewerModelDetails(details);
       setViewModelBatchDeleteKeys([]);
       setViewModelBatchDeleteMode(false);
       return true;
-    },
-    [creating, persistViewerModelDetails, saving, t, viewRow],
-  );
+    } finally {
+      setModelBatchDeleteConfirmOpen(false);
+      setPendingModelBatchDeleteIndexes([]);
+    }
+  }, [
+    creating,
+    pendingModelBatchDeleteIndexes,
+    persistViewerModelDetails,
+    saving,
+    viewRow,
+  ]);
 
   async function saveProvider(method, url, row, options = {}) {
     const provider = normalizeProvider(row.id);
@@ -1615,6 +1661,18 @@ const ProvidersManager = () => {
   const closeDeleteModal = () => {
     if (saving) return;
     setDeletingRow(null);
+  };
+
+  const closeModelDeleteModal = () => {
+    if (saving || creating) return;
+    setModelDeleteConfirmOpen(false);
+    setPendingModelDeleteIndex(-1);
+  };
+
+  const closeModelBatchDeleteModal = () => {
+    if (saving || creating) return;
+    setModelBatchDeleteConfirmOpen(false);
+    setPendingModelBatchDeleteIndexes([]);
   };
 
   const confirmDeleteRow = async () => {
@@ -3577,7 +3635,7 @@ const ProvidersManager = () => {
                             index,
                           ]),
                         );
-                        deleteDetailModels(
+                        requestDeleteDetailModels(
                           viewModelBatchDeleteKeys
                             .map((key) => selectedIndexByKey.get(key))
                             .filter((index) => Number.isInteger(index)),
@@ -3636,7 +3694,7 @@ const ProvidersManager = () => {
               onPageChange: setViewModelPage,
               actions: {
                 onStartEdit: startDetailModelEdit,
-                onDelete: deleteDetailModel,
+                onDelete: requestDeleteDetailModel,
               },
               actionsDisabled: basicEditing || modelsEditing,
             })}
@@ -3762,6 +3820,93 @@ const ProvidersManager = () => {
           {t('channel.providers.dialog.delete_content', {
             provider: providerName,
           })}
+        </div>
+      </AppModal>
+    );
+  };
+
+  const renderModelDeleteModal = () => {
+    const sourceRow = cloneEditableRow(viewRow);
+    const details = Array.isArray(sourceRow?.model_details)
+      ? sourceRow.model_details
+      : [];
+    const target =
+      pendingModelDeleteIndex >= 0 && pendingModelDeleteIndex < details.length
+        ? details[pendingModelDeleteIndex]
+        : null;
+    const label =
+      target?.model || target?.upstream_model || `model #${pendingModelDeleteIndex + 1}`;
+    return (
+      <AppModal
+        open={modelDeleteConfirmOpen}
+        onClose={closeModelDeleteModal}
+        size='tiny'
+        closeOnDimmerClick={!(saving || creating)}
+        title={t('channel.providers.dialog.delete_model_title')}
+        footer={[
+          <AppButton
+            key='cancel'
+            type='button'
+            className='router-modal-button'
+            onClick={closeModelDeleteModal}
+            disabled={saving || creating}
+          >
+            {t('channel.providers.dialog.cancel_create')}
+          </AppButton>,
+          <AppButton
+            key='confirm'
+            type='button'
+            className='router-modal-button'
+            color='red'
+            loading={saving}
+            disabled={saving || creating}
+            onClick={performDeleteDetailModel}
+          >
+            {t('channel.providers.dialog.delete_confirm')}
+          </AppButton>,
+        ]}
+      >
+        <div>
+          {t('channel.providers.dialog.delete_model_content', { model: label })}
+        </div>
+      </AppModal>
+    );
+  };
+
+  const renderModelBatchDeleteModal = () => {
+    const count = pendingModelBatchDeleteIndexes.length;
+    return (
+      <AppModal
+        open={modelBatchDeleteConfirmOpen}
+        onClose={closeModelBatchDeleteModal}
+        size='tiny'
+        closeOnDimmerClick={!(saving || creating)}
+        title={t('channel.providers.dialog.delete_model_batch_title')}
+        footer={[
+          <AppButton
+            key='cancel'
+            type='button'
+            className='router-modal-button'
+            onClick={closeModelBatchDeleteModal}
+            disabled={saving || creating}
+          >
+            {t('channel.providers.dialog.cancel_create')}
+          </AppButton>,
+          <AppButton
+            key='confirm'
+            type='button'
+            className='router-modal-button'
+            color='red'
+            loading={saving}
+            disabled={saving || creating || count === 0}
+            onClick={performDeleteDetailModels}
+          >
+            {t('channel.providers.dialog.delete_confirm')}
+          </AppButton>,
+        ]}
+      >
+        <div>
+          {t('channel.providers.dialog.delete_model_batch_content', { count })}
         </div>
       </AppModal>
     );
@@ -3909,6 +4054,8 @@ const ProvidersManager = () => {
     <div>
       {renderDeleteModal()}
       {renderModelDetailEditorModal()}
+      {renderModelDeleteModal()}
+      {renderModelBatchDeleteModal()}
       {renderPricingDetailModal()}
       {creating
         ? renderCreatePanel()
