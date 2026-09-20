@@ -63,6 +63,22 @@ const WelcomeOverlay = () => {
     };
   }, []);
 
+  // 回访入口:WorkspaceStart「重新查看新手引导」派发此事件,
+  // 强制重弹引导(绕过 doneCount / dismissed 检查,回到第一步)。
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const handleOpen = () => {
+      setStepIndex(0);
+      setVisible(true);
+    };
+    window.addEventListener('welcome-overlay:open', handleOpen);
+    return () => {
+      window.removeEventListener('welcome-overlay:open', handleOpen);
+    };
+  }, []);
+
   const dismiss = () => {
     setVisible(false);
     if (typeof window !== 'undefined') {

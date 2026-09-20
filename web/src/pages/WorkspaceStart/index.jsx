@@ -174,6 +174,18 @@ const WorkspaceStart = () => {
               type='button'
               size='small'
               className='router-inline-button'
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('welcome-overlay:open'));
+                }
+              }}
+            >
+              {t('workspace_start.checklist.replay_welcome')}
+            </AppButton>
+            <AppButton
+              type='button'
+              size='small'
+              className='router-inline-button'
               onClick={handleDismiss}
             >
               {t('workspace_start.checklist.dismiss')}

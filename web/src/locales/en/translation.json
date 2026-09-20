@@ -2364,6 +2364,7 @@
       "title": "Onboarding checklist",
       "progress_label": "Progress {done}/{total}",
       "done_label": "Onboarding complete",
+      "replay_welcome": "Replay welcome guide",
       "dismiss": "Don't show again",
       "restore": "Show the checklist again",
       "items": {

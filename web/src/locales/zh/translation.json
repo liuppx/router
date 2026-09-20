@@ -2364,6 +2364,7 @@
       "title": "入门清单",
       "progress_label": "进度 {done}/{total}",
       "done_label": "已完成入门",
+      "replay_welcome": "重新查看新手引导",
       "dismiss": "不再提示",
       "restore": "重新显示清单",
       "items": {
