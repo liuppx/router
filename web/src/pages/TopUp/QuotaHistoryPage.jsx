@@ -11,6 +11,7 @@ import {
 } from '../../router-ui';
 import QuotaCardItem from './QuotaCardItem';
 import TopUpWorkspaceProvider from './provider.jsx';
+import useUrlState, { parsePageParam } from '../../hooks/useUrlState';
 import {
   renderTopupIntegerAmountWithExactPopup,
   useTopUpWorkspace,
@@ -23,10 +24,12 @@ export const QuotaHistoryPageInner = ({ embedded = false }) => {
   const navigate = useNavigate();
   const { displayCurrency, displayCurrencyIndex } = useTopUpWorkspace();
   const [cards, setCards] = useState([]);
-  const [page, setPage] = useState(1);
+  const [{ kind, page }, patchQuery] = useUrlState({
+    kind: { param: 'hist_kind', default: 'all' },
+    page: { param: 'hist_page', default: 1, parse: parsePageParam },
+  });
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [kind, setKind] = useState('all');
 
   const loadCards = useCallback(
     async (nextPage = page) => {
@@ -49,7 +52,7 @@ export const QuotaHistoryPageInner = ({ embedded = false }) => {
         setCards(
           Array.isArray(payload.data?.items) ? payload.data.items : [],
         );
-        setPage(Number(payload.data?.page || nextPage) || 1);
+        patchQuery({ page: Number(payload.data?.page || nextPage) || 1 });
         setTotal(Number(payload.data?.total || 0) || 0);
       } catch (error) {
         showError(error?.message || t('topup.quota_cards.load_failed'));
@@ -57,7 +60,7 @@ export const QuotaHistoryPageInner = ({ embedded = false }) => {
         setLoading(false);
       }
     },
-    [kind, page, t],
+    [kind, page, patchQuery, t],
   );
 
   useEffect(() => {
@@ -134,7 +137,7 @@ export const QuotaHistoryPageInner = ({ embedded = false }) => {
             activePage={page}
             totalPages={totalPages}
             onPageChange={(_, { activePage }) =>
-              setPage(Number(activePage) || 1)
+              patchQuery({ page: Number(activePage) || 1 })
             }
           />
         </div>
@@ -152,8 +155,7 @@ export const QuotaHistoryPageInner = ({ embedded = false }) => {
         options={kindOptions}
         value={kind}
         onChange={(event, { value }) => {
-          setKind(String(value || 'all'));
-          setPage(1);
+          patchQuery({ kind: String(value || 'all'), page: 1 });
         }}
       />
     </>
