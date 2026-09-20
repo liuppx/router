@@ -9,6 +9,7 @@ import {
 } from '../../constants/tableWidthPresets';
 import {
   AppButton,
+  AppEmpty,
   AppPagination,
   AppPopconfirm,
   AppSection,
@@ -558,7 +559,19 @@ const TopUpRecordsPage = ({ recordKey = 'topup', embedded = false }) => {
           pagination={false}
           scroll={{ x: TOPUP_REDEMPTION_RECORD_TABLE_MIN_WIDTH }}
           loading={loadingRedemptionRecords}
-          locale={{ emptyText: t('topup.redemption_records.empty') }}
+          locale={{
+            emptyText: (
+              <AppEmpty
+                action={
+                  <AppButton color='blue' onClick={() => setRedeemModalOpen(true)}>
+                    {t('topup.record_nav.redeem')}
+                  </AppButton>
+                }
+              >
+                {t('topup.redemption_records.empty')}
+              </AppEmpty>
+            ),
+          }}
           dataSource={redemptionRecords}
           columns={redemptionColumns}
         />
@@ -585,7 +598,22 @@ const TopUpRecordsPage = ({ recordKey = 'topup', embedded = false }) => {
           pagination={false}
           scroll={{ x: TOPUP_RECORD_TABLE_MIN_WIDTH }}
           loading={loadingOrders}
-          locale={{ emptyText: t('topup.records.order_empty') }}
+          locale={{
+            emptyText: (
+              <AppEmpty
+                action={
+                  <AppButton
+                    color='blue'
+                    onClick={() => navigate('/workspace/service/pricing')}
+                  >
+                    {t('topup.record_nav.topup')}
+                  </AppButton>
+                }
+              >
+                {t('topup.records.order_empty')}
+              </AppEmpty>
+            ),
+          }}
           dataSource={orders}
           columns={orderColumns}
           onRow={(order) => ({

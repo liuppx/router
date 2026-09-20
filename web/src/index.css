@@ -2651,6 +2651,20 @@ body,
     padding-bottom: 18px !important;
 }
 
+.router-empty-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+}
+
+.router-empty-cta-text {
+    color: inherit;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
 .router-ui-table.router-table-fit-page .ant-table {
     width: 100% !important;
     table-layout: fixed;

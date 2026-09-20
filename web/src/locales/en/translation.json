@@ -1744,7 +1744,8 @@
       "status_disabled": "Disabled",
       "status_expired": "Expired",
       "status_depleted": "Depleted",
-      "status_unknown": "Unknown Status"
+      "status_unknown": "Unknown Status",
+      "empty_cta": "No tokens yet — create one to start calling models"
     },
     "buttons": {
       "copy": "Copy",
@@ -1998,6 +1999,8 @@
       "success": "Cleaned {{count}} log entries"
     },
     "title": "Operation Log",
+    "empty_cta": "No call records yet — make your first model call",
+    "empty_cta_action": "Start a call",
     "search": "Search logs...",
     "filters": {
       "add": "Add Filter",
@@ -2684,6 +2687,7 @@
           "token": "Token"
         },
         "empty": "No data",
+        "empty_cta_action": "Start a call",
         "total_label": "Range total",
         "weekdays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
         "load_failed": "Failed to load the spending calendar"

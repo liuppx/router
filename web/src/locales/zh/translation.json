@@ -1744,7 +1744,8 @@
       "status_disabled": "已禁用",
       "status_expired": "已过期",
       "status_depleted": "已耗尽",
-      "status_unknown": "未知状态"
+      "status_unknown": "未知状态",
+      "empty_cta": "还没有任何令牌,创建一个即可开始调用模型"
     },
     "buttons": {
       "copy": "复制",
@@ -1998,6 +1999,8 @@
       "success": "已清理 {{count}} 条日志"
     },
     "title": "操作日志",
+    "empty_cta": "还没有调用记录,去发起第一次模型调用吧",
+    "empty_cta_action": "去发起调用",
     "search": "搜索日志...",
     "filters": {
       "add": "添加条件",
@@ -2684,6 +2687,7 @@
           "token": "Token"
         },
         "empty": "暂无数据",
+        "empty_cta_action": "去发起调用",
         "total_label": "区间合计",
         "weekdays": ["日", "一", "二", "三", "四", "五", "六"],
         "load_failed": "花费日历加载失败"

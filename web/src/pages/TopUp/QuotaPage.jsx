@@ -161,7 +161,17 @@ const QuotaPage = () => {
           </div>
         ) : loading ? null : (
           <div className='router-empty'>
-            {t('topup.quota_cards.active_empty')}
+            <div className='router-empty-cta'>
+              <div className='router-empty-cta-text'>
+                {t('topup.quota_cards.active_empty')}
+              </div>
+              <AppButton
+                color='blue'
+                onClick={() => navigate('/workspace/service/pricing')}
+              >
+                {t('workspace_start.actions.view_pricing')}
+              </AppButton>
+            </div>
           </div>
         )}
       </AppSection>

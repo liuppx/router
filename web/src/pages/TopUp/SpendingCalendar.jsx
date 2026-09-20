@@ -19,6 +19,7 @@ import {
   loadPublicDisplayCurrencyCatalog,
 } from '../../helpers/billing';
 import {
+  AppButton,
   AppSection,
   AppSegmented,
   AppToolbar,
@@ -544,7 +545,17 @@ const SpendingCalendar = () => {
           >
             {calendarBuckets.length === 0 ? (
               <div className='dashboard-calendar-empty'>
-                {t('dashboard.spending.calendar.empty')}
+                <div className='router-empty-cta'>
+                  <div className='router-empty-cta-text'>
+                    {t('dashboard.spending.calendar.empty')}
+                  </div>
+                  <AppButton
+                    color='blue'
+                    onClick={() => navigate('/workspace/models')}
+                  >
+                    {t('dashboard.spending.calendar.empty_cta_action')}
+                  </AppButton>
+                </div>
               </div>
             ) : (
               <>

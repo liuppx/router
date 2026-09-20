@@ -26,6 +26,7 @@ import {
 } from '../helpers/billing';
 import {
   AppButton,
+  AppEmpty,
   AppFilterHeader,
   AppIcon,
   AppInput,
@@ -428,9 +429,26 @@ const TokensTable = () => {
             .slice((activePage - 1) * ITEMS_PER_PAGE, activePage * ITEMS_PER_PAGE)
             .filter((token) => !token?.deleted)}
           locale={{
-            emptyText: loading
-              ? t('common.loading')
-              : t('common.no_data', '暂无数据'),
+            emptyText: loading ? (
+              t('common.loading')
+            ) : (
+              <AppEmpty
+                action={
+                  <AppButton
+                    color='blue'
+                    onClick={() =>
+                      navigate('/workspace/token/add', {
+                        state: { from: currentPagePath },
+                      })
+                    }
+                  >
+                    {t('token.buttons.add')}
+                  </AppButton>
+                }
+              >
+                {t('token.table.empty_cta')}
+              </AppEmpty>
+            ),
           }}
           onRow={(token) => ({
             className: 'router-row-clickable',

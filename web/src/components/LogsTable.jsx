@@ -31,6 +31,7 @@ import {
 } from '../constants/tableWidthPresets';
 import {
   AppButton,
+  AppEmpty,
   AppFilterHeader,
   AppFormActions,
   AppModal,
@@ -1792,7 +1793,24 @@ const LogsTable = () => {
           dataSource={sortedFilteredLogs
             .slice((activePage - 1) * ITEMS_PER_PAGE, activePage * ITEMS_PER_PAGE)
             .filter((log) => !log.deleted)}
-          locale={{ emptyText: loading ? t('common.loading') : t('task.empty') }}
+          locale={{
+            emptyText: loading ? (
+              t('common.loading')
+            ) : (
+              <AppEmpty
+                action={
+                  <AppButton
+                    color='blue'
+                    onClick={() => navigate('/workspace/models')}
+                  >
+                    {t('log.empty_cta_action')}
+                  </AppButton>
+                }
+              >
+                {t('log.empty_cta')}
+              </AppEmpty>
+            ),
+          }}
           onRow={(log) => ({
             className: 'router-row-clickable',
             onClick: () =>
