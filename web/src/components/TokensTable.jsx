@@ -420,13 +420,18 @@ const TokensTable = () => {
         <AppTable
           className='router-list-table router-table-fit-page'
           pagination={false}
+          loading={loading}
           scroll={{ x: TOKEN_LIST_TABLE_MIN_WIDTH }}
           rowKey='id'
           onChange={handleTableChange}
           dataSource={tokens
             .slice((activePage - 1) * ITEMS_PER_PAGE, activePage * ITEMS_PER_PAGE)
             .filter((token) => !token?.deleted)}
-          locale={{ emptyText: t('common.no_data', '暂无数据') }}
+          locale={{
+            emptyText: loading
+              ? t('common.loading')
+              : t('common.no_data', '暂无数据'),
+          }}
           onRow={(token) => ({
             className: 'router-row-clickable',
             onClick: () =>

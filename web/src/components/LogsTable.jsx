@@ -196,48 +196,48 @@ function renderTimestamp(timestamp) {
   return <code>{timestamp2string(timestamp)}</code>;
 }
 
-function renderType(type) {
+function renderType(type, t) {
   switch (type) {
     case 1:
       return (
         <AppTag color='green' className='router-tag'>
-          充值
+          {t('log.type.topup')}
         </AppTag>
       );
     case 2:
       return (
         <AppTag color='olive' className='router-tag'>
-          消费
+          {t('log.type.usage')}
         </AppTag>
       );
     case 3:
       return (
         <AppTag color='orange' className='router-tag'>
-          管理
+          {t('log.type.admin')}
         </AppTag>
       );
     case 4:
       return (
         <AppTag color='purple' className='router-tag'>
-          系统
+          {t('log.type.system')}
         </AppTag>
       );
     case 5:
       return (
         <AppTag color='violet' className='router-tag'>
-          测试
+          {t('log.type.test')}
         </AppTag>
       );
     case 6:
       return (
         <AppTag color='red' className='router-tag'>
-          失败
+          {t('log.type.relay_failure')}
         </AppTag>
       );
     default:
       return (
         <AppTag color='black' className='router-tag'>
-          未知
+          {t('log.type.unknown')}
         </AppTag>
       );
   }
@@ -1875,7 +1875,7 @@ const LogsTable = () => {
                   sortDirections: ['ascend', 'descend'],
                   sortOrder:
                     tableSorter.columnKey === 'type' ? tableSorter.order : null,
-                  render: (value) => renderType(value),
+                  render: (value) => renderType(value, t),
                 },
               ]
             : [

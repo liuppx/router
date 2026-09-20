@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import { API } from '../../helpers/api';
+import { showError } from '../../helpers';
 import {
   buildPublicDisplayCurrencyIndex,
   convertChargeAmountToDisplayAmount,
@@ -380,8 +381,9 @@ const SpendingCalendar = () => {
     } catch (error) {
       console.error('Failed to fetch calendar data:', error);
       setCalendarData([]);
+      showError(error?.message || t('dashboard.spending.calendar.load_failed'));
     }
-  }, [calendarGranularity]);
+  }, [calendarGranularity, t]);
 
   useEffect(() => {
     loadDisplayCurrencies().then();
@@ -526,8 +528,10 @@ const SpendingCalendar = () => {
         <>
           {calendarGranularity === 'day' && (
             <div className='dashboard-calendar-weekdays'>
-              {['日', '一', '二', '三', '四', '五', '六'].map((label) => (
-                <div key={label} className='dashboard-calendar-weekday'>
+              {(t('dashboard.spending.calendar.weekdays', {
+                returnObjects: true,
+              }) || []).map((label, index) => (
+                <div key={`weekday-${index}`} className='dashboard-calendar-weekday'>
                   {label}
                 </div>
               ))}

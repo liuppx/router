@@ -10,6 +10,7 @@ import {
 import {
   AppButton,
   AppPagination,
+  AppPopconfirm,
   AppSection,
   AppTable,
   AppTag,
@@ -472,17 +473,23 @@ const TopUpRecordsPage = ({ recordKey = 'topup', embedded = false }) => {
               >
                 {t('topup.records.continue_pay')}
               </AppButton>
-              <AppButton
-                className='router-inline-button'
-                onClick={(event) => {
-                  event.stopPropagation();
-                  cancelPay(order.id);
-                }}
-                loading={refreshingOrderID === order.id}
-                disabled={refreshingOrderID === order.id}
+              <AppPopconfirm
+                title={t('topup.records.cancel_pay_confirm')}
+                okText={t('common.confirm')}
+                cancelText={t('common.cancel')}
+                onConfirm={() => cancelPay(order.id)}
               >
-                {t('topup.records.cancel_pay')}
-              </AppButton>
+                <AppButton
+                  className='router-inline-button'
+                  onClick={(event) => {
+                    event.stopPropagation();
+                  }}
+                  loading={refreshingOrderID === order.id}
+                  disabled={refreshingOrderID === order.id}
+                >
+                  {t('topup.records.cancel_pay')}
+                </AppButton>
+              </AppPopconfirm>
             </div>
           );
         },

@@ -164,3 +164,63 @@
         height: 300px;
     }
 }
+
+/*
+ * Dark-mode overrides. The app toggles both html[data-theme=dark] and
+ * body.router-theme-dark (theme/store.js); the calendar chrome uses page-level
+ * hardcoded light colors that antd tokens don't reach, so flip them here.
+ * Chart internals stay theme-aware via router-ui/theme/charts.js.
+ */
+[data-theme='dark'] .dashboard-calendar-toolbar {
+    background: rgba(148, 163, 184, 0.12);
+}
+
+[data-theme='dark'] .dashboard-calendar-segmented.ant-segmented {
+    background: rgba(15, 23, 42, 0.45);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+}
+
+[data-theme='dark'] .dashboard-calendar-segmented.ant-segmented .ant-segmented-item-label {
+    color: #94a3b8;
+}
+
+[data-theme='dark'] .dashboard-calendar-segmented.ant-segmented .ant-segmented-item-selected {
+    background: rgba(96, 165, 250, 0.18);
+}
+
+[data-theme='dark'] .dashboard-calendar-segmented.ant-segmented .ant-segmented-item-selected .ant-segmented-item-label {
+    color: #93c5fd;
+}
+
+[data-theme='dark'] .dashboard-calendar-weekday {
+    color: #94a3b8;
+}
+
+[data-theme='dark'] .dashboard-calendar-cell {
+    background: rgba(148, 163, 184, 0.1);
+    border-color: rgba(148, 163, 184, 0.16);
+    box-shadow: none;
+}
+
+[data-theme='dark'] .dashboard-calendar-cell-button:hover {
+    border-color: rgba(147, 197, 253, 0.4);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme='dark'] .dashboard-calendar-label,
+[data-theme='dark'] .dashboard-calendar-total-label {
+    color: #94a3b8;
+}
+
+[data-theme='dark'] .dashboard-calendar-value,
+[data-theme='dark'] .dashboard-calendar-total-value {
+    color: #f87171;
+}
+
+[data-theme='dark'] .dashboard-calendar-empty {
+    color: #64748b;
+}
+
+[data-theme='dark'] .chart-container {
+    background-color: rgba(148, 163, 184, 0.08);
+}

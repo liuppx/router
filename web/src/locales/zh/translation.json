@@ -191,6 +191,7 @@
       "order_empty": "暂无订单记录",
       "continue_pay": "继续支付",
       "cancel_pay": "取消支付",
+      "cancel_pay_confirm": "确定取消这笔订单吗？取消后需重新下单。",
       "refresh_status": "同步支付状态",
       "order_paid": "订单已支付，状态已更新",
       "order_canceled": "订单已取消",
@@ -2013,7 +2014,8 @@
       "admin": "管理",
       "system": "系统",
       "test": "测试",
-      "relay_failure": "调用失败"
+      "relay_failure": "调用失败",
+      "unknown": "未知"
     },
     "route_anomalies": {
       "title": "路由异常概览",
@@ -2682,7 +2684,9 @@
           "token": "Token"
         },
         "empty": "暂无数据",
-        "total_label": "区间合计"
+        "total_label": "区间合计",
+        "weekdays": ["日", "一", "二", "三", "四", "五", "六"],
+        "load_failed": "花费日历加载失败"
       },
       "details": {
         "title": "花费明细",
