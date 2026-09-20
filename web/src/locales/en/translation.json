@@ -112,6 +112,8 @@
       "total": "Total Quota",
       "used": "Used Quota",
       "remaining": "Remaining Quota",
+      "token_count": "Tokens",
+      "recent_requests": "Requests (30d)",
       "hint": "Amount quota combines today's package quota and balance. Reserved package quota is included in used quota.",
       "count_title": "Request Quota",
       "count_total": "Total",

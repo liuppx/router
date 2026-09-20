@@ -16,17 +16,24 @@ const QuotaPage = () => {
   const { displayCurrency, displayCurrencyIndex } = useTopUpWorkspace();
   const [overview, setOverview] = useState(null);
   const [cards, setCards] = useState([]);
+  const [spend, setSpend] = useState(null);
+  const [tokenTotal, setTokenTotal] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const loadQuotaPage = useCallback(async () => {
     setLoading(true);
     try {
-      const [overviewResponse, cardsResponse] = await Promise.all([
-        API.get('/api/v1/public/user/quota/overview'),
-        API.get('/api/v1/public/user/quota/cards', {
-          params: { scope: 'active', page: 1, page_size: 50 },
-        }),
-      ]);
+      const [overviewResponse, cardsResponse, spendResponse, tokenResponse] =
+        await Promise.all([
+          API.get('/api/v1/public/user/quota/overview'),
+          API.get('/api/v1/public/user/quota/cards', {
+            params: { scope: 'active', page: 1, page_size: 50 },
+          }),
+          API.get('/api/v1/public/user/spend/overview', {
+            params: { period: 'last_30_days' },
+          }).catch(() => null),
+          API.get('/api/v1/public/token/?page=1').catch(() => null),
+        ]);
       const overviewPayload = overviewResponse?.data || {};
       const cardsPayload = cardsResponse?.data || {};
       if (!overviewPayload.success) {
@@ -45,6 +52,19 @@ const QuotaPage = () => {
           ? cardsPayload.data.items
           : [],
       );
+      const spendPayload = spendResponse?.data;
+      setSpend(spendPayload?.success ? spendPayload.data || null : null);
+      const tokenPayload = tokenResponse?.data;
+      if (tokenPayload?.success) {
+        setTokenTotal(
+          Number(
+            tokenPayload.meta?.total ||
+              (Array.isArray(tokenPayload.data) ? tokenPayload.data.length : 0),
+          ),
+        );
+      } else {
+        setTokenTotal(null);
+      }
     } catch (error) {
       showError(
         error?.message || t('topup.quota_overview.load_failed'),
@@ -128,6 +148,24 @@ const QuotaPage = () => {
               title={t('topup.quota_overview.remaining')}
               value={0}
               formatter={() => renderAmount(overview?.remaining_amount || 0)}
+            />
+          </div>
+          <div className='router-quota-summary-item'>
+            <AppStatistic
+              className='router-topup-statistic'
+              title={t('topup.quota_overview.token_count')}
+              value={tokenTotal == null ? '-' : Number(tokenTotal).toLocaleString()}
+            />
+          </div>
+          <div className='router-quota-summary-item'>
+            <AppStatistic
+              className='router-topup-statistic'
+              title={t('topup.quota_overview.recent_requests')}
+              value={
+                spend == null
+                  ? '-'
+                  : Number(spend.period_requests || 0).toLocaleString()
+              }
             />
           </div>
         </div>

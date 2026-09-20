@@ -112,6 +112,8 @@
       "total": "总额度",
       "used": "已用额度",
       "remaining": "剩余额度",
+      "token_count": "令牌数量",
+      "recent_requests": "近30天请求量",
       "hint": "金额额度合并计算今日套餐额度与余额；套餐预留中的额度计入已用额度。",
       "count_title": "次数额度",
       "count_total": "总次数",
