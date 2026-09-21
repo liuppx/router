@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ChannelSectionTabs from './ChannelSectionTabs';
+import { buildLogDrilldownPath } from './LogsTable.helpers';
 import {
   API,
   showError,
@@ -772,6 +773,15 @@ const ChannelsTable = () => {
                 className='router-action-group-tight router-table-actions-icon-compact'
                 onClick={stopRowClick}
               >
+                <AppTableActionButton
+                  icon='book'
+                  title={t('log.drilldown.view')}
+                  onClick={() => {
+                    navigate(
+                      buildLogDrilldownPath('admin', { channel: channel.id }),
+                    );
+                  }}
+                />
                 {(channel.protocol || '').toString().trim().toLowerCase() !==
                 'proxy' ? (
                   <AppTableActionButton
