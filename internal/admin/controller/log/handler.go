@@ -19,6 +19,21 @@ type logChannelOption struct {
 	Label string `json:"label"`
 }
 
+// logMaxPageSize 是日志列表 page_size 的硬上限。
+const logMaxPageSize = 100
+
+// resolveLogPageSize 解析 page_size：缺省用 config.ItemsPerPage,>100 夹到 100,<1 回退缺省。
+func resolveLogPageSize(c *gin.Context) int {
+	pageSize, err := strconv.Atoi(c.Query("page_size"))
+	if err != nil || pageSize < 1 {
+		return config.ItemsPerPage
+	}
+	if pageSize > logMaxPageSize {
+		return logMaxPageSize
+	}
+	return pageSize
+}
+
 type logGroupOption struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`
@@ -570,6 +585,9 @@ func GetAllLogs(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
+	pageSize := resolveLogPageSize(c)
+	orderBy := c.Query("order_by")
+	order := c.Query("order")
 	logType, _ := strconv.Atoi(c.Query("type"))
 	startTimestamp, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
 	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
@@ -578,7 +596,7 @@ func GetAllLogs(c *gin.Context) {
 	modelName := c.Query("model_name")
 	groupID := c.Query("group_id")
 	channel := c.Query("channel")
-	logs, err := logsvc.GetAll(logType, startTimestamp, endTimestamp, modelName, username, tokenName, groupID, (page-1)*config.ItemsPerPage, config.ItemsPerPage, channel)
+	logs, err := logsvc.GetAll(logType, startTimestamp, endTimestamp, modelName, username, tokenName, groupID, (page-1)*pageSize, pageSize, channel, orderBy, order)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -601,7 +619,7 @@ func GetAllLogs(c *gin.Context) {
 		"meta": gin.H{
 			"total":     total,
 			"page":      page,
-			"page_size": config.ItemsPerPage,
+			"page_size": pageSize,
 		},
 	})
 	return
@@ -612,13 +630,16 @@ func GetUserLogs(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
+	pageSize := resolveLogPageSize(c)
+	orderBy := c.Query("order_by")
+	order := c.Query("order")
 	userId := c.GetString(ctxkey.Id)
 	logType, _ := strconv.Atoi(c.Query("type"))
 	startTimestamp, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
 	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
 	tokenName := c.Query("token_name")
 	modelName := c.Query("model_name")
-	logs, err := logsvc.GetUser(userId, logType, startTimestamp, endTimestamp, modelName, tokenName, (page-1)*config.ItemsPerPage, config.ItemsPerPage)
+	logs, err := logsvc.GetUser(userId, logType, startTimestamp, endTimestamp, modelName, tokenName, (page-1)*pageSize, pageSize, orderBy, order)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -641,7 +662,7 @@ func GetUserLogs(c *gin.Context) {
 		"meta": gin.H{
 			"total":     total,
 			"page":      page,
-			"page_size": config.ItemsPerPage,
+			"page_size": pageSize,
 		},
 	})
 	return

@@ -5,12 +5,12 @@ import (
 	logrepo "github.com/yeying-community/router/internal/admin/repository/log"
 )
 
-func GetAll(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, groupID string, startIdx int, num int, channel string) ([]*model.Log, error) {
-	return logrepo.GetAll(logType, startTimestamp, endTimestamp, modelName, username, tokenName, groupID, startIdx, num, channel)
+func GetAll(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, groupID string, startIdx int, num int, channel string, orderBy string, order string) ([]*model.Log, error) {
+	return logrepo.GetAll(logType, startTimestamp, endTimestamp, modelName, username, tokenName, groupID, startIdx, num, channel, orderBy, order)
 }
 
-func GetUser(userId string, logType int, startTimestamp int64, endTimestamp int64, modelName string, tokenName string, startIdx int, num int) ([]*model.Log, error) {
-	return logrepo.GetUser(userId, logType, startTimestamp, endTimestamp, modelName, tokenName, startIdx, num)
+func GetUser(userId string, logType int, startTimestamp int64, endTimestamp int64, modelName string, tokenName string, startIdx int, num int, orderBy string, order string) ([]*model.Log, error) {
+	return logrepo.GetUser(userId, logType, startTimestamp, endTimestamp, modelName, tokenName, startIdx, num, orderBy, order)
 }
 
 func GetByID(logID string) (*model.Log, error) {

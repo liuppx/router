@@ -5,8 +5,8 @@ import (
 	tokenrepo "github.com/yeying-community/router/internal/admin/repository/token"
 )
 
-func GetAll(userId string, start, num int, order string) ([]*model.Token, error) {
-	return tokenrepo.GetAll(userId, start, num, order)
+func GetAll(userId string, start, num int, orderBy string, order string) ([]*model.Token, error) {
+	return tokenrepo.GetAll(userId, start, num, orderBy, order)
 }
 
 func Search(userId string, keyword string) ([]*model.Token, error) {

@@ -37,18 +37,44 @@ func init() {
 
 var invalidateTokenCacheFn = model.InvalidateTokenCache
 
-func GetAll(userId string, start, num int, order string) ([]*model.Token, error) {
+// tokenSortColumns 是令牌列表的排序白名单：order_by 值 -> 安全 SQL 列名。
+// 所有列名均为代码常量，绝不来自请求原文。默认列为 created_time。
+var tokenSortColumns = map[string]string{
+	"created_time":         "created_time",
+	"updated_time":         "updated_time",
+	"accessed_time":        "accessed_time",
+	"expired_time":         "expired_time",
+	"remain_quota":         "remain_quota",
+	"used_quota":           "used_quota",
+	"remain_request_count": "remain_request_count",
+	"used_request_count":   "used_request_count",
+}
+
+const tokenDefaultSortColumn = "created_time"
+
+// buildTokenOrder 根据白名单把 order_by/order 转换为安全的 gorm Order 字符串。
+// 列名只来自 tokenSortColumns，方向只来自 asc/desc 常量。
+func buildTokenOrder(orderBy string, order string) string {
+	direction := "desc"
+	if strings.EqualFold(strings.TrimSpace(order), "asc") {
+		direction = "asc"
+	}
+	column, ok := tokenSortColumns[strings.TrimSpace(orderBy)]
+	if !ok {
+		column = tokenDefaultSortColumn
+	}
+	// 兼容旧枚举语义：按剩余额度排序时,无限额度令牌排在最前。
+	if column == "remain_quota" {
+		return fmt.Sprintf("unlimited_quota %s, remain_quota %s", direction, direction)
+	}
+	return column + " " + direction
+}
+
+func GetAll(userId string, start, num int, orderBy string, order string) ([]*model.Token, error) {
 	var tokens []*model.Token
 	query := model.DB.Where("user_id = ?", userId)
 
-	switch order {
-	case "remain_quota":
-		query = query.Order("unlimited_quota desc, remain_quota desc")
-	case "used_quota":
-		query = query.Order("used_quota desc")
-	default:
-		query = query.Order("created_time desc")
-	}
+	query = query.Order(buildTokenOrder(orderBy, order))
 
 	err := query.Limit(num).Offset(start).Find(&tokens).Error
 	return tokens, err

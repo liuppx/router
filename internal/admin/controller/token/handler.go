@@ -23,15 +23,32 @@ import (
 const tokenNotFoundMessage = "令牌不存在或无权访问"
 const tokenNotFoundCode = "token_not_found"
 
+// maxPageSize 是所有列表接口 page_size 的硬上限。
+const maxPageSize = 100
+
+// resolvePageSize 解析 page_size：缺省用 config.ItemsPerPage,>100 夹到 100,<1 回退缺省。
+func resolvePageSize(c *gin.Context) int {
+	pageSize, err := strconv.Atoi(c.Query("page_size"))
+	if err != nil || pageSize < 1 {
+		return config.ItemsPerPage
+	}
+	if pageSize > maxPageSize {
+		return maxPageSize
+	}
+	return pageSize
+}
+
 func GetAllTokens(c *gin.Context) {
 	userId := c.GetString(ctxkey.Id)
 	page, _ := strconv.Atoi(c.Query("page"))
 	if page < 1 {
 		page = 1
 	}
+	pageSize := resolvePageSize(c)
 
+	orderBy := c.Query("order_by")
 	order := c.Query("order")
-	tokens, err := tokensvc.GetAll(userId, (page-1)*config.ItemsPerPage, config.ItemsPerPage, order)
+	tokens, err := tokensvc.GetAll(userId, (page-1)*pageSize, pageSize, orderBy, order)
 
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -55,7 +72,7 @@ func GetAllTokens(c *gin.Context) {
 		"meta": gin.H{
 			"total":     total,
 			"page":      page,
-			"page_size": config.ItemsPerPage,
+			"page_size": pageSize,
 		},
 	})
 	return

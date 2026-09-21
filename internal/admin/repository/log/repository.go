@@ -291,7 +291,32 @@ func RecordTestLog(ctx context.Context, log *model.Log) {
 	recordLogHelper(ctx, log)
 }
 
-func GetAll(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, groupID string, startIdx int, num int, channel string) ([]*model.Log, error) {
+// logSortColumns 是日志列表的排序白名单：order_by 值 -> 安全 SQL 列名。
+// 列名均为代码常量,绝不来自请求原文。默认列为 created_at。
+var logSortColumns = map[string]string{
+	"created_at":        "created_at",
+	"quota":             "quota",
+	"prompt_tokens":     "prompt_tokens",
+	"completion_tokens": "completion_tokens",
+	"elapsed_time":      "elapsed_time",
+}
+
+const logDefaultSortColumn = "created_at"
+
+// buildLogOrder 根据白名单把 order_by/order 转换为安全的 gorm Order 字符串。
+func buildLogOrder(orderBy string, order string) string {
+	direction := "desc"
+	if strings.EqualFold(strings.TrimSpace(order), "asc") {
+		direction = "asc"
+	}
+	column, ok := logSortColumns[strings.TrimSpace(orderBy)]
+	if !ok {
+		column = logDefaultSortColumn
+	}
+	return column + " " + direction
+}
+
+func GetAll(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, groupID string, startIdx int, num int, channel string, orderBy string, order string) ([]*model.Log, error) {
 	var tx = model.LOG_DB
 	if logType != model.LogTypeAll {
 		tx = tx.Where("type = ?", logType)
@@ -318,7 +343,7 @@ func GetAll(logType int, startTimestamp int64, endTimestamp int64, modelName str
 		tx = tx.Where("channel_id = ?", channel)
 	}
 	var logs []*model.Log
-	err := tx.Order("created_at desc").Limit(num).Offset(startIdx).Find(&logs).Error
+	err := tx.Order(buildLogOrder(orderBy, order)).Limit(num).Offset(startIdx).Find(&logs).Error
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +356,7 @@ func GetAll(logType int, startTimestamp int64, endTimestamp int64, modelName str
 	return logs, err
 }
 
-func GetUser(userId string, logType int, startTimestamp int64, endTimestamp int64, modelName string, tokenName string, startIdx int, num int) ([]*model.Log, error) {
+func GetUser(userId string, logType int, startTimestamp int64, endTimestamp int64, modelName string, tokenName string, startIdx int, num int, orderBy string, order string) ([]*model.Log, error) {
 	var tx = model.LOG_DB
 	if logType == model.LogTypeAll {
 		tx = tx.Where("user_id = ?", userId)
@@ -351,7 +376,7 @@ func GetUser(userId string, logType int, startTimestamp int64, endTimestamp int6
 		tx = tx.Where("created_at <= ?", endTimestamp)
 	}
 	var logs []*model.Log
-	err := tx.Order("created_at desc").Limit(num).Offset(startIdx).Find(&logs).Error
+	err := tx.Order(buildLogOrder(orderBy, order)).Limit(num).Offset(startIdx).Find(&logs).Error
 	if err != nil {
 		return nil, err
 	}

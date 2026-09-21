@@ -1,7 +1,7 @@
 package model
 
 type TokenRepository struct {
-	GetAllUserTokens         func(userId string, startIdx int, num int, order string) ([]*Token, error)
+	GetAllUserTokens         func(userId string, startIdx int, num int, orderBy string, order string) ([]*Token, error)
 	GetFirstAvailableToken   func(userId string) (*Token, error)
 	SearchUserTokens         func(userId string, keyword string) ([]*Token, error)
 	ValidateUserToken        func(key string) (*Token, error)

@@ -45,8 +45,8 @@ func (Token) TableName() string {
 	return APITokensTableName
 }
 
-func GetAllUserTokens(userId string, startIdx int, num int, order string) ([]*Token, error) {
-	return mustTokenRepo().GetAllUserTokens(userId, startIdx, num, order)
+func GetAllUserTokens(userId string, startIdx int, num int, orderBy string, order string) ([]*Token, error) {
+	return mustTokenRepo().GetAllUserTokens(userId, startIdx, num, orderBy, order)
 }
 
 // GetFirstAvailableToken returns the earliest created enabled token of a user

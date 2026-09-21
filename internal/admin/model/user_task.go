@@ -40,6 +40,10 @@ type UserTaskFilter struct {
 	UserKeyword string
 	ChannelID   string
 	Model       string
+	// SortColumn 是经过白名单校验的安全 SQL 列名(来自代码常量),为空时使用默认列 created_at。
+	SortColumn string
+	// SortDesc 为 true 表示降序,false 表示升序。
+	SortDesc bool
 }
 
 func (UserTask) TableName() string {
@@ -53,6 +57,21 @@ func NormalizeUserTaskType(value string) string {
 	default:
 		return ""
 	}
+}
+
+// userTaskSortColumns 是用户任务列表的排序白名单：order_by 值 -> 安全 SQL 列名。
+// 列名均为代码常量,绝不来自请求原文。默认列为 created_at。
+var userTaskSortColumns = map[string]string{
+	"created_at": "created_at",
+	"updated_at": "updated_at",
+}
+
+// ResolveUserTaskSortColumn 把前端 order_by 映射为白名单内的安全列名,不在白名单时回退到默认列。
+func ResolveUserTaskSortColumn(orderBy string) string {
+	if column, ok := userTaskSortColumns[strings.TrimSpace(orderBy)]; ok {
+		return column
+	}
+	return "created_at"
 }
 
 func NormalizeUserTaskStatuses(values []string) []string {
@@ -180,7 +199,7 @@ func ListUserTasksPageWithDB(db *gorm.DB, filter UserTaskFilter, page int, pageS
 		return nil, 0, err
 	}
 	rows := make([]UserTask, 0, pageSize)
-	if err := query.Order("created_at desc").Limit(pageSize).Offset((page - 1) * pageSize).Find(&rows).Error; err != nil {
+	if err := query.Order(buildTaskOrderClause(filter.SortColumn, filter.SortDesc)).Limit(pageSize).Offset((page - 1) * pageSize).Find(&rows).Error; err != nil {
 		return nil, 0, err
 	}
 	for i := range rows {

@@ -163,12 +163,12 @@ func RecordTestLog(ctx context.Context, log *Log) {
 	mustLogRepo().RecordTestLog(ctx, log)
 }
 
-func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, groupID string, startIdx int, num int, channel string) ([]*Log, error) {
-	return mustLogRepo().GetAllLogs(logType, startTimestamp, endTimestamp, modelName, username, tokenName, groupID, startIdx, num, channel)
+func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, groupID string, startIdx int, num int, channel string, orderBy string, order string) ([]*Log, error) {
+	return mustLogRepo().GetAllLogs(logType, startTimestamp, endTimestamp, modelName, username, tokenName, groupID, startIdx, num, channel, orderBy, order)
 }
 
-func GetUserLogs(userId string, logType int, startTimestamp int64, endTimestamp int64, modelName string, tokenName string, startIdx int, num int) ([]*Log, error) {
-	return mustLogRepo().GetUserLogs(userId, logType, startTimestamp, endTimestamp, modelName, tokenName, startIdx, num)
+func GetUserLogs(userId string, logType int, startTimestamp int64, endTimestamp int64, modelName string, tokenName string, startIdx int, num int, orderBy string, order string) ([]*Log, error) {
+	return mustLogRepo().GetUserLogs(userId, logType, startTimestamp, endTimestamp, modelName, tokenName, startIdx, num, orderBy, order)
 }
 
 func GetLogByID(logID string) (*Log, error) {

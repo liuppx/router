@@ -51,6 +51,10 @@ type AsyncTaskFilter struct {
 	Statuses  []string
 	ChannelId string
 	Model     string
+	// SortColumn 是经过白名单校验的安全 SQL 列名(来自代码常量),为空时使用默认列 created_at。
+	SortColumn string
+	// SortDesc 为 true 表示降序,false 表示升序。
+	SortDesc bool
 }
 
 func (AsyncTask) TableName() string {
@@ -113,6 +117,37 @@ func IsAsyncTaskTerminalStatus(value string) bool {
 	default:
 		return false
 	}
+}
+
+// asyncTaskSortColumns 是异步任务列表的排序白名单：order_by 值 -> 安全 SQL 列名。
+// 列名均为代码常量,绝不来自请求原文。默认列为 created_at。
+var asyncTaskSortColumns = map[string]string{
+	"created_at":  "created_at",
+	"started_at":  "started_at",
+	"finished_at": "finished_at",
+	"attempt":     "attempt",
+}
+
+// ResolveAsyncTaskSortColumn 把前端 order_by 映射为白名单内的安全列名,不在白名单时回退到默认列。
+func ResolveAsyncTaskSortColumn(orderBy string) string {
+	if column, ok := asyncTaskSortColumns[strings.TrimSpace(orderBy)]; ok {
+		return column
+	}
+	return "created_at"
+}
+
+// buildTaskOrderClause 用 filter 中已经过白名单校验的安全列名和方向拼接 Order 字符串。
+// column 为空时回退默认 "created_at desc";列名和方向均来自代码常量,绝不来自请求原文。
+func buildTaskOrderClause(column string, desc bool) string {
+	safeColumn := strings.TrimSpace(column)
+	if safeColumn == "" {
+		return "created_at desc"
+	}
+	direction := "desc"
+	if !desc {
+		direction = "asc"
+	}
+	return safeColumn + " " + direction
 }
 
 func normalizeAsyncTaskRow(row *AsyncTask) {
@@ -265,7 +300,7 @@ func ListAsyncTasksPageWithDB(db *gorm.DB, filter AsyncTaskFilter, page int, pag
 	}
 	rows := make([]AsyncTask, 0, pageSize)
 	if err := query.
-		Order("created_at desc").
+		Order(buildTaskOrderClause(filter.SortColumn, filter.SortDesc)).
 		Limit(pageSize).
 		Offset((page - 1) * pageSize).
 		Find(&rows).Error; err != nil {

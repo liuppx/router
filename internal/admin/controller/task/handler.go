@@ -38,25 +38,42 @@ func parseTaskStatuses(raw string) []string {
 	return result
 }
 
+// taskMaxPageSize 是任务列表 page_size 的硬上限。
+const taskMaxPageSize = 100
+
 func parsePageParams(c *gin.Context) (int, int) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if page < 1 {
 		page = 1
 	}
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", strconv.Itoa(config.ItemsPerPage)))
-	if pageSize <= 0 {
+	if pageSize < 1 {
 		pageSize = config.ItemsPerPage
+	}
+	if pageSize > taskMaxPageSize {
+		pageSize = taskMaxPageSize
 	}
 	return page, pageSize
 }
 
+// parseSortParams 读取 order_by/order,经 resolveColumn 白名单校验后返回安全列名与是否降序。
+// order 仅接受 asc/desc,其它值(含空)一律回退 desc。
+func parseSortParams(c *gin.Context, resolveColumn func(string) string) (string, bool) {
+	column := resolveColumn(c.Query("order_by"))
+	desc := !strings.EqualFold(strings.TrimSpace(c.Query("order")), "asc")
+	return column, desc
+}
+
 func GetTasks(c *gin.Context) {
 	page, pageSize := parsePageParams(c)
+	sortColumn, sortDesc := parseSortParams(c, model.ResolveAsyncTaskSortColumn)
 	items, total, err := model.ListAsyncTasksPageWithDB(model.DB, model.AsyncTaskFilter{
-		Type:      strings.TrimSpace(c.Query("type")),
-		Statuses:  parseTaskStatuses(c.Query("status")),
-		ChannelId: strings.TrimSpace(c.Query("channel_id")),
-		Model:     strings.TrimSpace(c.Query("model")),
+		Type:       strings.TrimSpace(c.Query("type")),
+		Statuses:   parseTaskStatuses(c.Query("status")),
+		ChannelId:  strings.TrimSpace(c.Query("channel_id")),
+		Model:      strings.TrimSpace(c.Query("model")),
+		SortColumn: sortColumn,
+		SortDesc:   sortDesc,
 	}, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -79,6 +96,7 @@ func GetTasks(c *gin.Context) {
 
 func GetUserTasks(c *gin.Context) {
 	page, pageSize := parsePageParams(c)
+	sortColumn, sortDesc := parseSortParams(c, model.ResolveUserTaskSortColumn)
 	items, total, err := model.ListUserTasksPageWithDB(model.DB, model.UserTaskFilter{
 		Type:        strings.TrimSpace(c.Query("type")),
 		Statuses:    parseTaskStatuses(c.Query("status")),
@@ -86,6 +104,8 @@ func GetUserTasks(c *gin.Context) {
 		UserKeyword: strings.TrimSpace(c.Query("user_keyword")),
 		ChannelID:   strings.TrimSpace(c.Query("channel_id")),
 		Model:       strings.TrimSpace(c.Query("model")),
+		SortColumn:  sortColumn,
+		SortDesc:    sortDesc,
 	}, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -203,13 +223,16 @@ func RetryTask(c *gin.Context) {
 
 func GetCurrentUserTasks(c *gin.Context) {
 	page, pageSize := parsePageParams(c)
+	sortColumn, sortDesc := parseSortParams(c, model.ResolveUserTaskSortColumn)
 	userID := strings.TrimSpace(c.GetString(ctxkey.Id))
 	items, total, err := model.ListUserTasksPageWithDB(model.DB, model.UserTaskFilter{
-		Type:      strings.TrimSpace(c.Query("type")),
-		Statuses:  parseTaskStatuses(c.Query("status")),
-		UserID:    userID,
-		ChannelID: strings.TrimSpace(c.Query("channel_id")),
-		Model:     strings.TrimSpace(c.Query("model")),
+		Type:       strings.TrimSpace(c.Query("type")),
+		Statuses:   parseTaskStatuses(c.Query("status")),
+		UserID:     userID,
+		ChannelID:  strings.TrimSpace(c.Query("channel_id")),
+		Model:      strings.TrimSpace(c.Query("model")),
+		SortColumn: sortColumn,
+		SortDesc:   sortDesc,
 	}, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
