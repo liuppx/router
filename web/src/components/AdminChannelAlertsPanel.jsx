@@ -13,7 +13,7 @@ import {
   YAxis,
 } from 'recharts';
 import { API } from '../helpers/api';
-import { showError } from '../helpers';
+import { showError, withCardLabels } from '../helpers';
 import useUrlState from '../hooks/useUrlState';
 import {
   AppButton,
@@ -466,7 +466,7 @@ function AdminChannelAlertsPanel() {
   );
 
   const alertColumns = useMemo(
-    () => [
+    () => withCardLabels([
       {
         title: t('dashboard.admin.alerts.columns.level'),
         dataIndex: 'level',
@@ -614,7 +614,7 @@ function AdminChannelAlertsPanel() {
           </div>
         ),
       },
-    ],
+    ]),
     [
       acknowledgingAlertID,
       formatUpdatedAt,
@@ -994,7 +994,7 @@ function AdminChannelAlertsPanel() {
         <div className='router-table-scroll-x'>
           <AppSpin spinning={loading}>
             <AppTable
-              className='router-hover-table router-list-table router-table-fit-page admin-dashboard-alert-table'
+              className='router-hover-table router-list-table router-table-fit-page admin-dashboard-alert-table router-table-cardify'
               columns={alertColumns}
               dataSource={sortedAlertItems}
               pagination={false}
