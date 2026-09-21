@@ -69,6 +69,9 @@ const ProvidersManager = () => {
     PROVIDER_MODEL_STATUS_FILTER_ALL,
   );
   const [viewModelPage, setViewModelPage] = useState(1);
+  const [viewModelPageSize, setViewModelPageSize] = useState(
+    PROVIDER_DETAIL_MODEL_PAGE_SIZE,
+  );
   const [viewModelBatchDeleteMode, setViewModelBatchDeleteMode] = useState(false);
   const [viewModelBatchDeleteKeys, setViewModelBatchDeleteKeys] = useState([]);
   const [detailEditingSection, setDetailEditingSection] = useState('');
@@ -1725,13 +1728,23 @@ const ProvidersManager = () => {
             },
           ]}
         />
-        {totalPages > 1 ? (
+        {totalPages > 1 || pageSize !== PROVIDER_DETAIL_MODEL_PAGE_SIZE ? (
           <div className='router-pagination-wrap'>
             <AppPagination
               className='router-section-pagination'
               current={safeCurrentPage}
-              totalPages={totalPages}
-              onPageChange={(e, { activePage: nextActivePage }) => {
+              total={visibleDetailRows.length}
+              pageSize={pageSize}
+              onPageChange={(e, { activePage: nextActivePage, pageSize: nextPageSize }) => {
+                const size =
+                  Number(nextPageSize) > 0 ? Number(nextPageSize) : pageSize;
+                if (
+                  size !== pageSize &&
+                  typeof options.onPageSizeChange === 'function'
+                ) {
+                  options.onPageSizeChange(size);
+                  return;
+                }
                 if (typeof options.onPageChange === 'function') {
                   options.onPageChange(Number(nextActivePage) || 1);
                 }
@@ -2792,8 +2805,12 @@ const ProvidersManager = () => {
               searchKeyword: viewModelSearchKeyword,
               statusFilter: viewModelStatusFilter,
               currentPage: viewModelPage,
-              pageSize: PROVIDER_DETAIL_MODEL_PAGE_SIZE,
+              pageSize: viewModelPageSize,
               onPageChange: setViewModelPage,
+              onPageSizeChange: (size) => {
+                setViewModelPageSize(size);
+                setViewModelPage(1);
+              },
               actions: {
                 onStartEdit: startDetailModelEdit,
                 onDelete: requestDeleteDetailModel,
