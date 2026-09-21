@@ -2015,6 +2015,9 @@
   "redemption": {
     "title": "兑换管理",
     "search": "搜索兑换码和名称 ...",
+    "filter": {
+      "status_all": "全部状态"
+    },
     "table": {
       "id": "ID",
       "name": "名称",

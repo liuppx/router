@@ -2015,6 +2015,9 @@
   "redemption": {
     "title": "Redemption Management",
     "search": "Search redemption codes and names ...",
+    "filter": {
+      "status_all": "All Status"
+    },
     "table": {
       "id": "ID",
       "name": "Name",

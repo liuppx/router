@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -26,6 +26,7 @@ import {
   formatDecimalNumber,
 } from '../helpers/render';
 import UnitDropdown from './UnitDropdown';
+import useUrlState from '../hooks/useUrlState';
 import {
   AppButton,
   AppEmpty,
@@ -34,6 +35,7 @@ import {
   AppInput,
   AppPagination,
   AppPopconfirm,
+  AppSelect,
   AppTable,
   AppTableActionButton,
   AppTag,
@@ -145,8 +147,17 @@ const RedemptionsTable = ({ headerMeta = null }) => {
   const [activePage, setActivePage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const [{ status: statusFilter, keyword: searchKeyword }, patchQuery] =
+    useUrlState({
+      status: { param: 'status', default: 'all' },
+      keyword: { param: 'q', default: '' },
+    });
+  const setSearchKeyword = useCallback(
+    (value) => patchQuery({ keyword: (value || '').toString() }),
+    [patchQuery],
+  );
   const [searching, setSearching] = useState(false);
+  const initializedSearchRef = useRef(false);
   const [tableSorter, setTableSorter] = useState({
     columnKey: 'created_time',
     order: 'descend',
@@ -191,10 +202,14 @@ const RedemptionsTable = ({ headerMeta = null }) => {
     }
   }, []);
 
-  const loadRedemptions = useCallback(async (page) => {
+  const loadRedemptions = useCallback(async (page, { status = 'all' } = {}) => {
     const normalizedPage = Number(page) > 0 ? Number(page) : 1;
     try {
-      const res = await API.get(`/api/v1/admin/redemption/?page=${normalizedPage}`);
+      const params = new URLSearchParams();
+      params.set('page', String(normalizedPage));
+      const normalizedStatus = (status || 'all').toString();
+      if (normalizedStatus !== 'all') params.set('status', normalizedStatus);
+      const res = await API.get(`/api/v1/admin/redemption/?${params.toString()}`);
       const { success, message, data, meta } = res.data;
       if (success) {
         setLoadError(false);
@@ -223,19 +238,21 @@ const RedemptionsTable = ({ headerMeta = null }) => {
       const nextPage = Number(activePage) > 0 ? Number(activePage) : 1;
       const hasLoadedPageRows = hasLoadedPagedRows(redemptions, nextPage, ITEMS_PER_PAGE);
       if (!isSearchMode && !hasLoadedPageRows) {
-        await loadRedemptions(nextPage);
+        await loadRedemptions(nextPage, { status: statusFilter });
       }
       setActivePage(nextPage);
     })();
   };
 
   useEffect(() => {
-    loadRedemptions(1)
+    setLoading(true);
+    setActivePage(1);
+    loadRedemptions(1, { status: statusFilter })
       .then()
       .catch((reason) => {
         showError(reason);
       });
-  }, [loadRedemptions]);
+  }, [loadRedemptions, statusFilter]);
 
   useEffect(() => {
     loadDisplayUnits().then();
@@ -280,7 +297,7 @@ const RedemptionsTable = ({ headerMeta = null }) => {
   const searchRedemptions = async () => {
     if (searchKeyword === '') {
       // if keyword is blank, load files instead.
-      await loadRedemptions(1);
+      await loadRedemptions(1, { status: statusFilter });
       setActivePage(1);
       return;
     }
@@ -304,6 +321,25 @@ const RedemptionsTable = ({ headerMeta = null }) => {
     setSearchKeyword(value.trim());
   };
 
+  useEffect(() => {
+    const firstRun = !initializedSearchRef.current;
+    initializedSearchRef.current = true;
+    if (firstRun && searchKeyword === '') {
+      // Initial list load is owned by the filter effect; only auto-run search
+      // on mount when a keyword was restored from the URL.
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      searchRedemptions().catch((error) => {
+        showError(error?.message || error);
+      });
+    }, 250);
+    return () => {
+      window.clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchKeyword]);
+
   const handleTableChange = (_, __, sorter) => {
     if (!sorter || Array.isArray(sorter) || !sorter.columnKey || !sorter.order) {
       setTableSorter({ columnKey: null, order: null });
@@ -317,7 +353,7 @@ const RedemptionsTable = ({ headerMeta = null }) => {
 
   const refresh = async () => {
     setLoading(true);
-    await loadRedemptions(1);
+    await loadRedemptions(1, { status: statusFilter });
     setActivePage(1);
   };
 
@@ -355,6 +391,17 @@ const RedemptionsTable = ({ headerMeta = null }) => {
         }
         query={
           <div className='router-list-toolbar-query'>
+            <AppSelect
+              className='router-section-select'
+              value={statusFilter}
+              onChange={(_, { value }) => patchQuery({ status: value })}
+              options={[
+                { value: 'all', label: t('redemption.filter.status_all') },
+                { value: '1', label: t('redemption.status.unused') },
+                { value: '2', label: t('redemption.status.disabled') },
+                { value: '3', label: t('redemption.status.used') },
+              ]}
+            />
             <AppInput
               className='router-section-input'
               icon='search'
@@ -365,6 +412,13 @@ const RedemptionsTable = ({ headerMeta = null }) => {
               loading={searching}
               onChange={handleKeywordChange}
             />
+            <AppButton
+              className='router-section-button'
+              disabled={statusFilter === 'all' && searchKeyword === ''}
+              onClick={() => patchQuery({ status: 'all', keyword: '' })}
+            >
+              {t('common.clear_filters')}
+            </AppButton>
           </div>
         }
       />
