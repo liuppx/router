@@ -8,6 +8,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import UnitDropdown from './UnitDropdown';
 import useList, { sorterToSort, sortOrderForColumn } from '../hooks/useList';
+import { parseListPageSize } from '../hooks/useUrlState';
 
 import { LIST_PAGE_SIZE } from '../constants';
 import { exportCSV } from '../helpers/csv';
@@ -107,6 +108,12 @@ const LogsTable = () => {
     () => parseLogFiltersFromSearch(location.search, isAdminScope),
     [isAdminScope, location.search]
   );
+  const initialPageSize = useMemo(() => {
+    const raw = new URLSearchParams(location.search).get('page_size');
+    return raw ? parseListPageSize(raw) : LIST_PAGE_SIZE;
+    // Seed once from the URL; later changes flow through setPageSize.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [logType, setLogType] = useState(initialSearchFilters.logType);
   const [filterOptions, setFilterOptions] = useState({
     tokenNames: [],
@@ -233,12 +240,14 @@ const LogsTable = () => {
     loading,
     loadError,
     page: activePage,
+    pageSize,
     sort,
     load: loadLogs,
+    setPageSize,
     setSort,
   } = useList({
     fetcher: fetchLogs,
-    pageSize: LIST_PAGE_SIZE,
+    pageSize: initialPageSize,
     initialSort,
   });
 
@@ -276,6 +285,9 @@ const LogsTable = () => {
       query.set('order_by', sort.field);
       query.set('order', sort.order === 'asc' ? 'asc' : 'desc');
     }
+    if (Number(pageSize) !== LIST_PAGE_SIZE) {
+      query.set('page_size', String(pageSize));
+    }
     const nextSearch = query.toString();
     const currentSearch = location.search.startsWith('?')
       ? location.search.slice(1)
@@ -295,6 +307,7 @@ const LogsTable = () => {
     inputs,
     logType,
     sort,
+    pageSize,
     isAdminScope,
     location.pathname,
     location.search,
@@ -770,7 +783,13 @@ const LogsTable = () => {
     return effectiveLogType !== 5 && effectiveLogType !== 6;
   };
 
-  const onPaginationChange = (e, { activePage: nextActivePage }) => {
+  const onPaginationChange = (e, { activePage: nextActivePage, pageSize: nextSize }) => {
+    const size = Number(nextSize) > 0 ? Number(nextSize) : pageSize;
+    if (size !== pageSize) {
+      // Page-size change reloads page 1 at the new size; the URL effect mirrors it.
+      setPageSize(size);
+      return;
+    }
     const nextPage = Number(nextActivePage) > 0 ? Number(nextActivePage) : 1;
     loadLogs(nextPage);
   };
@@ -916,7 +935,6 @@ const LogsTable = () => {
     [LOG_OPTIONS, t]
   );
 
-  const totalPages = Math.max(Math.ceil(totalCount / LIST_PAGE_SIZE), 1);
 
   const detailBasePath = isAdminScope ? '/admin/log' : '/workspace/log';
   const logTableScrollWidth = Math.max(
@@ -1446,7 +1464,8 @@ const LogsTable = () => {
                   activePage={activePage}
                   onPageChange={onPaginationChange}
                   siblingRange={1}
-                  totalPages={totalPages}
+                  total={totalCount}
+                  pageSize={pageSize}
                 />
               }
             />
