@@ -9,6 +9,14 @@ func GetAll(userId string, start, num int, orderBy string, order string) ([]*mod
 	return tokenrepo.GetAll(userId, start, num, orderBy, order)
 }
 
+func GetAllFiltered(userId string, start, num int, orderBy string, order string, statusFilter int) ([]*model.Token, error) {
+	return tokenrepo.GetAllFiltered(userId, start, num, orderBy, order, statusFilter)
+}
+
+func CountFiltered(userId string, statusFilter int) (int64, error) {
+	return tokenrepo.CountFiltered(userId, statusFilter)
+}
+
 func Search(userId string, keyword string) ([]*model.Token, error) {
 	return tokenrepo.Search(userId, keyword)
 }

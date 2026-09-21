@@ -45,10 +45,11 @@ func GetAllTokens(c *gin.Context) {
 		page = 1
 	}
 	pageSize := resolvePageSize(c)
+	statusFilter, _ := strconv.Atoi(c.Query("status"))
 
 	orderBy := c.Query("order_by")
 	order := c.Query("order")
-	tokens, err := tokensvc.GetAll(userId, (page-1)*pageSize, pageSize, orderBy, order)
+	tokens, err := tokensvc.GetAllFiltered(userId, (page-1)*pageSize, pageSize, orderBy, order, statusFilter)
 
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -57,8 +58,8 @@ func GetAllTokens(c *gin.Context) {
 		})
 		return
 	}
-	var total int64
-	if err := model.DB.Model(&model.Token{}).Where("user_id = ?", userId).Count(&total).Error; err != nil {
+	total, err := tokensvc.CountFiltered(userId, statusFilter)
+	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": err.Error(),

@@ -71,13 +71,32 @@ func buildTokenOrder(orderBy string, order string) string {
 }
 
 func GetAll(userId string, start, num int, orderBy string, order string) ([]*model.Token, error) {
+	return GetAllFiltered(userId, start, num, orderBy, order, 0)
+}
+
+// GetAllFiltered 列出某用户的令牌,可选按状态过滤。statusFilter 传 0 表示不过滤。
+func GetAllFiltered(userId string, start, num int, orderBy string, order string, statusFilter int) ([]*model.Token, error) {
 	var tokens []*model.Token
 	query := model.DB.Where("user_id = ?", userId)
+	if statusFilter != 0 {
+		query = query.Where("status = ?", statusFilter)
+	}
 
 	query = query.Order(buildTokenOrder(orderBy, order))
 
 	err := query.Limit(num).Offset(start).Find(&tokens).Error
 	return tokens, err
+}
+
+// CountFiltered 统计某用户令牌总数,过滤条件与 GetAllFiltered 保持一致。
+func CountFiltered(userId string, statusFilter int) (int64, error) {
+	query := model.DB.Model(&model.Token{}).Where("user_id = ?", userId)
+	if statusFilter != 0 {
+		query = query.Where("status = ?", statusFilter)
+	}
+	var total int64
+	err := query.Count(&total).Error
+	return total, err
 }
 
 func GetFirstAvailable(userId string) (*model.Token, error) {
