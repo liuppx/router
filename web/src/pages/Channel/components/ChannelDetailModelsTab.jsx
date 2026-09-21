@@ -54,9 +54,11 @@ const ChannelDetailModelsTab = ({
   handleDeleteDetailModel,
   handleBatchSelectDetailModels,
   handleBatchDeleteDetailModels,
-  detailModelTotalPages,
   detailModelPage,
   setDetailModelPage,
+  detailModelTotal,
+  detailModelPageSize,
+  setDetailModelPageSize,
   modelsSyncError,
 }) => {
   const [batchDeleteMode, setBatchDeleteMode] = useState(false);
@@ -557,15 +559,25 @@ const ChannelDetailModelsTab = ({
             },
           ]}
         />
-        {detailModelTotalPages > 1 && (
+        {detailModelTotal > 10 && (
           <div className='router-pagination-wrap'>
             <AppPagination
               className='router-section-pagination'
               activePage={detailModelPage}
-              totalPages={detailModelTotalPages}
-              onPageChange={(e, { activePage }) =>
-                setDetailModelPage(Number(activePage) || 1)
-              }
+              total={detailModelTotal}
+              pageSize={detailModelPageSize}
+              onPageChange={(e, { activePage, pageSize: nextPageSize }) => {
+                const size =
+                  Number(nextPageSize) > 0
+                    ? Number(nextPageSize)
+                    : detailModelPageSize;
+                if (size !== detailModelPageSize) {
+                  setDetailModelPageSize(size);
+                  setDetailModelPage(1);
+                  return;
+                }
+                setDetailModelPage(Number(activePage) || 1);
+              }}
             />
           </div>
         )}

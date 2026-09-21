@@ -348,6 +348,9 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
     useState('all');
   const [detailProviderFilter, setDetailProviderFilter] = useState('all');
   const [detailModelPage, setDetailModelPage] = useState(1);
+  const [detailModelPageSize, setDetailModelPageSize] = useState(
+    CHANNEL_MODEL_PAGE_SIZE,
+  );
   const fetchingModelsRef = useRef(false);
   const pendingRefreshTaskIdRef = useRef('');
   const pendingRefreshSignatureRef = useRef('');
@@ -963,16 +966,16 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
   const detailModelTotalPages = useMemo(() => {
     return Math.max(
       1,
-      Math.ceil(searchedChannelModels.length / CHANNEL_MODEL_PAGE_SIZE)
+      Math.ceil(searchedChannelModels.length / detailModelPageSize)
     );
-  }, [searchedChannelModels.length]);
+  }, [searchedChannelModels.length, detailModelPageSize]);
   const renderedChannelModels = useMemo(() => {
-    const offset = (detailModelPage - 1) * CHANNEL_MODEL_PAGE_SIZE;
+    const offset = (detailModelPage - 1) * detailModelPageSize;
     return searchedChannelModels.slice(
       offset,
-      offset + CHANNEL_MODEL_PAGE_SIZE
+      offset + detailModelPageSize
     );
-  }, [searchedChannelModels, detailModelPage]);
+  }, [searchedChannelModels, detailModelPage, detailModelPageSize]);
   const modelSelectionSummaryText = useMemo(
     () =>
       t('channel.edit.model_selector.summary', {
@@ -4130,9 +4133,11 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
                     handleDeleteDetailModel={handleDeleteDetailModel}
                     handleBatchSelectDetailModels={handleBatchSelectDetailModels}
                     handleBatchDeleteDetailModels={handleBatchDeleteDetailModels}
-                    detailModelTotalPages={detailModelTotalPages}
                     detailModelPage={detailModelPage}
                     setDetailModelPage={setDetailModelPage}
+                    detailModelTotal={searchedChannelModels.length}
+                    detailModelPageSize={detailModelPageSize}
+                    setDetailModelPageSize={setDetailModelPageSize}
                     modelsSyncError={modelsSyncError}
                   />
                 )}
