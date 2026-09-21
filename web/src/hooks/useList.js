@@ -17,31 +17,36 @@ import { LIST_PAGE_SIZE } from '../constants/common.constant';
  *
  * @param {Object} params
  * @param {Function} params.fetcher async ({ page, pageSize, orderBy, order }) => { rows, total }
- * @param {number} [params.pageSize=LIST_PAGE_SIZE]
+ * @param {number} [params.pageSize=LIST_PAGE_SIZE] Initial page size; callers that
+ *   expose a size-changer drive later changes through the returned `setPageSize`.
  * @param {number} [params.initialPage=1]
  * @param {{field:string, order:('asc'|'desc')}|null} [params.initialSort=null]
- * @returns {Object} { rows, total, loading, loadError, page, sort, load, setSort, reload }
+ * @returns {Object} { rows, total, loading, loadError, page, pageSize, sort, load, setPageSize, setSort, reload }
  */
 export default function useList({
   fetcher,
-  pageSize = LIST_PAGE_SIZE,
+  pageSize: initialPageSize = LIST_PAGE_SIZE,
   initialPage = 1,
   initialSort = null,
 }) {
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(initialPage);
+  const [pageSize, setPageSizeState] = useState(initialPageSize);
   const [sort, setSortState] = useState(initialSort);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
-  // Always call the latest fetcher/sort without making `load` change identity
-  // when the caller's fetcher closure (filters) updates — callers decide when to
-  // reload via their own effects, so a stable `load` avoids surprise re-fetches.
+  // Always call the latest fetcher/sort/pageSize without making `load` change
+  // identity when the caller's fetcher closure (filters) or page size updates —
+  // callers decide when to reload via their own effects, so a stable `load`
+  // avoids surprise re-fetches.
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
   const sortRef = useRef(sort);
   sortRef.current = sort;
+  const pageSizeRef = useRef(pageSize);
+  pageSizeRef.current = pageSize;
 
   const load = useCallback(
     async (targetPage = 1) => {
@@ -51,7 +56,7 @@ export default function useList({
         const currentSort = sortRef.current;
         const result = await fetcherRef.current({
           page: normalizedPage,
-          pageSize,
+          pageSize: pageSizeRef.current,
           orderBy: currentSort?.field || '',
           order: currentSort?.order || '',
         });
@@ -70,10 +75,25 @@ export default function useList({
         setLoading(false);
       }
     },
-    [pageSize],
+    [],
   );
 
   const reload = useCallback(() => load(page), [load, page]);
+
+  // Changing the page size returns to page 1. By default it reloads at the new
+  // size (backend-paged surfaces); callers that slice a client-held result set
+  // (e.g. a search mode) pass { reload: false } to resize without a fetch.
+  const setPageSize = useCallback(
+    (nextSize, { reload: shouldReload = true } = {}) => {
+      const normalized = Number(nextSize) > 0 ? Number(nextSize) : initialPageSize;
+      pageSizeRef.current = normalized;
+      setPageSizeState(normalized);
+      if (shouldReload) {
+        load(1);
+      }
+    },
+    [load, initialPageSize],
+  );
 
   // Changing the sort always returns to page 1 and reloads.
   const setSort = useCallback(
@@ -91,8 +111,10 @@ export default function useList({
     loading,
     loadError,
     page,
+    pageSize,
     sort,
     setPage,
+    setPageSize,
     setSortState,
     load,
     reload,

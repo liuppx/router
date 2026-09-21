@@ -11,6 +11,7 @@ import {
   withCardLabels,
 } from '../helpers';
 import useList, { sorterToSort, sortOrderForColumn } from '../hooks/useList';
+import { parseListPageSize } from '../hooks/useUrlState';
 
 import { LIST_PAGE_SIZE } from '../constants';
 import {
@@ -177,6 +178,11 @@ const TokensTable = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+  const initialPageSize = useMemo(() => {
+    const raw = new URLSearchParams(location.search).get('page_size');
+    return raw ? parseListPageSize(raw) : LIST_PAGE_SIZE;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [statusFilter, setStatusFilter] = useState(() => initialStatus);
   const [currencyIndex, setCurrencyIndex] = useState(() =>
     buildPublicDisplayCurrencyIndex([]),
@@ -220,18 +226,56 @@ const TokensTable = () => {
     loading,
     loadError,
     page: activePage,
+    pageSize,
     sort,
     setPage: setActivePage,
     load: loadTokens,
+    setPageSize,
     reload,
     setSort,
   } = useList({
     fetcher: fetchTokens,
-    pageSize: LIST_PAGE_SIZE,
+    pageSize: initialPageSize,
     initialSort,
   });
 
-  const onPaginationChange = (e, { activePage: nextActivePage }) => {
+  // page_size lives in the URL (default LIST_PAGE_SIZE is stripped) so a refresh
+  // or shared link keeps the chosen size. Tokens manages its URL manually rather
+  // than through useUrlState, so mirror the param here.
+  const syncPageSizeToUrl = useCallback(
+    (size) => {
+      const params = new URLSearchParams(location.search);
+      if (Number(size) === LIST_PAGE_SIZE) {
+        params.delete('page_size');
+      } else {
+        params.set('page_size', String(size));
+      }
+      const nextSearch = params.toString();
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+        },
+        { replace: true },
+      );
+    },
+    [location.pathname, location.search, navigate],
+  );
+
+  const onPaginationChange = (e, { activePage: nextActivePage, pageSize: nextSize }) => {
+    const size = Number(nextSize) > 0 ? Number(nextSize) : pageSize;
+    if (size !== pageSize) {
+      syncPageSizeToUrl(size);
+      if (isSearchMode) {
+        // Search mode slices a client-held result set: resize without a fetch.
+        setPageSize(size, { reload: false });
+        setActivePage(1);
+      } else {
+        // Backend-paged: reload page 1 at the new size.
+        setPageSize(size);
+      }
+      return;
+    }
     const nextPage = Number(nextActivePage) > 0 ? Number(nextActivePage) : 1;
     if (isSearchMode) {
       // Search mode keeps the full result set client-side; just slice.
@@ -524,10 +568,7 @@ const TokensTable = () => {
   const visibleTokenCount = searchResults.filter(
     (token) => !token?.deleted,
   ).length;
-  const totalPages = Math.max(
-    Math.ceil((isSearchMode ? visibleTokenCount : pagedTotal) / LIST_PAGE_SIZE),
-    1,
-  );
+  const paginationTotal = isSearchMode ? visibleTokenCount : pagedTotal;
   const displayUnitOptions = useMemo(
     () => buildDisplayUnitOptions(currencyIndex),
     [currencyIndex],
@@ -619,8 +660,8 @@ const TokensTable = () => {
           onChange={handleTableChange}
           dataSource={(isSearchMode
             ? searchResults.slice(
-                (activePage - 1) * LIST_PAGE_SIZE,
-                activePage * LIST_PAGE_SIZE,
+                (activePage - 1) * pageSize,
+                activePage * pageSize,
               )
             : rows
           ).filter((token) => !token?.deleted)}
@@ -863,7 +904,8 @@ const TokensTable = () => {
                   activePage={activePage}
                   onPageChange={onPaginationChange}
                   siblingRange={1}
-                  totalPages={totalPages}
+                  total={paginationTotal}
+                  pageSize={pageSize}
                 />
               }
             />
