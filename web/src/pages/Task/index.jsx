@@ -12,20 +12,16 @@ import {
   TASK_LIST_TABLE_MIN_WIDTH,
 } from '../../constants/tableWidthPresets';
 import {
-  AppButton,
   AppEmpty,
   AppErrorState,
   AppFilterHeader,
-  AppFormActions,
   AppPagination,
-  AppPopover,
-  resolvePopupContainer,
-  AppSelect,
   AppTable,
   AppTableActionButton,
   AppTag,
   AppToolbar,
 } from '../../router-ui';
+import ListFilterBar from '../../components/ListFilterBar';
 
 const PAGE_SIZE = 20;
 export const TASK_PAGE_KIND_WORKSPACE_USER = 'workspace_user';
@@ -278,9 +274,6 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
     }
     return keys;
   });
-  const [addFilterPopupOpen, setAddFilterPopupOpen] = useState(false);
-  const [draftFilterKey, setDraftFilterKey] = useState('');
-  const [draftFilterValue, setDraftFilterValue] = useState('');
   const [filterOptions, setFilterOptions] = useState({
     models: [],
     channels: [],
@@ -467,45 +460,40 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
     [activeFilterKeys, conditionalFilterOptions],
   );
 
-  const closeFilterDraft = useCallback(() => {
-    setAddFilterPopupOpen(false);
-    setDraftFilterKey('');
-    setDraftFilterValue('');
-  }, []);
-
-  const openFilterDraft = useCallback(
-    (filterKey) => {
-      const config = conditionalFilterConfig.find((item) => item.key === filterKey);
-      if (!config) {
-        return;
-      }
-      setDraftFilterKey(filterKey);
-      setDraftFilterValue((filters?.[filterKey] || '').toString());
-      setAddFilterPopupOpen(true);
-    },
-    [conditionalFilterConfig, filters],
+  const getTaskFilterConfig = useCallback(
+    (filterKey) =>
+      conditionalFilterConfig.find((item) => item.key === filterKey) || null,
+    [conditionalFilterConfig],
   );
 
-  const applyFilterDraft = useCallback(() => {
-    const nextFilterKey = (draftFilterKey || '').trim();
-    if (nextFilterKey === '') {
-      return;
-    }
-    const nextValue = (draftFilterValue || '').toString().trim();
-    if (nextValue === '') {
-      showError(t('task.filters.value_required'));
-      return;
-    }
-    setFilters((prev) => ({
-      ...prev,
-      [nextFilterKey]: nextValue,
-    }));
-    setActiveFilterKeys((prev) =>
-      prev.includes(nextFilterKey) ? prev : [...prev, nextFilterKey],
-    );
-    setPage(1);
-    closeFilterDraft();
-  }, [closeFilterDraft, draftFilterKey, draftFilterValue, t]);
+  const getTaskInitialDraft = useCallback(
+    (filterKey) => ({ value: (filters?.[filterKey] || '').toString() }),
+    [filters],
+  );
+
+  const applyTaskFilterDraft = useCallback(
+    (filterKey, draft) => {
+      const nextFilterKey = (filterKey || '').trim();
+      if (nextFilterKey === '') {
+        return false;
+      }
+      const nextValue = (draft?.value || '').toString().trim();
+      if (nextValue === '') {
+        showError(t('task.filters.value_required'));
+        return false;
+      }
+      setFilters((prev) => ({
+        ...prev,
+        [nextFilterKey]: nextValue,
+      }));
+      setActiveFilterKeys((prev) =>
+        prev.includes(nextFilterKey) ? prev : [...prev, nextFilterKey],
+      );
+      setPage(1);
+      return true;
+    },
+    [setPage, t],
+  );
 
   const removeConditionalFilter = useCallback((filterKey) => {
     setActiveFilterKeys((prev) => prev.filter((item) => item !== filterKey));
@@ -676,13 +664,8 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
       }));
       setActiveFilterKeys((prev) => prev.filter((item) => item !== 'type'));
     }
-    if (draftFilterKey !== '' && !allowedFilterKeys.has(draftFilterKey)) {
-      closeFilterDraft();
-    }
   }, [
-    closeFilterDraft,
     conditionalFilterConfig,
-    draftFilterKey,
     filters.channel_id,
     filters.type,
     filters.user_keyword,
@@ -946,158 +929,33 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
             breadcrumbs={returnPath === '' ? rootBreadcrumbs : undefined}
             title={returnPath === '' ? pageTitle : undefined}
             titleClassName='router-ui-section-title'
-            picker={
-              <AppPopover
-                open={addFilterPopupOpen}
-                trigger='click'
-                placement='bottomLeft'
-                onOpenChange={(open) => {
-                  if (!open) {
-                    closeFilterDraft();
-                  }
-                }}
-                content={
-                  <div className='router-log-filter-picker'>
-                    <div className='router-log-filter-picker-options'>
-                      {availableConditionalFilterOptions.map((item) => (
-                        <AppButton
-                          key={item.value}
-                          type='button'
-                          className='router-inline-button'
-                          color={draftFilterKey === item.value ? 'blue' : undefined}
-                          onClick={() => openFilterDraft(item.value)}
-                        >
-                          {item.text}
-                        </AppButton>
-                      ))}
-                    </div>
-                    {draftFilterKey !== '' && (
-                      <div className='router-log-filter-editor'>
-                        <div className='router-log-filter-editor-title'>
-                          {
-                            conditionalFilterConfig.find(
-                              (item) => item.key === draftFilterKey,
-                            )?.label
-                          }
-                        </div>
-                        {conditionalFilterConfig.find(
-                          (item) => item.key === draftFilterKey,
-                        )?.type === 'select' ? (
-                          <AppSelect
-                            className='router-section-dropdown router-log-filter-select'
-                            fluid
-                            search
-                            clearable
-                            getPopupContainer={resolvePopupContainer}
-                            options={
-                              conditionalFilterConfig.find(
-                                (item) => item.key === draftFilterKey,
-                              )?.options || []
-                            }
-                            value={draftFilterValue}
-                            onChange={(e, { value }) =>
-                              setDraftFilterValue(value ? String(value) : '')
-                            }
-                          />
-                        ) : (
-                          <input
-                            className='router-log-filter-editor-input'
-                            type='text'
-                            value={draftFilterValue}
-                            placeholder={
-                              conditionalFilterConfig.find(
-                                (item) => item.key === draftFilterKey,
-                              )?.placeholder || ''
-                            }
-                            onChange={(e) =>
-                              setDraftFilterValue(e.target.value)
-                            }
-                          />
-                        )}
-                        <AppFormActions className='router-log-filter-editor-actions'>
-                          <AppButton
-                            type='button'
-                            className='router-inline-button'
-                            onClick={closeFilterDraft}
-                          >
-                            {t('common.cancel')}
-                          </AppButton>
-                          <AppButton
-                            type='button'
-                            className='router-inline-button'
-                            color='blue'
-                            onClick={applyFilterDraft}
-                          >
-                            {t('common.confirm')}
-                          </AppButton>
-                        </AppFormActions>
-                      </div>
-                    )}
-                  </div>
-                }
-              >
-                <AppButton
-                  type='button'
-                  className='router-page-button'
-                  disabled={availableConditionalFilterOptions.length === 0}
-                  onClick={() => setAddFilterPopupOpen(true)}
-                >
-                  {t('task.filters.add')}
-                </AppButton>
-              </AppPopover>
-            }
             query={
-              <>
-              <div className='router-log-query-box router-log-query-box-inline'>
-                <div className='router-log-query-fields'>
-                  {visibleFilterConfig.length === 0 ? (
-                    <div className='router-log-filter-chip router-log-filter-chip-static'>
-                      <span className='router-log-filter-chip-label'>
-                        {t('task.filters.none')}
-                      </span>
-                    </div>
-                  ) : (
-                    visibleFilterConfig.map((item) => (
-                      <div
-                        key={item.key}
-                        className='router-log-filter-chip router-log-filter-chip-static'
-                      >
-                        <span className='router-log-filter-chip-label'>
-                          {item.label}
-                        </span>
-                        <span className='router-log-filter-chip-value'>
-                          {renderTaskFilterSummary(item.key, filters, t, {
-                            type: resolveTypeLabel,
-                            status: resolveStatusLabel,
-                            model: (value) =>
-                              resolveFilterOptionLabel('model', value),
-                            channel_id: (value) =>
-                              resolveFilterOptionLabel('channel_id', value),
-                            user_keyword: (value) =>
-                              resolveFilterOptionLabel('user_keyword', value),
-                          })}
-                        </span>
-                        <button
-                          type='button'
-                          className='router-log-filter-chip-remove'
-                          onClick={() => removeConditionalFilter(item.key)}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-              <AppButton
-                type='button'
-                className='router-page-button router-log-query-button'
-                onClick={() => loadTasks(page)}
-                loading={loading}
-              >
-                {t('task.buttons.query')}
-              </AppButton>
-              </>
+              <ListFilterBar
+                availableOptions={availableConditionalFilterOptions}
+                visibleFilters={visibleFilterConfig}
+                getFilterConfig={getTaskFilterConfig}
+                getInitialDraft={getTaskInitialDraft}
+                onApplyDraft={applyTaskFilterDraft}
+                onRemoveFilter={removeConditionalFilter}
+                renderSummary={(key) =>
+                  renderTaskFilterSummary(key, filters, t, {
+                    type: resolveTypeLabel,
+                    status: resolveStatusLabel,
+                    model: (value) => resolveFilterOptionLabel('model', value),
+                    channel_id: (value) =>
+                      resolveFilterOptionLabel('channel_id', value),
+                    user_keyword: (value) =>
+                      resolveFilterOptionLabel('user_keyword', value),
+                  })
+                }
+                onQuery={() => loadTasks(page)}
+                queryLoading={loading}
+                addButtonText={t('task.filters.add')}
+                addButtonClassName='router-page-button'
+                queryButtonText={t('task.buttons.query')}
+                queryButtonClassName='router-page-button router-log-query-button'
+                emptyChipText={t('task.filters.none')}
+              />
             }
             endClassName='router-log-query-wrap'
       />

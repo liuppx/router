@@ -37,14 +37,12 @@ import {
   AppFormActions,
   AppModal,
   AppPagination,
-  AppPopover,
   AppPopconfirm,
-  resolvePopupContainer,
-  AppSelect,
   AppTable,
   AppTag,
   AppToolbar,
 } from '../router-ui';
+import ListFilterBar from './ListFilterBar';
 
 const USER_LOG_COLUMN_ORDER_STORAGE_KEY = 'router_user_log_column_order_v1';
 const ADMIN_LOG_COLUMN_ORDER_STORAGE_KEY = 'router_admin_log_column_order_v1';
@@ -586,13 +584,6 @@ const LogsTable = () => {
   const [activeFilterKeys, setActiveFilterKeys] = useState(
     initialSearchFilters.activeFilterKeys
   );
-  const [addFilterPopupOpen, setAddFilterPopupOpen] = useState(false);
-  const [draftFilterKey, setDraftFilterKey] = useState('');
-  const [draftFilterInputs, setDraftFilterInputs] = useState({
-    value: '',
-    start_timestamp: '',
-    end_timestamp: '',
-  });
   const [displayUnit, setDisplayUnit] = useState('USD');
   const [currencyIndex, setCurrencyIndex] = useState(() =>
     buildPublicDisplayCurrencyIndex([])
@@ -989,14 +980,16 @@ const LogsTable = () => {
     }
   }, [isAdminScope, loadedFilterKeys, loadingFilterKeys, t]);
 
-  const openFilterDraft = useCallback(
+  const getLogFilterConfig = useCallback(
+    (filterKey) =>
+      conditionalFilterConfig.find((item) => item.key === filterKey) || null,
+    [conditionalFilterConfig]
+  );
+
+  const getLogInitialDraft = useCallback(
     (filterKey) => {
-      const config = conditionalFilterConfig.find((item) => item.key === filterKey);
-      if (!config) {
-        return;
-      }
-      if (config.type === 'time_range') {
-        setDraftFilterInputs({
+      if (filterKey === 'time_range') {
+        return {
           value: '',
           start_timestamp:
             toDatetimeLocalValue(inputs.start_timestamp) ||
@@ -1004,91 +997,98 @@ const LogsTable = () => {
           end_timestamp:
             toDatetimeLocalValue(inputs.end_timestamp) ||
             currentDatetimeLocalValue(),
-        });
-      } else if (filterKey === 'log_type') {
-        setDraftFilterInputs({
-          value: logType > 0 ? logType : '',
-          start_timestamp: '',
-          end_timestamp: '',
-        });
-      } else {
-        setDraftFilterInputs({
-          value: (inputs[filterKey] || '').toString(),
-          start_timestamp: '',
-          end_timestamp: '',
-        });
+        };
       }
-      if (
-        ['channel', 'group_id'].includes(
-          filterKey
-        )
-      ) {
+      if (filterKey === 'log_type') {
+        return { value: logType > 0 ? logType : '' };
+      }
+      return { value: (inputs[filterKey] || '').toString() };
+    },
+    [inputs, logType]
+  );
+
+  const onLogDraftOpen = useCallback(
+    (filterKey) => {
+      if (['channel', 'group_id'].includes(filterKey)) {
         loadFilterOptions(filterKey).then();
-      } else if (!isAdminScope && ['token_name', 'model_name'].includes(filterKey)) {
+      } else if (
+        !isAdminScope &&
+        ['token_name', 'model_name'].includes(filterKey)
+      ) {
         // Normal users get a dropdown of the token/model names they have
         // actually used (from /api/v1/public/log/options) instead of typing
         // blind. Options load lazily on first open, mirroring channel/group.
         loadFilterOptions(filterKey).then();
       }
-      setDraftFilterKey(filterKey);
-      setAddFilterPopupOpen(true);
     },
-    [conditionalFilterConfig, inputs, isAdminScope, loadFilterOptions, logType]
+    [isAdminScope, loadFilterOptions]
   );
 
-  const closeFilterDraft = useCallback(() => {
-    setAddFilterPopupOpen(false);
-    setDraftFilterKey('');
-    setDraftFilterInputs({
-      value: '',
-      start_timestamp: '',
-      end_timestamp: '',
-    });
-  }, []);
+  const applyLogFilterDraft = useCallback(
+    (filterKey, draft) => {
+      if (filterKey === '') {
+        return false;
+      }
+      const config = conditionalFilterConfig.find(
+        (item) => item.key === filterKey
+      );
+      if (!config) {
+        return false;
+      }
+      if (config.type === 'time_range') {
+        const nextStart = (draft.start_timestamp || '').trim();
+        const nextEnd = (draft.end_timestamp || '').trim();
+        if (nextStart === '' && nextEnd === '') {
+          showError(t('log.filters.empty'));
+          return false;
+        }
+        setInputs((prev) => ({
+          ...prev,
+          start_timestamp: nextStart,
+          end_timestamp: nextEnd,
+        }));
+      } else if (filterKey === 'log_type') {
+        const nextValue = Number(draft.value || 0);
+        if (!Number.isFinite(nextValue) || nextValue <= 0) {
+          showError(t('log.filters.empty'));
+          return false;
+        }
+        setLogType(nextValue);
+      } else {
+        const nextValue = (draft.value || '').toString().trim();
+        if (nextValue === '') {
+          showError(t('log.filters.empty'));
+          return false;
+        }
+        setInputs((prev) => ({
+          ...prev,
+          [filterKey]: nextValue,
+        }));
+      }
+      setActiveFilterKeys((prev) =>
+        prev.includes(filterKey) ? prev : [...prev, filterKey]
+      );
+      return true;
+    },
+    [conditionalFilterConfig, t]
+  );
 
-  const applyFilterDraft = useCallback(() => {
-    if (draftFilterKey === '') {
-      return;
-    }
-    const config = conditionalFilterConfig.find((item) => item.key === draftFilterKey);
-    if (!config) {
-      return;
-    }
-    if (config.type === 'time_range') {
-      const nextStart = draftFilterInputs.start_timestamp.trim();
-      const nextEnd = draftFilterInputs.end_timestamp.trim();
-      if (nextStart === '' && nextEnd === '') {
-        showError(t('log.filters.empty'));
-        return;
-      }
-      setInputs((prev) => ({
-        ...prev,
-        start_timestamp: nextStart,
-        end_timestamp: nextEnd,
-      }));
-    } else if (draftFilterKey === 'log_type') {
-      const nextValue = Number(draftFilterInputs.value || 0);
-      if (!Number.isFinite(nextValue) || nextValue <= 0) {
-        showError(t('log.filters.empty'));
-        return;
-      }
-      setLogType(nextValue);
-    } else {
-      const nextValue = draftFilterInputs.value.trim();
-      if (nextValue === '') {
-        showError(t('log.filters.empty'));
-        return;
-      }
-      setInputs((prev) => ({
-        ...prev,
-        [draftFilterKey]: nextValue,
-      }));
-    }
-    setActiveFilterKeys((prev) =>
-      prev.includes(draftFilterKey) ? prev : [...prev, draftFilterKey]
-    );
-    closeFilterDraft();
-  }, [closeFilterDraft, conditionalFilterConfig, draftFilterInputs, draftFilterKey, t]);
+  const getLogSelectLoading = useCallback(
+    (filterKey) =>
+      filterKey === 'username'
+        ? userFilterSearchLoading
+        : filterKey === 'token_name'
+          ? tokenFilterSearchLoading
+          : filterKey === 'model_name'
+            ? modelFilterSearchLoading
+            : loadingFilterKeys.includes(filterKey),
+    [
+      loadingFilterKeys,
+      modelFilterSearchLoading,
+      tokenFilterSearchLoading,
+      userFilterSearchLoading,
+    ]
+  );
 
   const searchAdminUsers = useCallback(async (keyword) => {
     const normalizedKeyword = String(keyword || '').trim();
@@ -1578,201 +1578,48 @@ const LogsTable = () => {
             ) : null}
           </div>
         }
-        picker={
-            <AppPopover
-              open={addFilterPopupOpen}
-              trigger='click'
-              placement='bottomLeft'
-              onOpenChange={(open) => {
-                if (open) {
-                  setAddFilterPopupOpen(true);
-                  return;
-                }
-                if (!open) {
-                  closeFilterDraft();
-                }
-              }}
-              content={
-                <div className='router-log-filter-picker'>
-                  <div className='router-log-filter-picker-options'>
-                    {availableConditionalFilterOptions.map((item) => (
-                      <AppButton
-                        key={item.value}
-                        type='button'
-                        className='router-inline-button'
-                        color={draftFilterKey === item.value ? 'blue' : undefined}
-                        basic={draftFilterKey !== item.value}
-                        onClick={() => openFilterDraft(item.value)}
-                      >
-                        {item.text}
-                      </AppButton>
-                    ))}
-                  </div>
-                  {draftFilterKey !== '' && (
-                    <div className='router-log-filter-editor'>
-                      <div className='router-log-filter-editor-title'>
-                        {
-                          conditionalFilterConfig.find((item) => item.key === draftFilterKey)
-                            ?.label
-                        }
-                      </div>
-                      {draftFilterKey === 'time_range' ? (
-                        <div className='router-log-filter-editor-range'>
-                          <input
-                            type='datetime-local'
-                            value={draftFilterInputs.start_timestamp}
-                            onChange={(e) =>
-                              setDraftFilterInputs((prev) => ({
-                                ...prev,
-                                start_timestamp: e.target.value,
-                              }))
-                            }
-                          />
-                          <input
-                            type='datetime-local'
-                            value={draftFilterInputs.end_timestamp}
-                            onChange={(e) =>
-                              setDraftFilterInputs((prev) => ({
-                                ...prev,
-                                end_timestamp: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                      ) : conditionalFilterConfig.find((item) => item.key === draftFilterKey)
-                          ?.type === 'select' ? (
-                        <AppSelect
-                          className='router-section-dropdown router-log-filter-select'
-                          fluid
-                          search
-                          clearable
-                          loading={
-                            draftFilterKey === 'username'
-                              ? userFilterSearchLoading
-                              : draftFilterKey === 'token_name'
-                                ? tokenFilterSearchLoading
-                                : draftFilterKey === 'model_name'
-                                  ? modelFilterSearchLoading
-                                : loadingFilterKeys.includes(draftFilterKey)
-                          }
-                          getPopupContainer={resolvePopupContainer}
-                          options={
-                            conditionalFilterConfig.find((item) => item.key === draftFilterKey)
-                              ?.options || []
-                          }
-                          value={draftFilterInputs.value}
-                          onClick={() => {
-                            if (draftFilterKey === 'username') {
-                              searchAdminUsers(draftFilterInputs.value).then();
-                            } else if (draftFilterKey === 'token_name' && isAdminScope) {
-                              searchAdminTokens(draftFilterInputs.value).then();
-                            } else if (draftFilterKey === 'model_name' && isAdminScope) {
-                              searchAdminModels(draftFilterInputs.value).then();
-                            }
-                          }}
-                          onSearch={(value) => {
-                            if (draftFilterKey === 'username') {
-                              searchAdminUsers(value).then();
-                            } else if (draftFilterKey === 'token_name' && isAdminScope) {
-                              searchAdminTokens(value).then();
-                            } else if (draftFilterKey === 'model_name' && isAdminScope) {
-                              searchAdminModels(value).then();
-                            }
-                          }}
-                          onChange={(e, { value }) =>
-                            setDraftFilterInputs((prev) => ({
-                              ...prev,
-                              value:
-                                value === null || value === undefined || value === ''
-                                  ? ''
-                                  : value,
-                            }))
-                          }
-                        />
-                      ) : (
-                        <input
-                          className='router-log-filter-editor-input'
-                          type='text'
-                          value={draftFilterInputs.value}
-                          placeholder={
-                            conditionalFilterConfig.find((item) => item.key === draftFilterKey)
-                              ?.placeholder || ''
-                          }
-                          onChange={(e) =>
-                            setDraftFilterInputs((prev) => ({
-                              ...prev,
-                              value: e.target.value,
-                            }))
-                          }
-                        />
-                      )}
-                      <AppFormActions className='router-log-filter-editor-actions'>
-                        <AppButton
-                          type='button'
-                          className='router-inline-button'
-                          onClick={closeFilterDraft}
-                        >
-                          {t('common.cancel')}
-                        </AppButton>
-                        <AppButton
-                          type='button'
-                          className='router-inline-button'
-                          color='blue'
-                          onClick={applyFilterDraft}
-                        >
-                          {t('common.confirm')}
-                        </AppButton>
-                      </AppFormActions>
-                    </div>
-                  )}
-                </div>
-              }
-            >
-              <AppButton
-                type='button'
-                className='router-section-button'
-                disabled={availableConditionalFilterOptions.length === 0}
-                onClick={() => setAddFilterPopupOpen(true)}
-              >
-                {t('log.filters.add')}
-              </AppButton>
-            </AppPopover>
-        }
         query={
-          <>
-            <div className='router-log-query-box router-log-query-box-inline'>
-              <div className='router-log-query-fields'>
-                {visibleFilterConfig.map((item) => (
-                  <div key={item.key} className='router-log-filter-chip router-log-filter-chip-static'>
-                    <span className='router-log-filter-chip-label'>
-                      {item.label}
-                    </span>
-                    <span className='router-log-filter-chip-value'>
-                      {renderFilterSummary(item.key, inputs, t, {
-                        resolveOptionLabel,
-                        logTypeLabel: getLogTypeLabel(logType),
-                      })}
-                    </span>
-                    <button
-                      type='button'
-                      className='router-log-filter-chip-remove'
-                      onClick={() => removeConditionalFilter(item.key)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <AppButton
-              type='button'
-              className='router-section-button router-log-query-button'
-              onClick={refresh}
-              loading={loading}
-            >
-              {t('log.buttons.submit')}
-            </AppButton>
-          </>
+          <ListFilterBar
+            availableOptions={availableConditionalFilterOptions}
+            visibleFilters={visibleFilterConfig}
+            getFilterConfig={getLogFilterConfig}
+            getInitialDraft={getLogInitialDraft}
+            onDraftOpen={onLogDraftOpen}
+            getSelectLoading={getLogSelectLoading}
+            onSelectOpen={(filterKey, currentValue) => {
+              if (filterKey === 'username') {
+                searchAdminUsers(currentValue).then();
+              } else if (filterKey === 'token_name' && isAdminScope) {
+                searchAdminTokens(currentValue).then();
+              } else if (filterKey === 'model_name' && isAdminScope) {
+                searchAdminModels(currentValue).then();
+              }
+            }}
+            onSelectSearch={(filterKey, keyword) => {
+              if (filterKey === 'username') {
+                searchAdminUsers(keyword).then();
+              } else if (filterKey === 'token_name' && isAdminScope) {
+                searchAdminTokens(keyword).then();
+              } else if (filterKey === 'model_name' && isAdminScope) {
+                searchAdminModels(keyword).then();
+              }
+            }}
+            onApplyDraft={applyLogFilterDraft}
+            onRemoveFilter={removeConditionalFilter}
+            renderSummary={(key) =>
+              renderFilterSummary(key, inputs, t, {
+                resolveOptionLabel,
+                logTypeLabel: getLogTypeLabel(logType),
+              })
+            }
+            onQuery={refresh}
+            queryLoading={loading}
+            addButtonText={t('log.filters.add')}
+            addButtonClassName='router-section-button'
+            queryButtonText={t('log.buttons.submit')}
+            queryButtonClassName='router-section-button router-log-query-button'
+            pickerOptionBasic
+          />
         }
         endClassName='router-log-query-wrap'
       />
