@@ -8,12 +8,11 @@ import {
   showError,
   showSuccess,
   timestamp2string,
-  hasLoadedPagedRows,
-  writePagedRows,
   withCardLabels,
 } from '../helpers';
+import useList, { sorterToSort, sortOrderForColumn } from '../hooks/useList';
 
-import { ITEMS_PER_PAGE } from '../constants';
+import { LIST_PAGE_SIZE } from '../constants';
 import {
   TOKEN_LIST_COLUMN_WIDTHS,
   TOKEN_LIST_TABLE_MIN_WIDTH,
@@ -41,11 +40,16 @@ import {
   AppToolbar,
 } from '../router-ui';
 
-const compareTextValue = (left, right) =>
-  String(left || '').localeCompare(String(right || ''));
-
-const compareNumberValue = (left, right) =>
-  Number(left || 0) - Number(right || 0);
+// Frontend column key → backend sort column (whitelisted server-side). Columns
+// absent from this map are not sortable via the backend (name / status).
+const TOKEN_SORT_FIELD_MAP = {
+  usedAmount: 'used_quota',
+  remainingAmount: 'remain_quota',
+  usedRequestCount: 'used_request_count',
+  remainingRequestCount: 'remain_request_count',
+  createdTime: 'created_time',
+  expiredTime: 'expired_time',
+};
 
 const normalizeTokenRow = (raw) => {
   if (!raw || typeof raw !== 'object') {
@@ -146,18 +150,26 @@ const TokensTable = () => {
     [],
   );
 
-  const [tokens, setTokens] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const [activePage, setActivePage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  // Seed the sort from the URL once (frontend column key + direction), defaulting
+  // to created-time descending to match the backend default.
+  const initialSort = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const field = (params.get('order_by') || '').trim();
+    const order = (params.get('order') || '').trim();
+    if (
+      Object.prototype.hasOwnProperty.call(TOKEN_SORT_FIELD_MAP, field) &&
+      (order === 'asc' || order === 'desc')
+    ) {
+      return { field, order };
+    }
+    return { field: 'createdTime', order: 'desc' };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [isSearchMode, setIsSearchMode] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
   const [searchKeyword, setSearchKeyword] = useState(() => initialSearchKeyword);
   const [searching, setSearching] = useState(false);
-  const [tableSorter, setTableSorter] = useState({
-    columnKey: 'createdTime',
-    order: 'descend',
-  });
   const [currencyIndex, setCurrencyIndex] = useState(() =>
     buildPublicDisplayCurrencyIndex([]),
   );
@@ -167,52 +179,63 @@ const TokensTable = () => {
   const [statusMutatingTokenId, setStatusMutatingTokenId] = useState('');
   const chatLink = String(localStorage.getItem('chat_link') || '').trim();
 
-  const loadTokens = useCallback(
-    async (page) => {
-      const normalizedPage = Number(page) > 0 ? Number(page) : 1;
-      try {
-        const res = await API.get(`/api/v1/public/token/?page=${normalizedPage}`);
-        const { success, message, data, meta } = res.data;
-        if (success) {
-          setLoadError(false);
-          const normalizedRows = Array.isArray(data)
-            ? data.map(normalizeTokenRow).filter(Boolean)
-            : [];
-          setIsSearchMode(false);
-          setTotalCount(Number(meta?.total || normalizedRows?.length || 0));
-          if (normalizedPage === 1) {
-            setTokens(normalizedRows);
-          } else {
-            setTokens((prev) => writePagedRows(prev, normalizedPage, ITEMS_PER_PAGE, normalizedRows));
-          }
-        } else {
-          if (normalizedPage === 1) setLoadError(true);
-          showError(message);
-        }
-      } catch (error) {
-        if (normalizedPage === 1) setLoadError(true);
-        showError(error?.message || error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+  // Backend-paged fetcher: page-overwrite + true global sort. Frontend column
+  // keys are mapped to whitelisted backend columns; unmapped keys fall back to
+  // the backend default order.
+  const fetchTokens = useCallback(async ({ page, pageSize, orderBy, order }) => {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    params.set('page_size', String(pageSize));
+    const backendOrderBy = TOKEN_SORT_FIELD_MAP[orderBy] || '';
+    if (backendOrderBy) {
+      params.set('order_by', backendOrderBy);
+      params.set('order', order === 'asc' ? 'asc' : 'desc');
+    }
+    const res = await API.get(`/api/v1/public/token/?${params.toString()}`);
+    const { success, message, data, meta } = res.data;
+    if (!success) {
+      showError(message);
+      throw new Error(message || 'load tokens failed');
+    }
+    const rows = Array.isArray(data)
+      ? data.map(normalizeTokenRow).filter(Boolean)
+      : [];
+    return { rows, total: Number(meta?.total || rows.length || 0) };
+  }, []);
 
-  const onPaginationChange = (e, { activePage }) => {
-    (async () => {
-      const nextPage = Number(activePage) > 0 ? Number(activePage) : 1;
-      const hasLoadedPageRows = hasLoadedPagedRows(tokens, nextPage, ITEMS_PER_PAGE);
-      if (!isSearchMode && !hasLoadedPageRows) {
-        await loadTokens(nextPage);
-      }
+  const {
+    rows,
+    total: pagedTotal,
+    loading,
+    loadError,
+    page: activePage,
+    sort,
+    setPage: setActivePage,
+    load: loadTokens,
+    reload,
+    setSort,
+  } = useList({
+    fetcher: fetchTokens,
+    pageSize: LIST_PAGE_SIZE,
+    initialSort,
+  });
+
+  const onPaginationChange = (e, { activePage: nextActivePage }) => {
+    const nextPage = Number(nextActivePage) > 0 ? Number(nextActivePage) : 1;
+    if (isSearchMode) {
+      // Search mode keeps the full result set client-side; just slice.
       setActivePage(nextPage);
-    })();
+    } else {
+      loadTokens(nextPage);
+    }
   };
 
-  const refresh = async () => {
-    setLoading(true);
-    await loadTokens(activePage);
+  const refresh = () => {
+    if (isSearchMode) {
+      searchTokens();
+    } else {
+      reload();
+    }
   };
 
   useEffect(() => {
@@ -220,15 +243,38 @@ const TokensTable = () => {
       // Restore the search result set when arriving with a keyword in the URL.
       searchTokens();
     } else {
-      loadTokens(1)
-        .then()
-        .catch((reason) => {
-          showError(reason);
-        });
+      loadTokens(1);
     }
     // Run once on mount; searchTokens reads the seeded keyword.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadTokens]);
+
+  // Reflect the active sort in the URL (replace), preserving other params.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (sort?.field) {
+      params.set('order_by', sort.field);
+      params.set('order', sort.order === 'asc' ? 'asc' : 'desc');
+    } else {
+      params.delete('order_by');
+      params.delete('order');
+    }
+    const nextSearch = params.toString();
+    const currentSearch = location.search.startsWith('?')
+      ? location.search.slice(1)
+      : location.search;
+    if (nextSearch === currentSearch) {
+      return;
+    }
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sort]);
 
   useEffect(() => {
     let disposed = false;
@@ -251,11 +297,11 @@ const TokensTable = () => {
     };
   }, []);
 
-  const manageToken = async (id, action, idx) => {
-    const normalizedId = Number(id);
+  const manageToken = async (token, action) => {
+    const id = token?.id;
     const isStatusAction = action === 'enable' || action === 'disable';
     if (isStatusAction) {
-      setStatusMutatingTokenId(`${normalizedId}`);
+      setStatusMutatingTokenId(`${id}`);
     }
     let data = { id };
     let res;
@@ -278,16 +324,23 @@ const TokensTable = () => {
       const { success, message } = res.data;
       if (success) {
         showSuccess(t('token.messages.operation_success'));
-        let token = res.data.data;
-        let newTokens = [...tokens];
-        let realIdx = (activePage - 1) * ITEMS_PER_PAGE + idx;
-        if (action === 'delete') {
-          newTokens[realIdx].deleted = true;
-          setTotalCount((prev) => Math.max(prev - 1, 0));
+        const updated = res.data.data;
+        if (isSearchMode) {
+          // Search mode owns its client-side list; patch it in place.
+          setSearchResults((prev) => {
+            if (action === 'delete') {
+              return prev.filter((item) => item?.id !== id);
+            }
+            return prev.map((item) =>
+              item?.id === id
+                ? { ...item, status: updated?.status ?? item.status }
+                : item,
+            );
+          });
         } else {
-          newTokens[realIdx].status = token.status;
+          // Overwrite model: re-fetch the current page to reflect the change.
+          reload();
         }
-        setTokens(newTokens);
       } else {
         showError(message);
       }
@@ -298,7 +351,7 @@ const TokensTable = () => {
     }
   };
 
-  const renderStatusSwitch = (token, idx) => {
+  const renderStatusSwitch = (token) => {
     const status = Number(token?.status || 0);
     return (
       <div
@@ -312,7 +365,7 @@ const TokensTable = () => {
             loading={statusMutatingTokenId === `${token.id}`}
             aria-label={t('token.table.status')}
             onChange={(event, { checked }) => {
-              manageToken(token.id, checked ? 'enable' : 'disable', idx);
+              manageToken(token, checked ? 'enable' : 'disable');
             }}
           />
         </AppTooltip>
@@ -353,28 +406,30 @@ const TokensTable = () => {
     if (searchKeyword === '') {
       // if keyword is blank, load files instead.
       writeSearchParam('');
+      setIsSearchMode(false);
       await loadTokens(1);
-      setActivePage(1);
       return;
     }
     setSearching(true);
-    const res = await API.get(
-      `/api/v1/public/token/search?keyword=${searchKeyword}`,
-    );
-    const { success, message, data } = res.data;
-    if (success) {
-      const normalizedRows = Array.isArray(data)
-        ? data.map(normalizeTokenRow).filter(Boolean)
-        : [];
-      setIsSearchMode(true);
-      setTotalCount(normalizedRows.length);
-      setTokens(normalizedRows);
-      setActivePage(1);
-      writeSearchParam(searchKeyword);
-    } else {
-      showError(message);
+    try {
+      const res = await API.get(
+        `/api/v1/public/token/search?keyword=${searchKeyword}`,
+      );
+      const { success, message, data } = res.data;
+      if (success) {
+        const normalizedRows = Array.isArray(data)
+          ? data.map(normalizeTokenRow).filter(Boolean)
+          : [];
+        setIsSearchMode(true);
+        setSearchResults(normalizedRows);
+        setActivePage(1);
+        writeSearchParam(searchKeyword);
+      } else {
+        showError(message);
+      }
+    } finally {
+      setSearching(false);
     }
-    setSearching(false);
   };
 
   const handleKeywordChange = async (e, { value }) => {
@@ -395,20 +450,19 @@ const TokensTable = () => {
     window.open(chatUrl, '_blank', 'noopener,noreferrer');
   };
 
+  // Sorting is only meaningful for the backend-paged (non-search) list.
   const handleTableChange = (_, __, sorter) => {
-    if (!sorter || Array.isArray(sorter) || !sorter.columnKey || !sorter.order) {
-      setTableSorter({ columnKey: null, order: null });
+    if (isSearchMode) {
       return;
     }
-    setTableSorter({
-      columnKey: sorter.columnKey,
-      order: sorter.order,
-    });
+    setSort(sorterToSort(sorter));
   };
 
-  const visibleTokenCount = tokens.filter((token) => !token?.deleted).length;
+  const visibleTokenCount = searchResults.filter(
+    (token) => !token?.deleted,
+  ).length;
   const totalPages = Math.max(
-    Math.ceil((isSearchMode ? visibleTokenCount : totalCount) / ITEMS_PER_PAGE),
+    Math.ceil((isSearchMode ? visibleTokenCount : pagedTotal) / LIST_PAGE_SIZE),
     1,
   );
   const displayUnitOptions = useMemo(
@@ -481,9 +535,13 @@ const TokensTable = () => {
           scroll={{ x: TOKEN_LIST_TABLE_MIN_WIDTH }}
           rowKey='id'
           onChange={handleTableChange}
-          dataSource={tokens
-            .slice((activePage - 1) * ITEMS_PER_PAGE, activePage * ITEMS_PER_PAGE)
-            .filter((token) => !token?.deleted)}
+          dataSource={(isSearchMode
+            ? searchResults.slice(
+                (activePage - 1) * LIST_PAGE_SIZE,
+                activePage * LIST_PAGE_SIZE,
+              )
+            : rows
+          ).filter((token) => !token?.deleted)}
           locale={{
             emptyText: loading ? (
               t('common.loading')
@@ -528,9 +586,6 @@ const TokensTable = () => {
             key: 'name',
             width: TOKEN_LIST_COLUMN_WIDTHS.name,
             ellipsis: true,
-            sorter: (a, b) => compareTextValue(a.name, b.name),
-            sortDirections: ['ascend', 'descend'],
-            sortOrder: tableSorter.columnKey === 'name' ? tableSorter.order : null,
             render: (value) => value || t('token.table.no_name'),
           },
           {
@@ -581,13 +636,7 @@ const TokensTable = () => {
             key: 'status',
             className: 'router-table-col-status-compact',
             width: TOKEN_LIST_COLUMN_WIDTHS.status,
-            sorter: (a, b) => compareNumberValue(a.status, b.status),
-            sortDirections: ['ascend', 'descend'],
-            sortOrder: tableSorter.columnKey === 'status' ? tableSorter.order : null,
-            render: (_, token) => {
-              const realIdx = tokens.findIndex((item) => item?.id === token?.id);
-              return renderStatusSwitch(token, realIdx);
-            },
+            render: (_, token) => renderStatusSwitch(token),
           },
           {
             title: (
@@ -610,10 +659,8 @@ const TokensTable = () => {
             dataIndex: 'usedAmount',
             key: 'usedAmount',
             width: TOKEN_LIST_COLUMN_WIDTHS.usedAmount,
-            sorter: (a, b) => compareNumberValue(a.usedAmount, b.usedAmount),
-            sortDirections: ['ascend', 'descend'],
-            sortOrder:
-              tableSorter.columnKey === 'usedAmount' ? tableSorter.order : null,
+            sorter: true,
+            sortOrder: sortOrderForColumn(sort, 'usedAmount'),
             render: (value) =>
               formatDisplayAmountFromChargeAmount(value, displayUnit, currencyIndex),
           },
@@ -638,12 +685,8 @@ const TokensTable = () => {
             dataIndex: 'remainingAmount',
             key: 'remainingAmount',
             width: TOKEN_LIST_COLUMN_WIDTHS.remainingAmount,
-            sorter: (a, b) => compareNumberValue(a.remainingAmount, b.remainingAmount),
-            sortDirections: ['ascend', 'descend'],
-            sortOrder:
-              tableSorter.columnKey === 'remainingAmount'
-                ? tableSorter.order
-                : null,
+            sorter: true,
+            sortOrder: sortOrderForColumn(sort, 'remainingAmount'),
             render: (value, token) =>
               token.hasUnlimitedLimitAmount
                 ? t('token.table.unlimited')
@@ -654,22 +697,16 @@ const TokensTable = () => {
             dataIndex: 'usedRequestCount',
             key: 'usedRequestCount',
             width: TOKEN_LIST_COLUMN_WIDTHS.usedRequestCount,
-            sorter: (a, b) => compareNumberValue(a.usedRequestCount, b.usedRequestCount),
-            sortDirections: ['ascend', 'descend'],
-            sortOrder:
-              tableSorter.columnKey === 'usedRequestCount' ? tableSorter.order : null,
+            sorter: true,
+            sortOrder: sortOrderForColumn(sort, 'usedRequestCount'),
           },
           {
             title: t('token.table.remain_request_count'),
             dataIndex: 'remainingRequestCount',
             key: 'remainingRequestCount',
             width: TOKEN_LIST_COLUMN_WIDTHS.remainingRequestCount,
-            sorter: (a, b) => compareNumberValue(a.remainingRequestCount, b.remainingRequestCount),
-            sortDirections: ['ascend', 'descend'],
-            sortOrder:
-              tableSorter.columnKey === 'remainingRequestCount'
-                ? tableSorter.order
-                : null,
+            sorter: true,
+            sortOrder: sortOrderForColumn(sort, 'remainingRequestCount'),
             render: (value, token) =>
               token.hasUnlimitedRequestCount ? t('token.table.unlimited') : value,
           },
@@ -679,10 +716,8 @@ const TokensTable = () => {
             key: 'createdTime',
             className: 'router-table-col-datetime',
             width: TOKEN_LIST_COLUMN_WIDTHS.createdTime,
-            sorter: (a, b) => compareNumberValue(a.createdTime, b.createdTime),
-            sortDirections: ['ascend', 'descend'],
-            sortOrder:
-              tableSorter.columnKey === 'createdTime' ? tableSorter.order : null,
+            sorter: true,
+            sortOrder: sortOrderForColumn(sort, 'createdTime'),
             render: (value) => renderTimestamp(value),
           },
           {
@@ -691,10 +726,8 @@ const TokensTable = () => {
             key: 'expiredTime',
             className: 'router-table-col-datetime',
             width: TOKEN_LIST_COLUMN_WIDTHS.expiredTime,
-            sorter: (a, b) => compareNumberValue(a.expiredTime, b.expiredTime),
-            sortDirections: ['ascend', 'descend'],
-            sortOrder:
-              tableSorter.columnKey === 'expiredTime' ? tableSorter.order : null,
+            sorter: true,
+            sortOrder: sortOrderForColumn(sort, 'expiredTime'),
             render: (value) =>
               value === -1 ? t('token.table.never_expire') : renderTimestamp(value),
           },
@@ -704,7 +737,6 @@ const TokensTable = () => {
             className: 'router-table-col-actions-icon',
             width: TOKEN_LIST_COLUMN_WIDTHS.actions,
             render: (_, token) => {
-              const realIdx = tokens.findIndex((item) => item?.id === token?.id);
               const tokenKey = normalizeTokenCopyValue(token?.key);
 
               return (
@@ -722,7 +754,7 @@ const TokensTable = () => {
                   <AppPopconfirm
                     title={`${t('token.buttons.confirm_delete')} ${token.name || ''}`}
                     onConfirm={() => {
-                      manageToken(token.id, 'delete', realIdx);
+                      manageToken(token, 'delete');
                     }}
                     okText={t('common.confirm')}
                     cancelText={t('common.cancel')}
