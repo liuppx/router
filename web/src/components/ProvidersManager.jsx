@@ -7,7 +7,7 @@ import {
   showSuccess,
   timestamp2string,
 } from '../helpers';
-import { AppButton, AppDetailSection, AppEmpty, AppField, AppFilterHeader, AppFormActions, AppFormRow, AppIcon, AppInput, AppInputNumber, AppModal, AppPagination, AppSelect, AppTable, AppTableActionButton, AppTabs, AppTag, AppTextarea, AppToolbar } from '../router-ui';
+import { AppButton, AppDetailSection, AppEmpty, AppErrorState, AppField, AppFilterHeader, AppFormActions, AppFormRow, AppIcon, AppInput, AppInputNumber, AppModal, AppPagination, AppSelect, AppSpin, AppTable, AppTableActionButton, AppTabs, AppTag, AppTextarea, AppToolbar } from '../router-ui';
 import useUrlState from '../hooks/useUrlState';
 import {
   PROVIDER_DETAIL_MODEL_PAGE_SIZE,
@@ -53,6 +53,7 @@ const ProvidersManager = () => {
   const { t } = useTranslation();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [{ keyword: searchKeyword }, patchQuery] = useUrlState({
@@ -91,6 +92,7 @@ const ProvidersManager = () => {
   const loadCatalog = useCallback(
     async (keyword, options = {}) => {
       const withRefreshIndicator = options.withRefreshIndicator === true;
+      setLoadError(false);
       setLoading(true);
       if (withRefreshIndicator) {
         setRefreshing(true);
@@ -127,6 +129,7 @@ const ProvidersManager = () => {
           ),
         );
       } catch (error) {
+        setLoadError(true);
         showError(error);
       } finally {
         setLoading(false);
@@ -2344,9 +2347,16 @@ const ProvidersManager = () => {
           </div>
         }
       />
-      {rows.length > 0 ? (
-        <div className='router-provider-card-grid'>
-          {rows.map((row) => {
+      <AppSpin spinning={loading}>
+        {loadError ? (
+          <AppErrorState
+            message={t('common.load_failed')}
+            onRetry={() => loadCatalog(normalizedSearchKeyword)}
+            retryText={t('common.retry')}
+          />
+        ) : rows.length > 0 ? (
+          <div className='router-provider-card-grid'>
+            {rows.map((row) => {
             const displayName =
               formatProviderDisplayName(row.id, row.name) ||
               formatProviderDisplayId(row.id) ||
@@ -2405,9 +2415,10 @@ const ProvidersManager = () => {
         </div>
       ) : (
         <AppEmpty>
-          {loading ? t('common.loading') : t('channel.providers.table.empty')}
+          {t('channel.providers.table.empty')}
         </AppEmpty>
-      )}
+        )}
+      </AppSpin>
     </div>
   );
 
