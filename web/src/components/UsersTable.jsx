@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import useUrlState from '../hooks/useUrlState';
 import UnitDropdown from './UnitDropdown';
 import UserSectionTabs from './UserSectionTabs';
+import { buildLogDrilldownPath } from './LogsTable.helpers';
 
 import { ITEMS_PER_PAGE } from '../constants';
 import {
@@ -1114,7 +1115,7 @@ const UsersTable = () => {
             title: t('user.table.actions'),
             key: 'actions',
             className: 'router-table-col-actions-icon',
-            width: 84,
+            width: 112,
             render: (_, user) => {
               const isAdminUser = Number(user.role) >= 10;
               const canManageAdminUser = !isAdminUser || isRoot();
@@ -1123,6 +1124,17 @@ const UsersTable = () => {
                   className='router-action-group router-table-actions-icon-compact'
                   onClick={stopRowClick}
                 >
+                  <AppTableActionButton
+                    icon='book'
+                    title={t('log.drilldown.view')}
+                    onClick={() => {
+                      navigate(
+                        buildLogDrilldownPath('admin', {
+                          username: user.username,
+                        }),
+                      );
+                    }}
+                  />
                   <AppPopconfirm
                     title={t('user.buttons.confirm_change_status')}
                     onConfirm={() => {

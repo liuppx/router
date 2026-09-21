@@ -14,6 +14,7 @@ import {
   resolveBillingInputStep,
 } from '../../helpers/billing';
 import UnitDropdown from '../../components/UnitDropdown';
+import { buildLogDrilldownPath } from '../../components/LogsTable.helpers';
 import BusinessRecordsTable from '../../components/BusinessRecordsTable';
 import {
   AppButton,
@@ -23,6 +24,7 @@ import {
   AppFilterHeader,
   AppFormActions,
   AppFormRow,
+  AppIcon,
   AppInput,
   AppInputNumber,
   AppModal,
@@ -1242,6 +1244,23 @@ const UserDetail = () => {
           },
         ]}
         title={t('user.detail.title')}
+        actions={
+          persistedUsername ? (
+            <AppButton
+              className='router-page-button'
+              icon={<AppIcon name='book' />}
+              onClick={() =>
+                navigate(
+                  buildLogDrilldownPath('admin', {
+                    username: persistedUsername,
+                  }),
+                )
+              }
+            >
+              {t('log.drilldown.view')}
+            </AppButton>
+          ) : null
+        }
       />
       <div className='router-tab-detail-page router-entity-detail-page'>
         <div className='router-entity-detail-tabs router-block-gap-sm'>
