@@ -94,3 +94,17 @@ export const parsePageParam = (raw) => {
   const parsed = Number(raw);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 };
+
+/** Allowed page sizes for the shared list pagination size-changer. */
+export const PAGE_SIZE_OPTIONS = [10, 20, 50];
+
+/**
+ * Parser for a `page_size` param constrained to PAGE_SIZE_OPTIONS. An absent
+ * param never reaches here (useUrlState returns the schema default); an explicit
+ * but out-of-range value falls back to the smallest option so a hand-edited URL
+ * can't request an unbounded page.
+ */
+export const parseListPageSize = (raw) => {
+  const parsed = Number(raw);
+  return PAGE_SIZE_OPTIONS.includes(parsed) ? parsed : PAGE_SIZE_OPTIONS[0];
+};

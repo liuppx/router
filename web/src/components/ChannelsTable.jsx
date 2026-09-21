@@ -21,7 +21,7 @@ import {
   loadChannelProtocolOptions,
 } from '../helpers/helper';
 import useBatchRowActions from '../hooks/useBatchRowActions';
-import useUrlState from '../hooks/useUrlState';
+import useUrlState, { parseListPageSize } from '../hooks/useUrlState';
 import {
   AppButton,
   AppEmpty,
@@ -126,9 +126,17 @@ const ChannelsTable = () => {
   const [batchRunning, setBatchRunning] = useState(false);
   const batchActions = useBatchRowActions();
   const { isSelecting: isBatchSelecting, selectedCount: batchSelectedCount } = batchActions;
-  const [{ status: statusFilter, keyword: searchKeyword }, patchQuery] = useUrlState({
+  const [
+    { status: statusFilter, keyword: searchKeyword, pageSize },
+    patchQuery,
+  ] = useUrlState({
     status: { param: 'status', default: 'all' },
     keyword: { param: 'q', default: '' },
+    pageSize: {
+      param: 'page_size',
+      default: ITEMS_PER_PAGE,
+      parse: parseListPageSize,
+    },
   });
   const currentPagePath = `${location.pathname}${location.search}${location.hash}`;
   const [tableSorter, setTableSorter] = useState({
@@ -152,15 +160,16 @@ const ChannelsTable = () => {
   }, []);
 
   const loadChannels = useCallback(
-    async ({ page = 1, keyword = '', status = 'all' } = {}) => {
+    async ({ page = 1, keyword = '', status = 'all', pageSize: size = ITEMS_PER_PAGE } = {}) => {
       const normalizedPage = Number(page) > 0 ? Number(page) : 1;
+      const normalizedSize = Number(size) > 0 ? Number(size) : ITEMS_PER_PAGE;
       const normalizedKeyword = (keyword || '').toString().trim();
       const normalizedStatus = (status || 'all').toString().trim().toLowerCase();
       try {
         const res = await API.get('/api/v1/admin/channels/', {
           params: {
             page: normalizedPage,
-            page_size: ITEMS_PER_PAGE,
+            page_size: normalizedSize,
             keyword: normalizedKeyword,
             status: normalizedStatus === 'all' ? '' : normalizedStatus,
           },
@@ -188,32 +197,39 @@ const ChannelsTable = () => {
 
   useEffect(() => {
     setLoading(true);
-    // Refetch from page 1 on mount and whenever the status filter changes,
-    // honoring the keyword already in the URL (so a refresh / shared link with
-    // ?q= restores a filtered list). Keyword typing updates the URL but must not
-    // retrigger a fetch here — that stays on Enter — so searchKeyword is read but
-    // deliberately not a dependency.
-    loadChannels({ page: 1, keyword: searchKeyword, status: statusFilter })
+    // Refetch from page 1 on mount and whenever the status filter or page size
+    // changes, honoring the keyword already in the URL (so a refresh / shared
+    // link with ?q= restores a filtered list). Keyword typing updates the URL
+    // but must not retrigger a fetch here — that stays on Enter — so
+    // searchKeyword is read but deliberately not a dependency.
+    loadChannels({ page: 1, keyword: searchKeyword, status: statusFilter, pageSize })
       .then()
       .catch((reason) => {
         showError(reason);
       });
     setActivePage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, loadChannels]);
+  }, [statusFilter, pageSize, loadChannels]);
 
-  const onPaginationChange = (e, { activePage }) => {
+  const onPaginationChange = (e, { activePage, pageSize: nextSize }) => {
+    const size = Number(nextSize) > 0 ? Number(nextSize) : pageSize;
+    if (size !== pageSize) {
+      // Page-size change: writing the URL retriggers the effect above, which
+      // reloads page 1 at the new size — so don't also fetch here.
+      patchQuery({ pageSize: size });
+      return;
+    }
     (async () => {
       const nextPage = Number(activePage) > 0 ? Number(activePage) : 1;
       setLoading(true);
-      await loadChannels({ page: nextPage, keyword: searchKeyword, status: statusFilter });
+      await loadChannels({ page: nextPage, keyword: searchKeyword, status: statusFilter, pageSize });
       setActivePage(nextPage);
     })();
   };
 
   const refresh = async () => {
     setLoading(true);
-    await loadChannels({ page: activePage, keyword: searchKeyword, status: statusFilter });
+    await loadChannels({ page: activePage, keyword: searchKeyword, status: statusFilter, pageSize });
   };
 
   useEffect(() => {
@@ -281,7 +297,7 @@ const ChannelsTable = () => {
       if (success) {
         showSuccess(t('channel.messages.operation_success'));
         setLoading(true);
-        await loadChannels({ page: activePage, keyword: searchKeyword, status: statusFilter });
+        await loadChannels({ page: activePage, keyword: searchKeyword, status: statusFilter, pageSize });
       } else {
         if (res?.data?.data?.code === 'channel_disable_blocked') {
           setDisableBlockedImpact(res?.data?.data?.impact || null);
@@ -364,7 +380,7 @@ const ChannelsTable = () => {
       }
       batchActions.exit();
       setLoading(true);
-      await loadChannels({ page: activePage, keyword: searchKeyword, status: statusFilter });
+      await loadChannels({ page: activePage, keyword: searchKeyword, status: statusFilter, pageSize });
     },
     [activePage, batchActions, batchRunning, loadChannels, searchKeyword, statusFilter, t],
   );
@@ -430,7 +446,7 @@ const ChannelsTable = () => {
     setSearching(true);
     setLoading(true);
     try {
-      await loadChannels({ page: 1, keyword: searchKeyword, status: statusFilter });
+      await loadChannels({ page: 1, keyword: searchKeyword, status: statusFilter, pageSize });
       setActivePage(1);
     } catch (error) {
       showError(error?.message || String(error));
@@ -838,8 +854,9 @@ const ChannelsTable = () => {
           activePage={activePage}
           onPageChange={onPaginationChange}
           siblingRange={1}
-        totalPages={Math.max(1, Math.ceil(totalChannels / ITEMS_PER_PAGE))}
-      />
+          total={totalChannels}
+          pageSize={pageSize}
+        />
       </div>
     </>
   );
