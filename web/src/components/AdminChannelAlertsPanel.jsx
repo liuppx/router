@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { API } from '../helpers/api';
 import { showError, withCardLabels } from '../helpers';
-import useUrlState from '../hooks/useUrlState';
+import useUrlState, { parseListPageSize } from '../hooks/useUrlState';
 import {
   AppButton,
   AppDescriptions,
@@ -113,6 +113,7 @@ function AdminChannelAlertsPanel() {
       level: levelFilter,
       time: timeFilter,
       keyword,
+      pageSize,
     },
     patchQuery,
   ] = useUrlState({
@@ -121,6 +122,7 @@ function AdminChannelAlertsPanel() {
     level: { param: 'level', default: 'all' },
     time: { param: 'time', default: 'all' },
     keyword: { param: 'q', default: '' },
+    pageSize: { param: 'page_size', default: 20, parse: parseListPageSize },
   });
   const [keywordInput, setKeywordInput] = useState(keyword);
   const [page, setPage] = useState(1);
@@ -128,7 +130,6 @@ function AdminChannelAlertsPanel() {
     columnKey: 'createdAt',
     order: 'descend',
   });
-  const pageSize = 20;
 
   const loadAlertItems = useCallback(async () => {
     setLoading(true);
@@ -1014,10 +1015,17 @@ function AdminChannelAlertsPanel() {
           <AppPagination
             className='router-page-pagination'
             activePage={page}
-            totalPages={totalPages}
+            total={total}
+            pageSize={pageSize}
             siblingRange={1}
             boundaryRange={0}
-            onPageChange={(e, { activePage }) => {
+            onPageChange={(e, { activePage, pageSize: nextSize }) => {
+              const size = Number(nextSize) > 0 ? Number(nextSize) : pageSize;
+              if (size !== pageSize) {
+                patchQuery({ pageSize: size });
+                setPage(1);
+                return;
+              }
               setPage(Number(activePage || 1));
             }}
           />
