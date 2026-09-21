@@ -177,6 +177,9 @@ const UsersTable = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [activePage, setActivePage] = useState(1);
+  const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
+  const pageSizeRef = useRef(ITEMS_PER_PAGE);
+  pageSizeRef.current = pageSize;
   const [totalCount, setTotalCount] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [
@@ -227,6 +230,8 @@ const UsersTable = () => {
       try {
         const params = new URLSearchParams();
         params.set('page', String(normalizedPage));
+        const size = pageSizeRef.current;
+        params.set('page_size', String(size));
         const normalizedStatus = (status || 'all').toString();
         const normalizedRole = (role || 'all').toString();
         if (normalizedStatus !== 'all') params.set('status', normalizedStatus);
@@ -240,7 +245,7 @@ const UsersTable = () => {
           if (normalizedPage === 1) {
             setUsers(data);
           } else {
-            setUsers((prev) => writePagedRows(prev, normalizedPage, ITEMS_PER_PAGE, data));
+            setUsers((prev) => writePagedRows(prev, normalizedPage, size, data));
           }
         } else {
           if (normalizedPage === 1) setLoadError(true);
@@ -342,10 +347,22 @@ const UsersTable = () => {
     loadTopupPlanOptions().then();
   }, [batchTopupOpen, loadTopupPlanOptions]);
 
-  const onPaginationChange = (e, { activePage }) => {
+  const onPaginationChange = (e, { activePage, pageSize: nextPageSize }) => {
     (async () => {
+      const size = Number(nextPageSize) > 0 ? Number(nextPageSize) : pageSize;
+      if (size !== pageSize) {
+        pageSizeRef.current = size;
+        setPageSize(size);
+        setActivePage(1);
+        if (!isSearchMode) {
+          // 每页条数变了,按旧尺寸建立的行缓存已失效,重建
+          setUsers([]);
+          await loadUsers(1, { status: statusFilter, role: roleFilter });
+        }
+        return;
+      }
       const nextPage = Number(activePage) > 0 ? Number(activePage) : 1;
-      const hasLoadedPageRows = hasLoadedPagedRows(users, nextPage, ITEMS_PER_PAGE);
+      const hasLoadedPageRows = hasLoadedPagedRows(users, nextPage, size);
       if (!isSearchMode && !hasLoadedPageRows) {
         await loadUsers(nextPage, { status: statusFilter, role: roleFilter });
       }
@@ -628,10 +645,7 @@ const UsersTable = () => {
   const focusMatchedCount = isFocusMode
     ? Math.max(Number(focusTotal || 0), visibleUserCount)
     : 0;
-  const totalPages = Math.max(
-    Math.ceil((isSearchMode ? visibleUserCount : totalCount) / ITEMS_PER_PAGE),
-    1,
-  );
+  const paginationTotal = isSearchMode ? visibleUserCount : totalCount;
 
   const handleTableChange = (_, __, sorter) => {
     if (!sorter || Array.isArray(sorter) || !sorter.columnKey || !sorter.order) {
@@ -898,8 +912,8 @@ const UsersTable = () => {
             onChange={handleTableChange}
             dataSource={users
               .slice(
-              (activePage - 1) * ITEMS_PER_PAGE,
-              activePage * ITEMS_PER_PAGE,
+              (activePage - 1) * pageSize,
+              activePage * pageSize,
             )
             .filter((user) => !user?.deleted)}
           onRow={(user, idx) => ({
@@ -1162,7 +1176,8 @@ const UsersTable = () => {
           activePage={activePage}
           onPageChange={onPaginationChange}
           siblingRange={1}
-          totalPages={totalPages}
+          total={paginationTotal}
+          pageSize={pageSize}
         />
       </div>
       <AppModal
