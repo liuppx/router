@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import UnitDropdown from './UnitDropdown';
@@ -33,6 +33,7 @@ import {
   AppInput,
   AppPagination,
   AppPopconfirm,
+  AppSelect,
   AppSwitch,
   AppTable,
   AppTableActionButton,
@@ -170,6 +171,13 @@ const TokensTable = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searchKeyword, setSearchKeyword] = useState(() => initialSearchKeyword);
   const [searching, setSearching] = useState(false);
+  // Seed the status filter from the URL once so a refresh / shared link keeps it.
+  const initialStatus = useMemo(
+    () => (new URLSearchParams(location.search).get('status') || 'all').trim(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const [statusFilter, setStatusFilter] = useState(() => initialStatus);
   const [currencyIndex, setCurrencyIndex] = useState(() =>
     buildPublicDisplayCurrencyIndex([]),
   );
@@ -186,6 +194,9 @@ const TokensTable = () => {
     const params = new URLSearchParams();
     params.set('page', String(page));
     params.set('page_size', String(pageSize));
+    if (statusFilter && statusFilter !== 'all') {
+      params.set('status', statusFilter);
+    }
     const backendOrderBy = TOKEN_SORT_FIELD_MAP[orderBy] || '';
     if (backendOrderBy) {
       params.set('order_by', backendOrderBy);
@@ -201,7 +212,7 @@ const TokensTable = () => {
       ? data.map(normalizeTokenRow).filter(Boolean)
       : [];
     return { rows, total: Number(meta?.total || rows.length || 0) };
-  }, []);
+  }, [statusFilter]);
 
   const {
     rows,
@@ -248,6 +259,36 @@ const TokensTable = () => {
     // Run once on mount; searchTokens reads the seeded keyword.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadTokens]);
+
+  // React to status-filter changes: the filter is backend-side and applies to
+  // the paged list, so we leave any active search, sync the URL, and reload.
+  const statusInitializedRef = useRef(false);
+  useEffect(() => {
+    if (!statusInitializedRef.current) {
+      statusInitializedRef.current = true;
+      return;
+    }
+    const params = new URLSearchParams(location.search);
+    const normalized = (statusFilter || 'all').toString();
+    if (normalized === 'all') {
+      params.delete('status');
+    } else {
+      params.set('status', normalized);
+    }
+    params.delete('q');
+    const nextSearch = params.toString();
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true },
+    );
+    setIsSearchMode(false);
+    setSearchKeyword('');
+    loadTokens(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter]);
 
   // Reflect the active sort in the URL (replace), preserving other params.
   useEffect(() => {
@@ -436,6 +477,28 @@ const TokensTable = () => {
     setSearchKeyword(value.trim());
   };
 
+  const clearFilters = () => {
+    setSearchKeyword('');
+    if (statusFilter !== 'all') {
+      // The status effect clears both `q` and `status`, exits search, reloads.
+      setStatusFilter('all');
+      return;
+    }
+    // Status already at default: just drop the keyword and reload the list.
+    const params = new URLSearchParams(location.search);
+    params.delete('q');
+    const nextSearch = params.toString();
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true },
+    );
+    setIsSearchMode(false);
+    loadTokens(1);
+  };
+
   const stopRowClick = (event) => {
     event.stopPropagation();
   };
@@ -505,6 +568,18 @@ const TokensTable = () => {
         }
         query={
           <div className='router-list-toolbar-query router-list-toolbar-query-compact'>
+            <AppSelect
+              className='router-section-select'
+              value={statusFilter}
+              onChange={(_, { value }) => setStatusFilter((value || 'all').toString())}
+              options={[
+                { value: 'all', label: t('token.filter.status_all') },
+                { value: '1', label: t('token.table.status_enabled') },
+                { value: '2', label: t('token.table.status_disabled') },
+                { value: '3', label: t('token.table.status_expired') },
+                { value: '4', label: t('token.table.status_depleted') },
+              ]}
+            />
             <form
               className='router-search-form-xs'
               onSubmit={(event) => {
@@ -523,6 +598,13 @@ const TokensTable = () => {
                 onChange={handleKeywordChange}
               />
             </form>
+            <AppButton
+              className='router-section-button'
+              disabled={statusFilter === 'all' && searchKeyword === ''}
+              onClick={clearFilters}
+            >
+              {t('common.clear_filters')}
+            </AppButton>
           </div>
         }
       />

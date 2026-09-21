@@ -1830,6 +1830,9 @@
   "token": {
     "title": "令牌管理",
     "search": "搜索令牌的名称 ...",
+    "filter": {
+      "status_all": "全部状态"
+    },
     "table": {
       "name": "名称",
       "status": "状态",

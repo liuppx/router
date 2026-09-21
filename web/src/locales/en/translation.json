@@ -1830,6 +1830,9 @@
   "token": {
     "title": "Token Management",
     "search": "Search tokens by name ...",
+    "filter": {
+      "status_all": "All Status"
+    },
     "table": {
       "name": "Name",
       "status": "Status",
