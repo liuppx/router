@@ -66,10 +66,6 @@ const EditRedemption = () => {
             currenciesPayload.message || t('redemption.messages.load_units_failed')
           );
         }
-        const nextGroups = groupsPayload?.data?.items || [];
-        const nextCurrencies = Array.isArray(currenciesPayload?.data)
-          ? currenciesPayload.data
-          : [];
         const nextProducts = productsRes?.data?.data?.items || [];
         setProducts(nextProducts);
         setProductOptions(nextProducts.map((item) => ({
