@@ -217,23 +217,16 @@ function AdminChannelAlertsPanel() {
           note,
         });
         if (response?.data?.success === true) {
-          setAlertItems((current) =>
-            current.map((item) =>
-              item.id === alertID
-                ? {
-                    ...item,
-                    status: 'acknowledged',
-                    acknowledged_at: Number(response?.data?.data?.acknowledged_at || 0),
-                    acknowledged_by: String(response?.data?.data?.acknowledged_by || ''),
-                    acknowledgedAt: Number(response?.data?.data?.acknowledged_at || 0),
-                    acknowledgedBy: String(response?.data?.data?.acknowledged_by || ''),
-                    operatorNote: String(response?.data?.data?.last_operator_note || note),
-                  }
-                : item,
-            ),
-          );
+          // Only refetch — no optimistic setAlertItems. A previous optimistic
+          // update combined with a fire-and-forget reload hid backend write
+          // failures (interface returned 200 with success=false), since the
+          // reload would happily re-overwrite the error state with stale data.
           setNoteModal({ open: false, action: '', alert: null, note: '' });
-          loadAlertItems();
+          await loadAlertItems();
+        } else {
+          showError(
+            response?.data?.message || t('dashboard.admin.alerts.acknowledge_failed'),
+          );
         }
       } catch (error) {
         console.error('Failed to acknowledge channel alert:', error);
@@ -258,9 +251,14 @@ function AdminChannelAlertsPanel() {
         note,
       });
       if (response?.data?.success === true) {
-        setAlertItems((current) => current.filter((item) => item.id !== alertID));
+        // Same reasoning as acknowledge: skip the optimistic filter, only
+        // refetch on confirmed success so backend write failures surface.
         setNoteModal({ open: false, action: '', alert: null, note: '' });
-        loadAlertItems();
+        await loadAlertItems();
+      } else {
+        showError(
+          response?.data?.message || t('dashboard.admin.alerts.resolve_failed'),
+        );
       }
     } catch (error) {
       console.error('Failed to resolve channel alert:', error);
