@@ -4,13 +4,12 @@ import {
   showError,
   showSuccess,
   timestamp2string,
-  hasLoadedPagedRows,
-  writePagedRows,
 } from '../helpers';
 import { useTranslation } from 'react-i18next';
 import UnitDropdown from './UnitDropdown';
+import useList, { sorterToSort, sortOrderForColumn } from '../hooks/useList';
 
-import { ITEMS_PER_PAGE } from '../constants';
+import { LIST_PAGE_SIZE } from '../constants';
 import { exportCSV } from '../helpers/csv';
 import {
   renderColorLabel,
@@ -176,11 +175,14 @@ function loadLogColumnWidths(isAdminScope) {
   }
 }
 
-const compareTextValue = (left, right) =>
-  String(left || '').localeCompare(String(right || ''));
-
-const compareNumberValue = (left, right) =>
-  Number(left || 0) - Number(right || 0);
+// Frontend column key → backend sort column (whitelisted server-side). Columns
+// absent from this map are not sortable via the backend.
+const LOG_SORT_FIELD_MAP = {
+  created_at: 'created_at',
+  prompt_tokens: 'prompt_tokens',
+  completion_tokens: 'completion_tokens',
+  chargeAmount: 'quota',
+};
 
 function formatCompactNumber(value) {
   const numericValue = Number(value || 0);
@@ -558,16 +560,6 @@ const LogsTable = () => {
     () => parseLogFiltersFromSearch(location.search, isAdminScope),
     [isAdminScope, location.search]
   );
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const [activePage, setActivePage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const [tableSorter, setTableSorter] = useState({
-    columnKey: 'created_at',
-    order: 'descend',
-  });
-  const [searchKeyword, setSearchKeyword] = useState('');
   const [logType, setLogType] = useState(initialSearchFilters.logType);
   const [filterOptions, setFilterOptions] = useState({
     tokenNames: [],
@@ -622,6 +614,94 @@ const LogsTable = () => {
   const draggingColumnKeyRef = useRef('');
   const resizingColumnRef = useRef(null);
 
+  // Seed the sort from the URL once (frontend column key + direction), defaulting
+  // to created-at descending to match the backend default.
+  const initialSort = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const field = (params.get('order_by') || '').trim();
+    const order = (params.get('order') || '').trim();
+    if (LOG_SORT_FIELD_MAP[field] && (order === 'asc' || order === 'desc')) {
+      return { field, order };
+    }
+    return { field: 'created_at', order: 'desc' };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Backend-paged fetcher: page-overwrite + true global sort. Frontend column
+  // keys map to whitelisted backend columns; structured filters are applied
+  // server-side. Filter identity changes reset to page 1 via the effect below.
+  const fetchLogs = useCallback(
+    async ({ page, pageSize, orderBy, order }) => {
+      const enabledFilters = new Set(activeFilterKeys);
+      const localStartTimestamp = enabledFilters.has('time_range')
+        ? parseDatetimeInput(start_timestamp)
+        : 0;
+      const localEndTimestamp = enabledFilters.has('time_range')
+        ? parseDatetimeInput(end_timestamp)
+        : 0;
+      const queryUsername = enabledFilters.has('username') ? username : '';
+      const queryTokenName = enabledFilters.has('token_name') ? token_name : '';
+      const queryModelName = enabledFilters.has('model_name') ? model_name : '';
+      const queryChannel = enabledFilters.has('channel') ? channel : '';
+      const queryGroupID = enabledFilters.has('group_id') ? group_id : '';
+      const queryLogType = enabledFilters.has('log_type') ? logType : 0;
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('page_size', String(pageSize));
+      const backendOrderBy = LOG_SORT_FIELD_MAP[orderBy] || '';
+      if (backendOrderBy) {
+        params.set('order_by', backendOrderBy);
+        params.set('order', order === 'asc' ? 'asc' : 'desc');
+      }
+      params.set('type', String(queryLogType));
+      params.set('token_name', queryTokenName);
+      params.set('model_name', queryModelName);
+      params.set('start_timestamp', String(localStartTimestamp));
+      params.set('end_timestamp', String(localEndTimestamp));
+      if (isAdminScope) {
+        params.set('username', queryUsername);
+        params.set('group_id', queryGroupID);
+        params.set('channel', queryChannel);
+      }
+      const base = isAdminScope ? '/api/v1/admin/log/' : '/api/v1/public/log';
+      const res = await API.get(`${base}?${params.toString()}`);
+      const { success, message, data, meta } = res.data;
+      if (!success) {
+        showError(message);
+        throw new Error(message || 'load logs failed');
+      }
+      const rows = Array.isArray(data) ? data.map(normalizeLogEntry) : [];
+      return { rows, total: Number(meta?.total || rows.length || 0) };
+    },
+    [
+      isAdminScope,
+      logType,
+      username,
+      token_name,
+      model_name,
+      start_timestamp,
+      end_timestamp,
+      channel,
+      group_id,
+      activeFilterKeys,
+    ],
+  );
+
+  const {
+    rows: logs,
+    total: totalCount,
+    loading,
+    loadError,
+    page: activePage,
+    sort,
+    load: loadLogs,
+    setSort,
+  } = useList({
+    fetcher: fetchLogs,
+    pageSize: LIST_PAGE_SIZE,
+    initialSort,
+  });
+
   // Write active filters back to the URL so a refresh or shared link restores
   // them. The written set mirrors parseLogFiltersFromSearch exactly, so the
   // round-trip is symmetric; `source` (breadcrumb origin) is preserved and
@@ -652,6 +732,10 @@ const LogsTable = () => {
         query.set(key, inputs[key].trim());
       }
     });
+    if (sort?.field) {
+      query.set('order_by', sort.field);
+      query.set('order', sort.order === 'asc' ? 'asc' : 'desc');
+    }
     const nextSearch = query.toString();
     const currentSearch = location.search.startsWith('?')
       ? location.search.slice(1)
@@ -670,6 +754,7 @@ const LogsTable = () => {
     activeFilterKeys,
     inputs,
     logType,
+    sort,
     isAdminScope,
     location.pathname,
     location.search,
@@ -787,7 +872,8 @@ const LogsTable = () => {
     setInputs(initialSearchFilters.inputs);
     setLogType(initialSearchFilters.logType);
     setActiveFilterKeys(initialSearchFilters.activeFilterKeys);
-    setActivePage(1);
+    // No explicit page reset: the filter change flows through `fetchLogs`, whose
+    // identity change triggers a reload to page 1.
   }, [initialSearchFilters]);
 
   const loadFilterOptions = useCallback(async (filterKey = '') => {
@@ -1135,81 +1221,12 @@ const LogsTable = () => {
     return effectiveLogType !== 5 && effectiveLogType !== 6;
   };
 
-  const loadLogs = useCallback(
-    async (page) => {
-      const normalizedPage = Number(page) > 0 ? Number(page) : 1;
-      let url = '';
-      const enabledFilters = new Set(activeFilterKeys);
-      const localStartTimestamp = enabledFilters.has('time_range')
-        ? parseDatetimeInput(start_timestamp)
-        : 0;
-      const localEndTimestamp = enabledFilters.has('time_range')
-        ? parseDatetimeInput(end_timestamp)
-        : 0;
-      const queryUsername = enabledFilters.has('username') ? username : '';
-      const queryTokenName = enabledFilters.has('token_name') ? token_name : '';
-      const queryModelName = enabledFilters.has('model_name') ? model_name : '';
-      const queryChannel = enabledFilters.has('channel') ? channel : '';
-      const queryGroupID = enabledFilters.has('group_id') ? group_id : '';
-      const queryLogType = enabledFilters.has('log_type') ? logType : 0;
-      if (isAdminScope) {
-        url = `/api/v1/admin/log/?page=${normalizedPage}&type=${queryLogType}&username=${queryUsername}&token_name=${queryTokenName}&model_name=${queryModelName}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}&group_id=${queryGroupID}&channel=${queryChannel}`;
-      } else {
-        url = `/api/v1/public/log?page=${normalizedPage}&type=${queryLogType}&token_name=${queryTokenName}&model_name=${queryModelName}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`;
-      }
-      try {
-        const res = await API.get(url);
-        const { success, message, data, meta } = res.data;
-        if (success) {
-          setLoadError(false);
-          const normalizedRows = Array.isArray(data) ? data.map(normalizeLogEntry) : [];
-          setTotalCount(Number(meta?.total || data?.length || 0));
-          if (normalizedPage === 1) {
-            setLogs(normalizedRows);
-          } else {
-            setLogs((prev) => writePagedRows(prev, normalizedPage, ITEMS_PER_PAGE, normalizedRows));
-          }
-        } else {
-          if (normalizedPage === 1) setLoadError(true);
-          showError(message);
-        }
-      } catch (error) {
-        if (normalizedPage === 1) setLoadError(true);
-        showError(error?.message || error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [
-      isAdminScope,
-      logType,
-      username,
-      token_name,
-      model_name,
-      start_timestamp,
-      end_timestamp,
-      channel,
-      group_id,
-      activeFilterKeys,
-    ]
-  );
-
-  const onPaginationChange = (e, { activePage }) => {
-    (async () => {
-      const nextPage = Number(activePage) > 0 ? Number(activePage) : 1;
-      const hasLoadedPageRows = hasLoadedPagedRows(logs, nextPage, ITEMS_PER_PAGE);
-      if (searchKeyword.trim() === '' && !hasLoadedPageRows) {
-        await loadLogs(nextPage);
-      }
-      setActivePage(nextPage);
-    })();
+  const onPaginationChange = (e, { activePage: nextActivePage }) => {
+    const nextPage = Number(nextActivePage) > 0 ? Number(nextActivePage) : 1;
+    loadLogs(nextPage);
   };
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setActivePage(1);
-    await loadLogs(1);
-  }, [loadLogs]);
+  const refresh = useCallback(() => loadLogs(1), [loadLogs]);
 
   const deleteHistoryLogs = useCallback(async () => {
     const parsed = Date.parse(cleanupTimestamp);
@@ -1236,9 +1253,13 @@ const LogsTable = () => {
     }
   }, [cleanupTimestamp, refresh, t]);
 
+  // `loadLogs` (useList.load) is stable, so `fetchLogs` is the real trigger:
+  // its identity changes with the filter deps, reloading page 1 on filter change
+  // (and once on mount).
   useEffect(() => {
-    refresh().then();
-  }, [refresh]);
+    loadLogs(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchLogs]);
 
   useEffect(() => {
     loadDisplayUnits().then();
@@ -1281,102 +1302,9 @@ const LogsTable = () => {
     }
   }, [isAdminScope, logColumnWidths]);
 
-  useEffect(() => {
-    setActivePage(1);
-  }, [searchKeyword, activeFilterKeys, username, token_name, model_name, channel, group_id, start_timestamp, end_timestamp]);
-
   const handleTableChange = (_, __, sorter) => {
-    if (!sorter || Array.isArray(sorter) || !sorter.columnKey || !sorter.order) {
-      setTableSorter({ columnKey: null, order: null });
-      return;
-    }
-    setTableSorter({
-      columnKey: sorter.columnKey,
-      order: sorter.order,
-    });
+    setSort(sorterToSort(sorter));
   };
-
-  const filteredLogs = useMemo(() => {
-    const keyword = (searchKeyword || '').toString().trim().toLowerCase();
-    if (keyword === '') {
-      return logs;
-    }
-    return logs.filter((log) => {
-      const haystacks = [
-        log?.content,
-        log?.publicModelName,
-        log?.token_name,
-        log?.username,
-        log?.group_name,
-        log?.group_id,
-        log?.trace_id,
-        ...(isAdminScope
-          ? [
-              log?.model_name,
-              log?.actualModelName,
-              log?.channel_name,
-              log?.channel,
-            ]
-          : []),
-      ]
-        .map((item) => (item || '').toString().toLowerCase())
-        .filter((item) => item !== '');
-      return haystacks.some((item) => item.includes(keyword));
-    });
-  }, [isAdminScope, logs, searchKeyword]);
-
-  const sortedFilteredLogs = useMemo(() => {
-    if (!tableSorter.columnKey || !tableSorter.order) {
-      return filteredLogs;
-    }
-    const nextLogs = [...filteredLogs];
-    nextLogs.sort((left, right) => {
-      switch (tableSorter.columnKey) {
-        case 'created_at':
-          return compareNumberValue(left.created_at, right.created_at);
-        case 'channel':
-          return compareTextValue(
-            getLogChannelLabel(left),
-            getLogChannelLabel(right),
-          );
-        case 'group_id':
-          return compareTextValue(
-            left.group_name || left.group_id,
-            right.group_name || right.group_id,
-          );
-        case 'type':
-          return compareNumberValue(left.type, right.type);
-        case 'billingSource':
-          return compareTextValue(
-            left.billing_source_name || left.billing_source,
-            right.billing_source_name || right.billing_source,
-          );
-        case 'model_name':
-          return compareTextValue(left.publicModelName, right.publicModelName);
-        case 'username':
-          return compareTextValue(left.username, right.username);
-        case 'token_name':
-          return compareTextValue(left.token_name, right.token_name);
-        case 'prompt_tokens':
-          return compareNumberValue(left.prompt_tokens, right.prompt_tokens);
-        case 'completion_tokens':
-          return compareNumberValue(
-            left.completion_tokens,
-            right.completion_tokens,
-          );
-        case 'cacheQuantity':
-          return compareNumberValue(left.cacheQuantity, right.cacheQuantity);
-        case 'chargeAmount':
-          return compareNumberValue(left.chargeAmount, right.chargeAmount);
-        default:
-          return 0;
-      }
-    });
-    if (tableSorter.order === 'descend') {
-      nextLogs.reverse();
-    }
-    return nextLogs;
-  }, [filteredLogs, tableSorter]);
 
   const handleExportCsv = useCallback(() => {
     const stamp = timestamp2string(Math.floor(Date.now() / 1000)).replace(
@@ -1402,9 +1330,10 @@ const LogsTable = () => {
       { key: 'chargeAmount', label: t('log.table.quota') },
       { key: 'content', label: t('log.table.detail') },
     );
+    // 覆盖式分页下导出的是当前页(后端排序后的这一页),而非累积的全量。
     // csv.js 的 format 只接收单元格值,无法访问整行,故此处把派生字段(渠道名)
     // 先摊平成普通对象再导出。
-    const rows = sortedFilteredLogs.map((log) => ({
+    const rows = logs.map((log) => ({
       ...log,
       channel: getLogChannelLabel(log),
     }));
@@ -1413,7 +1342,7 @@ const LogsTable = () => {
       columns,
       rows,
     );
-  }, [isAdminScope, sortedFilteredLogs, t]);
+  }, [isAdminScope, logs, t]);
 
   const resolveOptionLabel = useCallback(
     (filterKey, value) => {
@@ -1438,13 +1367,7 @@ const LogsTable = () => {
     [LOG_OPTIONS, t]
   );
 
-  const totalPages = Math.max(
-    Math.ceil(
-      (searchKeyword.trim() === '' ? totalCount : filteredLogs.length) /
-        ITEMS_PER_PAGE,
-    ),
-    1,
-  );
+  const totalPages = Math.max(Math.ceil(totalCount / LIST_PAGE_SIZE), 1);
 
   const detailBasePath = isAdminScope ? '/admin/log' : '/workspace/log';
   const logTableScrollWidth = Math.max(
@@ -1639,7 +1562,7 @@ const LogsTable = () => {
               type='button'
               className='router-section-button'
               onClick={handleExportCsv}
-              disabled={loading || sortedFilteredLogs.length === 0}
+              disabled={loading || logs.length === 0}
             >
               {t('common.export_csv')}
             </AppButton>
@@ -1839,13 +1762,6 @@ const LogsTable = () => {
                     </button>
                   </div>
                 ))}
-                <div className='router-log-search-input'>
-                  <input
-                    placeholder={t('log.search')}
-                    value={searchKeyword}
-                    onChange={(e) => setSearchKeyword(e.target.value)}
-                  />
-                </div>
               </div>
             </div>
             <AppButton
@@ -1909,9 +1825,7 @@ const LogsTable = () => {
             log.trace_id ||
             `${log.timestamp || ''}-${log.type || ''}-${log.token_name || ''}-${log.publicModelName || ''}`
           }
-          dataSource={sortedFilteredLogs
-            .slice((activePage - 1) * ITEMS_PER_PAGE, activePage * ITEMS_PER_PAGE)
-            .filter((log) => !log.deleted)}
+          dataSource={logs.filter((log) => !log.deleted)}
           locale={{
             emptyText: loading ? (
               t('common.loading')
@@ -1951,8 +1865,7 @@ const LogsTable = () => {
             width: LOG_LIST_COLUMN_WIDTHS.time,
             sorter: true,
             sortDirections: ['ascend', 'descend'],
-            sortOrder:
-              tableSorter.columnKey === 'created_at' ? tableSorter.order : null,
+            sortOrder: sortOrderForColumn(sort, 'created_at'),
             render: (value) => renderTimestamp(value),
           },
           ...(isAdminScope
@@ -1962,10 +1875,6 @@ const LogsTable = () => {
                   key: 'channel',
                   width: LOG_LIST_COLUMN_WIDTHS.channel,
                   ellipsis: true,
-                  sorter: true,
-                  sortDirections: ['ascend', 'descend'],
-                  sortOrder:
-                    tableSorter.columnKey === 'channel' ? tableSorter.order : null,
                   render: (_, log) =>
                     log.channel ? (
                       <Link
@@ -1986,10 +1895,6 @@ const LogsTable = () => {
                   key: 'group_id',
                   width: LOG_LIST_COLUMN_WIDTHS.group,
                   ellipsis: true,
-                  sorter: true,
-                  sortDirections: ['ascend', 'descend'],
-                  sortOrder:
-                    tableSorter.columnKey === 'group_id' ? tableSorter.order : null,
                   render: (_, log) =>
                     log.group_id ? (
                       <Link
@@ -2014,10 +1919,6 @@ const LogsTable = () => {
                   dataIndex: 'type',
                   key: 'type',
                   width: LOG_LIST_COLUMN_WIDTHS.type,
-                  sorter: true,
-                  sortDirections: ['ascend', 'descend'],
-                  sortOrder:
-                    tableSorter.columnKey === 'type' ? tableSorter.order : null,
                   render: (value) => renderType(value, t),
                 },
               ]
@@ -2027,12 +1928,6 @@ const LogsTable = () => {
                   key: 'billingSource',
                   width: LOG_LIST_COLUMN_WIDTHS.billingSource,
                   ellipsis: true,
-                  sorter: true,
-                  sortDirections: ['ascend', 'descend'],
-                  sortOrder:
-                    tableSorter.columnKey === 'billingSource'
-                      ? tableSorter.order
-                      : null,
                   render: (_, log) => renderBillingSource(log, t),
                 },
               ]),
@@ -2041,10 +1936,6 @@ const LogsTable = () => {
             key: 'model_name',
             width: LOG_LIST_COLUMN_WIDTHS.model,
             ellipsis: true,
-            sorter: true,
-            sortDirections: ['ascend', 'descend'],
-            sortOrder:
-              tableSorter.columnKey === 'model_name' ? tableSorter.order : null,
             render: (_, log) =>
               log?.publicModelName ? renderColorLabel(log.publicModelName) : '',
           },
@@ -2057,12 +1948,6 @@ const LogsTable = () => {
                         key: 'username',
                         width: LOG_LIST_COLUMN_WIDTHS.username,
                         ellipsis: true,
-                        sorter: true,
-                        sortDirections: ['ascend', 'descend'],
-                        sortOrder:
-                          tableSorter.columnKey === 'username'
-                            ? tableSorter.order
-                            : null,
                         render: (_, log) =>
                           log.username ? (
                             <Link
@@ -2083,12 +1968,6 @@ const LogsTable = () => {
                   key: 'token_name',
                   width: LOG_LIST_COLUMN_WIDTHS.tokenName,
                   ellipsis: true,
-                  sorter: true,
-                  sortDirections: ['ascend', 'descend'],
-                  sortOrder:
-                    tableSorter.columnKey === 'token_name'
-                      ? tableSorter.order
-                      : null,
                   render: (value) => (value ? renderColorLabel(value) : ''),
                 },
                 {
@@ -2098,10 +1977,7 @@ const LogsTable = () => {
                   width: LOG_LIST_COLUMN_WIDTHS.promptTokens,
                   sorter: true,
                   sortDirections: ['ascend', 'descend'],
-                  sortOrder:
-                    tableSorter.columnKey === 'prompt_tokens'
-                      ? tableSorter.order
-                      : null,
+                  sortOrder: sortOrderForColumn(sort, 'prompt_tokens'),
                   render: (value) => value || '',
                 },
                 {
@@ -2111,22 +1987,13 @@ const LogsTable = () => {
                   width: LOG_LIST_COLUMN_WIDTHS.completionTokens,
                   sorter: true,
                   sortDirections: ['ascend', 'descend'],
-                  sortOrder:
-                    tableSorter.columnKey === 'completion_tokens'
-                      ? tableSorter.order
-                      : null,
+                  sortOrder: sortOrderForColumn(sort, 'completion_tokens'),
                   render: (value) => value || '',
                 },
                 {
                   title: t('log.table.cache_tokens'),
                   key: 'cacheQuantity',
                   width: LOG_LIST_COLUMN_WIDTHS.cacheTokens,
-                  sorter: true,
-                  sortDirections: ['ascend', 'descend'],
-                  sortOrder:
-                    tableSorter.columnKey === 'cacheQuantity'
-                      ? tableSorter.order
-                      : null,
                   render: (_, log) => {
                     const read = formatCompactNumber(log.cacheReadQuantity);
                     const write = formatCompactNumber(log.cacheWriteQuantity);
@@ -2161,10 +2028,7 @@ const LogsTable = () => {
                   width: LOG_LIST_COLUMN_WIDTHS.quota,
                   sorter: true,
                   sortDirections: ['ascend', 'descend'],
-                  sortOrder:
-                    tableSorter.columnKey === 'chargeAmount'
-                      ? tableSorter.order
-                      : null,
+                  sortOrder: sortOrderForColumn(sort, 'chargeAmount'),
                   render: (value) =>
                     isAdminScope
                       ? formatDisplayAmountFromChargeAmount(value, displayUnit, currencyIndex)

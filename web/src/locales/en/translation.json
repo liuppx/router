@@ -2083,7 +2083,6 @@
     "title": "Operation Log",
     "empty_cta": "No call records yet — make your first model call",
     "empty_cta_action": "Start a call",
-    "search": "Search logs...",
     "filters": {
       "add": "Add Filter",
       "none": "No additional filters selected",
