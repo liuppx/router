@@ -7,6 +7,7 @@ import useList, {
   sorterToSort,
   sortOrderForColumn,
 } from '../../hooks/useList';
+import { parseListPageSize } from '../../hooks/useUrlState';
 import {
   TASK_LIST_COLUMN_WIDTHS,
   TASK_LIST_TABLE_MIN_WIDTH,
@@ -341,13 +342,18 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
     loading,
     loadError,
     page,
+    pageSize,
     sort,
     setPage,
     load: loadTasks,
+    setPageSize,
     setSort,
   } = useList({
     fetcher: fetchTasks,
-    pageSize: PAGE_SIZE,
+    pageSize: (() => {
+      const raw = initialQuery.get('page_size');
+      return raw ? parseListPageSize(raw) : PAGE_SIZE;
+    })(),
     initialPage: (() => {
       const parsed = Number(initialQuery.get('page') || 1);
       return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
@@ -360,11 +366,6 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
       return { field, order: (initialQuery.get('order') || '').trim() === 'asc' ? 'asc' : 'desc' };
     })(),
   });
-
-  const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(total / PAGE_SIZE)),
-    [total],
-  );
 
   const handleTableChange = useCallback(
     (_pagination, _filters, sorter) => {
@@ -592,6 +593,9 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
       query.set('order_by', sort.field);
       query.set('order', sort.order === 'asc' ? 'asc' : 'desc');
     }
+    if (Number(pageSize) !== PAGE_SIZE) {
+      query.set('page_size', String(pageSize));
+    }
     const nextSearch = query.toString();
     const currentSearch = location.search.startsWith('?')
       ? location.search.slice(1)
@@ -619,6 +623,7 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
     location.pathname,
     navigate,
     page,
+    pageSize,
     sort,
     taskPageNavState,
   ]);
@@ -1166,10 +1171,17 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
                     <AppPagination
                       className='router-page-pagination'
                       activePage={page}
-                      totalPages={totalPages}
+                      total={total}
+                      pageSize={pageSize}
                       siblingRange={1}
                       boundaryRange={0}
-                      onPageChange={(e, { activePage }) => {
+                      onPageChange={(e, { activePage, pageSize: nextSize }) => {
+                        const size = Number(nextSize) > 0 ? Number(nextSize) : pageSize;
+                        if (size !== pageSize) {
+                          // Page-size change reloads page 1; URL effect mirrors it.
+                          setPageSize(size);
+                          return;
+                        }
                         const nextPage = Number(activePage || 1);
                         setPage(nextPage);
                         loadTasks(nextPage).then();
