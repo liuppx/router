@@ -1995,6 +1995,7 @@
     "unlimited": "不限额",
     "day": "天",
     "never": "永久",
+    "clear_filters": "清空筛选",
     "created_at": "创建时间",
     "updated_at": "更新时间",
     "quota": {

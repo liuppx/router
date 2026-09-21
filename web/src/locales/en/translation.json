@@ -1995,6 +1995,7 @@
     "unlimited": "Unlimited",
     "day": "Day",
     "never": "Never",
+    "clear_filters": "Clear filters",
     "created_at": "Created At",
     "updated_at": "Updated At",
     "quota": {

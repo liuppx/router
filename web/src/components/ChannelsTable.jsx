@@ -120,15 +120,15 @@ const ChannelsTable = () => {
   const [loadError, setLoadError] = useState(false);
   const [activePage, setActivePage] = useState(1);
   const [totalChannels, setTotalChannels] = useState(0);
-  const [searchKeyword, setSearchKeyword] = useState('');
   const [searching, setSearching] = useState(false);
   const [disableBlockedImpact, setDisableBlockedImpact] = useState(null);
   const [statusMutatingId, setStatusMutatingId] = useState('');
   const [batchRunning, setBatchRunning] = useState(false);
   const batchActions = useBatchRowActions();
   const { isSelecting: isBatchSelecting, selectedCount: batchSelectedCount } = batchActions;
-  const [{ status: statusFilter }, patchQuery] = useUrlState({
+  const [{ status: statusFilter, keyword: searchKeyword }, patchQuery] = useUrlState({
     status: { param: 'status', default: 'all' },
+    keyword: { param: 'q', default: '' },
   });
   const currentPagePath = `${location.pathname}${location.search}${location.hash}`;
   const [tableSorter, setTableSorter] = useState({
@@ -188,16 +188,19 @@ const ChannelsTable = () => {
 
   useEffect(() => {
     setLoading(true);
-    loadChannels({ page: 1, keyword: '', status: statusFilter })
+    // Refetch from page 1 on mount and whenever the status filter changes,
+    // honoring the keyword already in the URL (so a refresh / shared link with
+    // ?q= restores a filtered list). Keyword typing updates the URL but must not
+    // retrigger a fetch here — that stays on Enter — so searchKeyword is read but
+    // deliberately not a dependency.
+    loadChannels({ page: 1, keyword: searchKeyword, status: statusFilter })
       .then()
       .catch((reason) => {
         showError(reason);
       });
     setActivePage(1);
-    // status changes should refetch from page 1; first mount is handled by the
-    // loadChannels callback's own initial-mount effect below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter]);
+  }, [statusFilter, loadChannels]);
 
   const onPaginationChange = (e, { activePage }) => {
     (async () => {
@@ -212,14 +215,6 @@ const ChannelsTable = () => {
     setLoading(true);
     await loadChannels({ page: activePage, keyword: searchKeyword, status: statusFilter });
   };
-
-  useEffect(() => {
-    loadChannels({ page: 1, keyword: '' })
-      .then()
-      .catch((reason) => {
-        showError(reason);
-      });
-  }, [loadChannels]);
 
   useEffect(() => {
     let disposed = false;
@@ -446,7 +441,7 @@ const ChannelsTable = () => {
   };
 
   const handleKeywordChange = (e, { value }) => {
-    setSearchKeyword(value);
+    patchQuery({ keyword: value });
   };
 
   const handleTableChange = (_, __, sorter) => {
@@ -607,6 +602,13 @@ const ChannelsTable = () => {
               onChange={handleKeywordChange}
               onPressEnter={searchChannels}
             />
+            <AppButton
+              className='router-section-button'
+              disabled={statusFilter === 'all' && searchKeyword === ''}
+              onClick={() => patchQuery({ status: 'all', keyword: '' })}
+            >
+              {t('common.clear_filters')}
+            </AppButton>
           </div>
         }
       />
