@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { API, showError, showInfo, showSuccess, timestamp2string } from '../helpers';
+import { API, showError, showInfo, showSuccess, timestamp2string, withCardLabels } from '../helpers';
 import useBatchRowActions from '../hooks/useBatchRowActions';
 import useUrlState from '../hooks/useUrlState';
 import {
@@ -1449,7 +1449,7 @@ const GroupsManager = ({ detailGroupId = '' }) => {
       <div className='router-table-scroll-x'>
         <AppSpin spinning={loading}>
           <AppTable
-            className='router-hover-table router-list-table router-table-fit-page'
+            className='router-hover-table router-list-table router-table-fit-page router-table-cardify'
             rowKey='id'
             pagination={false}
             scroll={{ x: GROUP_LIST_TABLE_MIN_WIDTH }}
@@ -1486,7 +1486,7 @@ const GroupsManager = ({ detailGroupId = '' }) => {
                 ? undefined
                 : 'router-row-clickable',
           })}
-          columns={[
+          columns={withCardLabels([
           {
             title: t('group_manage.table.id'),
             dataIndex: 'name',
@@ -1557,7 +1557,7 @@ const GroupsManager = ({ detailGroupId = '' }) => {
               </div>
             ),
           },
-          ]}
+          ])}
         />
         </AppSpin>
       </div>
