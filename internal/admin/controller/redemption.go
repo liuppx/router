@@ -18,6 +18,21 @@ import (
 
 var generateRedemptionCode = random.GetUUID
 
+// redemptionMaxPageSize 是兑换码列表 page_size 的硬上限。
+const redemptionMaxPageSize = 100
+
+// resolveRedemptionPageSize 解析 page_size：缺省用 config.ItemsPerPage,>100 夹到 100,<1 回退缺省。
+func resolveRedemptionPageSize(c *gin.Context) int {
+	pageSize, err := strconv.Atoi(c.Query("page_size"))
+	if err != nil || pageSize < 1 {
+		return config.ItemsPerPage
+	}
+	if pageSize > redemptionMaxPageSize {
+		return redemptionMaxPageSize
+	}
+	return pageSize
+}
+
 func applyRedemptionEntitlementProduct(productID string, redemption *model.Redemption) error {
 	if redemption == nil {
 		return gorm.ErrInvalidData
@@ -52,7 +67,9 @@ func GetAllRedemptions(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
-	redemptions, err := model.GetAllRedemptions((page-1)*config.ItemsPerPage, config.ItemsPerPage)
+	pageSize := resolveRedemptionPageSize(c)
+	statusFilter, _ := strconv.Atoi(c.Query("status"))
+	redemptions, err := model.GetAllRedemptionsFiltered((page-1)*pageSize, pageSize, statusFilter)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -60,8 +77,8 @@ func GetAllRedemptions(c *gin.Context) {
 		})
 		return
 	}
-	var total int64
-	if err := model.DB.Model(&model.Redemption{}).Count(&total).Error; err != nil {
+	total, err := model.CountRedemptionsFiltered(statusFilter)
+	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": err.Error(),
@@ -75,7 +92,7 @@ func GetAllRedemptions(c *gin.Context) {
 		"meta": gin.H{
 			"total":     total,
 			"page":      page,
-			"page_size": config.ItemsPerPage,
+			"page_size": pageSize,
 		},
 	})
 	return

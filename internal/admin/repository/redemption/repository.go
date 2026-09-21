@@ -62,6 +62,8 @@ func hydrateRedemptionGroupNamesWithDB(db *gorm.DB, rows []*model.Redemption) er
 func init() {
 	model.BindRedemptionRepository(model.RedemptionRepository{
 		GetAllRedemptions:               GetAll,
+		GetAllRedemptionsFiltered:       GetAllFiltered,
+		CountRedemptionsFiltered:        CountFiltered,
 		SearchRedemptions:               Search,
 		GetRedemptionById:               GetByID,
 		ListRedemptionsByRedeemedUserID: ListByRedeemedUserID,
@@ -75,8 +77,17 @@ func init() {
 }
 
 func GetAll(startIdx int, num int) ([]*model.Redemption, error) {
+	return GetAllFiltered(startIdx, num, 0)
+}
+
+// GetAllFiltered 列出兑换码,可选按状态过滤。statusFilter 传 0 表示不过滤。
+func GetAllFiltered(startIdx int, num int, statusFilter int) ([]*model.Redemption, error) {
 	var redemptions []*model.Redemption
-	err := model.DB.Order("created_time desc, id desc").Limit(num).Offset(startIdx).Find(&redemptions).Error
+	query := model.DB.Order("created_time desc, id desc").Limit(num).Offset(startIdx)
+	if statusFilter != 0 {
+		query = query.Where("status = ?", statusFilter)
+	}
+	err := query.Find(&redemptions).Error
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +95,17 @@ func GetAll(startIdx int, num int) ([]*model.Redemption, error) {
 		return nil, err
 	}
 	return redemptions, err
+}
+
+// CountFiltered 统计兑换码总数,过滤条件与 GetAllFiltered 保持一致。
+func CountFiltered(statusFilter int) (int64, error) {
+	query := model.DB.Model(&model.Redemption{})
+	if statusFilter != 0 {
+		query = query.Where("status = ?", statusFilter)
+	}
+	var total int64
+	err := query.Count(&total).Error
+	return total, err
 }
 
 func Search(keyword string) ([]*model.Redemption, error) {

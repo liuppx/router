@@ -4,6 +4,8 @@ import "context"
 
 type RedemptionRepository struct {
 	GetAllRedemptions               func(startIdx int, num int) ([]*Redemption, error)
+	GetAllRedemptionsFiltered       func(startIdx int, num int, statusFilter int) ([]*Redemption, error)
+	CountRedemptionsFiltered        func(statusFilter int) (int64, error)
 	SearchRedemptions               func(keyword string) ([]*Redemption, error)
 	GetRedemptionById               func(id string) (*Redemption, error)
 	ListRedemptionsByRedeemedUserID func(userID string, limit int) ([]*Redemption, error)

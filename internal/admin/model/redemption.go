@@ -122,6 +122,14 @@ func GetAllRedemptions(startIdx int, num int) ([]*Redemption, error) {
 	return mustRedemptionRepo().GetAllRedemptions(startIdx, num)
 }
 
+func GetAllRedemptionsFiltered(startIdx int, num int, statusFilter int) ([]*Redemption, error) {
+	return mustRedemptionRepo().GetAllRedemptionsFiltered(startIdx, num, statusFilter)
+}
+
+func CountRedemptionsFiltered(statusFilter int) (int64, error) {
+	return mustRedemptionRepo().CountRedemptionsFiltered(statusFilter)
+}
+
 func SearchRedemptions(keyword string) ([]*Redemption, error) {
 	return mustRedemptionRepo().SearchRedemptions(keyword)
 }
