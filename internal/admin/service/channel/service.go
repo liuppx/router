@@ -13,8 +13,8 @@ func GetAllBasic(start, num int, status string, selectAll bool) ([]*model.Channe
 	return channelrepo.GetAllBasic(start, num, status, selectAll)
 }
 
-func ListPage(page int, pageSize int, keyword string) ([]*model.Channel, int64, error) {
-	return channelrepo.ListPage(page, pageSize, keyword)
+func ListPage(page int, pageSize int, keyword string, status string) ([]*model.Channel, int64, error) {
+	return channelrepo.ListPage(page, pageSize, keyword, status)
 }
 
 func GetByID(id string) (*model.Channel, error) {

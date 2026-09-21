@@ -21,6 +21,7 @@ import {
   loadChannelProtocolOptions,
 } from '../helpers/helper';
 import useBatchRowActions from '../hooks/useBatchRowActions';
+import useUrlState from '../hooks/useUrlState';
 import {
   AppButton,
   AppEmpty,
@@ -32,6 +33,7 @@ import {
   AppModal,
   AppPagination,
   AppPopconfirm,
+  AppSelect,
   AppSpin,
   AppSwitch,
   AppTable,
@@ -125,6 +127,9 @@ const ChannelsTable = () => {
   const [batchRunning, setBatchRunning] = useState(false);
   const batchActions = useBatchRowActions();
   const { isSelecting: isBatchSelecting, selectedCount: batchSelectedCount } = batchActions;
+  const [{ status: statusFilter }, patchQuery] = useUrlState({
+    status: { param: 'status', default: 'all' },
+  });
   const currentPagePath = `${location.pathname}${location.search}${location.hash}`;
   const [tableSorter, setTableSorter] = useState({
     columnKey: 'created_time',
@@ -147,15 +152,17 @@ const ChannelsTable = () => {
   }, []);
 
   const loadChannels = useCallback(
-    async ({ page = 1, keyword = '' } = {}) => {
+    async ({ page = 1, keyword = '', status = 'all' } = {}) => {
       const normalizedPage = Number(page) > 0 ? Number(page) : 1;
       const normalizedKeyword = (keyword || '').toString().trim();
+      const normalizedStatus = (status || 'all').toString().trim().toLowerCase();
       try {
         const res = await API.get('/api/v1/admin/channels/', {
           params: {
             page: normalizedPage,
             page_size: ITEMS_PER_PAGE,
             keyword: normalizedKeyword,
+            status: normalizedStatus === 'all' ? '' : normalizedStatus,
           },
         });
         const { success, message, data } = res.data;
@@ -179,18 +186,31 @@ const ChannelsTable = () => {
     [processChannelData]
   );
 
+  useEffect(() => {
+    setLoading(true);
+    loadChannels({ page: 1, keyword: '', status: statusFilter })
+      .then()
+      .catch((reason) => {
+        showError(reason);
+      });
+    setActivePage(1);
+    // status changes should refetch from page 1; first mount is handled by the
+    // loadChannels callback's own initial-mount effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter]);
+
   const onPaginationChange = (e, { activePage }) => {
     (async () => {
       const nextPage = Number(activePage) > 0 ? Number(activePage) : 1;
       setLoading(true);
-      await loadChannels({ page: nextPage, keyword: searchKeyword });
+      await loadChannels({ page: nextPage, keyword: searchKeyword, status: statusFilter });
       setActivePage(nextPage);
     })();
   };
 
   const refresh = async () => {
     setLoading(true);
-    await loadChannels({ page: activePage, keyword: searchKeyword });
+    await loadChannels({ page: activePage, keyword: searchKeyword, status: statusFilter });
   };
 
   useEffect(() => {
@@ -266,7 +286,7 @@ const ChannelsTable = () => {
       if (success) {
         showSuccess(t('channel.messages.operation_success'));
         setLoading(true);
-        await loadChannels({ page: activePage, keyword: searchKeyword });
+        await loadChannels({ page: activePage, keyword: searchKeyword, status: statusFilter });
       } else {
         if (res?.data?.data?.code === 'channel_disable_blocked') {
           setDisableBlockedImpact(res?.data?.data?.impact || null);
@@ -349,9 +369,9 @@ const ChannelsTable = () => {
       }
       batchActions.exit();
       setLoading(true);
-      await loadChannels({ page: activePage, keyword: searchKeyword });
+      await loadChannels({ page: activePage, keyword: searchKeyword, status: statusFilter });
     },
-    [activePage, batchActions, batchRunning, loadChannels, searchKeyword, t],
+    [activePage, batchActions, batchRunning, loadChannels, searchKeyword, statusFilter, t],
   );
 
   const statusTooltipText = (status, t) => {
@@ -415,7 +435,7 @@ const ChannelsTable = () => {
     setSearching(true);
     setLoading(true);
     try {
-      await loadChannels({ page: 1, keyword: searchKeyword });
+      await loadChannels({ page: 1, keyword: searchKeyword, status: statusFilter });
       setActivePage(1);
     } catch (error) {
       showError(error?.message || String(error));
@@ -565,6 +585,17 @@ const ChannelsTable = () => {
         }
         query={
           <div className='router-list-toolbar-query'>
+            <AppSelect
+              className='router-section-select'
+              value={statusFilter}
+              onChange={(_, { value }) => patchQuery({ status: value })}
+              options={[
+                { value: 'all', label: t('channel.filter.status_all') },
+                { value: 'enabled', label: t('channel.table.status_enabled') },
+                { value: 'disabled', label: t('channel.table.status_disabled_tip') },
+                { value: 'creating', label: t('channel.table.status_creating') },
+              ]}
+            />
             <AppInput
               className='router-section-input'
               icon='search'

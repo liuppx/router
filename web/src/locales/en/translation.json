@@ -591,6 +591,9 @@
       "disable_all_failed": "Failed to disable {{count}} channels.",
       "partial": "Batch done: {{success}} succeeded, {{failed}} failed."
     },
+    "filter": {
+      "status_all": "All statuses"
+    },
     "error": {
       "id_invalid": "Channel ID is invalid"
     },

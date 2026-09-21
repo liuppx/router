@@ -201,7 +201,7 @@ func collectChannelCapabilities(channel *model.Channel) []string {
 	return result
 }
 
-func parseChannelListPageParams(c *gin.Context) (page int, pageSize int, keyword string) {
+func parseChannelListPageParams(c *gin.Context) (page int, pageSize int, keyword string, status string) {
 	page = 1
 	if raw := strings.TrimSpace(c.Query("page")); raw != "" {
 		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
@@ -218,7 +218,8 @@ func parseChannelListPageParams(c *gin.Context) (page int, pageSize int, keyword
 		pageSize = maxChannelListPageSize
 	}
 	keyword = strings.TrimSpace(c.Query("keyword"))
-	return page, pageSize, keyword
+	status = strings.TrimSpace(c.Query("status"))
+	return page, pageSize, keyword, status
 }
 
 func parseCompactMode(c *gin.Context) bool {
@@ -226,8 +227,8 @@ func parseCompactMode(c *gin.Context) bool {
 	return raw == "1" || strings.EqualFold(raw, "true")
 }
 
-func listChannelsPage(page int, pageSize int, keyword string) (channelListPageData, error) {
-	rows, total, err := channelsvc.ListPage(page, pageSize, keyword)
+func listChannelsPage(page int, pageSize int, keyword string, status string) (channelListPageData, error) {
+	rows, total, err := channelsvc.ListPage(page, pageSize, keyword, status)
 	if err != nil {
 		return channelListPageData{}, err
 	}
@@ -286,8 +287,8 @@ func isModelInChannelModels(testModel string, models string) bool {
 }
 
 func GetChannels(c *gin.Context) {
-	page, pageSize, keyword := parseChannelListPageParams(c)
-	data, err := listChannelsPage(page, pageSize, keyword)
+	page, pageSize, keyword, status := parseChannelListPageParams(c)
+	data, err := listChannelsPage(page, pageSize, keyword, status)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,

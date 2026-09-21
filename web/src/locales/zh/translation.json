@@ -591,6 +591,9 @@
       "disable_all_failed": "{{count}} 个渠道停用失败。",
       "partial": "批量完成：成功 {{success}}，失败 {{failed}}。"
     },
+    "filter": {
+      "status_all": "全部状态"
+    },
     "error": {
       "id_invalid": "渠道 ID 无效"
     },

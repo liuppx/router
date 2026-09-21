@@ -28,8 +28,16 @@ func init() {
 	})
 }
 
-func buildChannelListQuery(db *gorm.DB, keyword string) *gorm.DB {
+func buildChannelListQuery(db *gorm.DB, keyword string, status string) *gorm.DB {
 	query := db.Model(&model.Channel{})
+	switch normalizeChannelListStatusFilter(status) {
+	case "enabled":
+		query = query.Where("status = ?", model.ChannelStatusEnabled)
+	case "disabled":
+		query = query.Where("status IN ?", []int{model.ChannelStatusManuallyDisabled, model.ChannelStatusAutoDisabled})
+	case "creating":
+		query = query.Where("status = ?", model.ChannelStatusCreating)
+	}
 	normalizedKeyword := strings.ToLower(strings.TrimSpace(keyword))
 	if normalizedKeyword == "" {
 		return query
@@ -43,7 +51,20 @@ func buildChannelListQuery(db *gorm.DB, keyword string) *gorm.DB {
 	)
 }
 
-func ListPage(page int, pageSize int, keyword string) ([]*model.Channel, int64, error) {
+func normalizeChannelListStatusFilter(raw string) string {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "enabled":
+		return "enabled"
+	case "disabled":
+		return "disabled"
+	case "creating":
+		return "creating"
+	default:
+		return ""
+	}
+}
+
+func ListPage(page int, pageSize int, keyword string, status string) ([]*model.Channel, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -51,7 +72,7 @@ func ListPage(page int, pageSize int, keyword string) ([]*model.Channel, int64, 
 		pageSize = config.ItemsPerPage
 	}
 	total := int64(0)
-	query := buildChannelListQuery(model.DB, keyword)
+	query := buildChannelListQuery(model.DB, keyword, status)
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
