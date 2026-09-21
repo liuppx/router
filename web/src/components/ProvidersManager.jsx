@@ -7,27 +7,8 @@ import {
   showSuccess,
   timestamp2string,
 } from '../helpers';
-import {
-  AppButton,
-  AppDetailSection,
-  AppEmpty,
-  AppField,
-  AppFilterHeader,
-  AppFormActions,
-  AppFormRow,
-  AppIcon,
-  AppInput,
-  AppInputNumber,
-  AppModal,
-  AppPagination,
-  AppSelect,
-  AppTable,
-  AppTableActionButton,
-  AppTabs,
-  AppTag,
-  AppTextarea,
-  AppToolbar,
-} from '../router-ui';
+import { AppButton, AppDetailSection, AppEmpty, AppField, AppFilterHeader, AppFormActions, AppFormRow, AppIcon, AppInput, AppInputNumber, AppModal, AppPagination, AppSelect, AppTable, AppTableActionButton, AppTabs, AppTag, AppTextarea, AppToolbar } from '../router-ui';
+import useUrlState from '../hooks/useUrlState';
 import {
   PROVIDER_DETAIL_MODEL_PAGE_SIZE,
   PROVIDER_CATALOG_REQUEST_PAGE_SIZE,
@@ -74,7 +55,9 @@ const ProvidersManager = () => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const [{ keyword: searchKeyword }, patchQuery] = useUrlState({
+    keyword: { param: 'q', default: '' },
+  });
   const [creating, setCreating] = useState(false);
   const [createRow, setCreateRow] = useState(createEmptyRow());
   const [viewingProvider, setViewingProvider] = useState('');
@@ -2342,14 +2325,23 @@ const ProvidersManager = () => {
           </div>
         }
         query={
-          <AppInput
-            className='router-section-input router-search-form-sm'
-            placeholder={t('channel.providers.search')}
-            value={searchKeyword}
-            onChange={(e, { value }) => {
-              setSearchKeyword(value || '');
-            }}
-          />
+          <div className='router-list-toolbar-query'>
+            <AppInput
+              className='router-section-input router-search-form-sm'
+              placeholder={t('channel.providers.search')}
+              value={searchKeyword}
+              onChange={(e, { value }) => {
+                patchQuery({ keyword: value || '' });
+              }}
+            />
+            <AppButton
+              className='router-section-button'
+              disabled={searchKeyword === ''}
+              onClick={() => patchQuery({ keyword: '' })}
+            >
+              {t('common.clear_filters')}
+            </AppButton>
+          </div>
         }
       />
       {rows.length > 0 ? (
