@@ -3,29 +3,17 @@ import { buildUserWorkspaceMenuItems } from './userMenu';
 
 export const ADMIN_MENU_GROUPS = [
   {
+    // 总览:唯一真正跨实体的大盘。单项组 → 侧边栏渲染为扁平叶子。
+    // 其余原仪表盘 section(渠道健康/用户分析/模型运营)已归位到各实体页的
+    // SectionTabs,不再作为独立侧边栏项。
     key: 'dashboard',
     name: 'header.dashboard',
-    icon: 'chart bar',
+    icon: 'chart line',
     items: [
       {
         name: 'dashboard.admin.nav.spending',
         to: '/admin/dashboard?section=spending',
         icon: 'chart line',
-      },
-      {
-        name: 'dashboard.admin.nav.models',
-        to: '/admin/dashboard?section=models',
-        icon: 'cube',
-      },
-      {
-        name: 'dashboard.admin.nav.channels',
-        to: '/admin/dashboard?section=channels',
-        icon: 'heartbeat',
-      },
-      {
-        name: 'dashboard.admin.nav.users',
-        to: '/admin/dashboard?section=users',
-        icon: 'users',
       },
     ],
   },
@@ -40,9 +28,16 @@ export const ADMIN_MENU_GROUPS = [
         icon: 'cubes',
       },
       {
+        // 渠道的「面」:列表(此项)/健康/告警/系统任务 —— 后三者进渠道页 tab 条,
+        // 侧边栏只保留一个「渠道」项,并在这些面路由上一并高亮。
         name: 'header.channel',
         to: '/admin/channel',
         icon: 'sitemap',
+        matchPaths: [
+          '/admin/dashboard?section=channels',
+          '/admin/alerts',
+          '/admin/channel/tasks',
+        ],
       },
       {
         name: 'header.group',
@@ -52,14 +47,11 @@ export const ADMIN_MENU_GROUPS = [
       {
         // The model catalog is a supply-side artifact (published models backed
         // by providers/channels), so it belongs with供给 rather than客户.
+        // 「运营」面在仪表盘,归入本项的高亮范围。
         name: 'header.model',
         to: '/workspace/service/models',
         icon: 'cube',
-      },
-      {
-        name: 'dashboard.admin.nav.alerts',
-        to: '/admin/alerts',
-        icon: 'bell',
+        matchPaths: ['/admin/dashboard?section=models'],
       },
     ],
   },
@@ -69,9 +61,11 @@ export const ADMIN_MENU_GROUPS = [
     icon: 'users',
     items: [
       {
+        // 用户的「分析」面在仪表盘,归入本项高亮范围。
         name: 'header.user',
         to: '/admin/user',
         icon: 'user',
+        matchPaths: ['/admin/dashboard?section=users'],
       },
       {
         name: 'header.redemption',
@@ -86,24 +80,17 @@ export const ADMIN_MENU_GROUPS = [
     ],
   },
   {
+    // 财务:总览/毛利/采购已是同一页的 SectionTabs,侧边栏收成单项(扁平叶子),
+    // 进入后用 tab 切,与渠道详情 tab 心智一致。
     key: 'finance',
     name: 'header.finance',
     icon: 'money bill alternate outline',
     items: [
       {
-        name: 'billing.overview.title',
+        name: 'header.finance',
         to: '/admin/finance/overview',
-        icon: 'chart pie',
-      },
-      {
-        name: 'billing.pricing_analysis.title',
-        to: '/admin/finance/profit',
-        icon: 'chart line',
-      },
-      {
-        name: 'billing.procurement_report.title',
-        to: '/admin/finance/procurement',
-        icon: 'shopping cart',
+        icon: 'money bill alternate outline',
+        matchPaths: ['/admin/finance/profit', '/admin/finance/procurement'],
       },
     ],
   },
