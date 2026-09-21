@@ -227,6 +227,7 @@ const Entitlement = () => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activePage, setActivePage] = useState(1);
+  const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
   const [total, setTotal] = useState(0);
   const [kind, setKind] = useState(PRODUCT_KIND_ALL);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -246,10 +247,6 @@ const Entitlement = () => {
   });
 
   const normalizedKeyword = searchKeyword.trim();
-  const totalPages = Math.max(
-    1,
-    Math.ceil((Number(total || 0) || 0) / ITEMS_PER_PAGE),
-  );
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
@@ -257,7 +254,7 @@ const Entitlement = () => {
       const response = await API.get('/api/v1/admin/entitlement/products', {
         params: {
           page: activePage,
-          page_size: ITEMS_PER_PAGE,
+          page_size: pageSize,
           kind: kind === PRODUCT_KIND_ALL ? '' : kind,
           keyword: normalizedKeyword,
         },
@@ -275,7 +272,7 @@ const Entitlement = () => {
     } finally {
       setLoading(false);
     }
-  }, [activePage, kind, normalizedKeyword, t]);
+  }, [activePage, pageSize, kind, normalizedKeyword, t]);
 
   useEffect(() => {
     loadProducts();
@@ -963,13 +960,20 @@ const Entitlement = () => {
         />
       </div>
 
-      {totalPages > 1 ? (
+      {total > pageSize ? (
         <div className='router-pagination-wrap-md'>
           <AppPagination
             className='router-section-pagination'
             current={activePage}
-            totalPages={totalPages}
-            onPageChange={(_, { activePage: nextActivePage }) => {
+            total={total}
+            pageSize={pageSize}
+            onPageChange={(_, { activePage: nextActivePage, pageSize: nextSize }) => {
+              const size = Number(nextSize) > 0 ? Number(nextSize) : pageSize;
+              if (size !== pageSize) {
+                setPageSize(size);
+                setActivePage(1);
+                return;
+              }
               setActivePage(Number(nextActivePage) || 1);
             }}
           />
