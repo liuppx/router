@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API, showError, timestamp2string, withCardLabels } from '../helpers';
 import { ITEMS_PER_PAGE } from '../constants';
-import useUrlState, { parsePageParam } from '../hooks/useUrlState';
+import useUrlState, { parsePageParam, parseListPageSize } from '../hooks/useUrlState';
 import {
   BUSINESS_FLOW_COLUMN_WIDTHS,
 } from '../constants/tableWidthPresets';
@@ -142,6 +142,11 @@ const BusinessRecordsTable = ({
     q: { param: 'q', default: '' },
     status: { param: 'status', default: '' },
     page: { param: 'page', default: 1, parse: parsePageParam },
+    pageSize: {
+      param: 'page_size',
+      default: ITEMS_PER_PAGE,
+      parse: parseListPageSize,
+    },
   });
   const initialListQuery = useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -149,6 +154,7 @@ const BusinessRecordsTable = ({
       keyword: (params.get('q') || '').trim(),
       status: (params.get('status') || '').trim(),
       page: parsePageParam(params.get('page')),
+      pageSize: parseListPageSize(params.get('page_size')),
     };
     // 仅在挂载时读取一次;后续以组件内 state 为准。
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -158,6 +164,10 @@ const BusinessRecordsTable = ({
   const [loading, setLoading] = useState(false);
   const [activePage, setActivePage] = useState(initialListQuery.page);
   const [totalCount, setTotalCount] = useState(0);
+  const [pageSize, setPageSize] = useState(initialListQuery.pageSize);
+  // loadItems 读取最新 pageSize 而不进它的依赖数组,避免把「改每页条数」
+  // 误触发成 kind 切换那条 effect(会清空筛选)。
+  const pageSizeRef = useRef(initialListQuery.pageSize);
   const [keyword, setKeyword] = useState(initialListQuery.keyword);
   const [statusFilter, setStatusFilter] = useState(initialListQuery.status);
   const [refreshingRowID, setRefreshingRowID] = useState('');
@@ -759,19 +769,15 @@ const BusinessRecordsTable = ({
     }
   }, [displayUnit]);
 
-  const totalPages = useMemo(
-    () => Math.max(Math.ceil(totalCount / ITEMS_PER_PAGE), 1),
-    [totalCount],
-  );
-
   const loadItems = useCallback(
     async (page = 1, nextKeyword = '', nextStatus = '') => {
       setLoading(true);
+      const size = pageSizeRef.current;
       try {
         const res = await API.get(config.endpoint, {
           params: {
             page,
-            page_size: ITEMS_PER_PAGE,
+            page_size: size,
             keyword: (nextKeyword || '').toString().trim(),
             status: (nextStatus || '').toString().trim(),
             ...requestParams,
@@ -790,6 +796,7 @@ const BusinessRecordsTable = ({
           q: (nextKeyword || '').toString().trim(),
           status: (nextStatus || '').toString().trim(),
           page: resolvedPage,
+          pageSize: size,
         });
       } catch (error) {
         showError(error?.message || error);
@@ -833,7 +840,15 @@ const BusinessRecordsTable = ({
   }, [activePage, keyword, statusFilter, loadItems]);
 
   const onPageChange = useCallback(
-    (e, { activePage: nextPage }) => {
+    (e, { activePage: nextPage, pageSize: nextSize }) => {
+      const size = Number(nextSize) > 0 ? Number(nextSize) : pageSizeRef.current;
+      if (size !== pageSizeRef.current) {
+        // 改每页条数:回到第 1 页并按新尺寸重新拉取。
+        pageSizeRef.current = size;
+        setPageSize(size);
+        loadItems(1, keyword, statusFilter).then();
+        return;
+      }
       loadItems(Number(nextPage) || 1, keyword, statusFilter).then();
     },
     [keyword, statusFilter, loadItems],
@@ -995,7 +1010,8 @@ const BusinessRecordsTable = ({
       <div className={embedded ? 'router-pagination-wrap-md' : 'router-pagination-wrap'}>
         <AppPagination
           activePage={activePage}
-          totalPages={totalPages}
+          total={totalCount}
+          pageSize={pageSize}
           onPageChange={onPageChange}
         />
       </div>
