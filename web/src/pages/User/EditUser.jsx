@@ -471,7 +471,7 @@ const UserDetail = () => {
   }, [t, userId]);
 
   const loadBalanceLots = useCallback(
-    async ({ silent = false, page = balanceLotsPage } = {}) => {
+    async ({ silent = false, page = balanceLotsPage, pageSize = balanceLotsPageSize } = {}) => {
       const normalizedUserId = (userId || '').toString().trim();
       if (normalizedUserId === '') {
         setBalanceLots([]);
@@ -479,6 +479,7 @@ const UserDetail = () => {
         return;
       }
       const nextPage = Math.max(1, Number(page || 1) || 1);
+      const nextPageSize = Math.max(1, Number(pageSize || BALANCE_LOT_PAGE_SIZE) || BALANCE_LOT_PAGE_SIZE);
       if (!silent) {
         setBalanceLotsLoading(true);
       }
@@ -488,7 +489,7 @@ const UserDetail = () => {
           {
             params: {
               page: nextPage,
-              page_size: BALANCE_LOT_PAGE_SIZE,
+              page_size: nextPageSize,
               source_type: (balanceLotFilters.source_type || '').toString().trim() || undefined,
               status: (balanceLotFilters.status || '').toString().trim() || undefined,
               positive_only: balanceLotFilters.positive_only !== false,
@@ -522,6 +523,7 @@ const UserDetail = () => {
     },
     [
       balanceLotsPage,
+      balanceLotsPageSize,
       balanceLotFilters.positive_only,
       balanceLotFilters.source_type,
       balanceLotFilters.status,
@@ -1745,8 +1747,18 @@ const UserDetail = () => {
                       <div className='router-pagination-wrap'>
                         <AppPagination
                           activePage={balanceLotsPage}
-                          totalPages={balanceLotTotalPages}
-                          onPageChange={(event, { activePage }) => setBalanceLotsPage(activePage)}
+                          total={balanceLotsTotal}
+                          pageSize={balanceLotsPageSize}
+                          onPageChange={(event, { activePage, pageSize: nextSize }) => {
+                            const size = Number(nextSize) > 0 ? Number(nextSize) : balanceLotsPageSize;
+                            if (size !== balanceLotsPageSize) {
+                              // 改每页条数:回第 1 页,[loadBalanceLots] effect 会按新尺寸重载。
+                              setBalanceLotsPageSize(size);
+                              setBalanceLotsPage(1);
+                              return;
+                            }
+                            setBalanceLotsPage(activePage);
+                          }}
                         />
                       </div>
                     ) : null}
