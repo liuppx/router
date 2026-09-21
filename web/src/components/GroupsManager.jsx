@@ -272,12 +272,12 @@ const GroupsManager = ({ detailGroupId = '' }) => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [statusMutatingGroupId, setStatusMutatingGroupId] = useState('');
-  const [searchKeyword, setSearchKeyword] = useState('');
   const [batchRunning, setBatchRunning] = useState(false);
   const batchActions = useBatchRowActions();
   const { isSelecting: isBatchSelecting, selectedCount: batchSelectedCount } = batchActions;
-  const [{ status: statusFilter }, patchQuery] = useUrlState({
+  const [{ status: statusFilter, keyword: searchKeyword }, patchQuery] = useUrlState({
     status: { param: 'status', default: 'all' },
+    keyword: { param: 'q', default: '' },
   });
 
   const [activeGroup, setActiveGroup] = useState(null);
@@ -1427,8 +1427,15 @@ const GroupsManager = ({ detailGroupId = '' }) => {
               className='router-section-input router-search-form-sm'
               placeholder={t('group_manage.search')}
               value={searchKeyword}
-              onChange={(e, { value }) => setSearchKeyword(value || '')}
+              onChange={(e, { value }) => patchQuery({ keyword: value || '' })}
             />
+            <AppButton
+              className='router-section-button'
+              disabled={statusFilter === 'all' && searchKeyword === ''}
+              onClick={() => patchQuery({ status: 'all', keyword: '' })}
+            >
+              {t('common.clear_filters')}
+            </AppButton>
           </div>
         }
       />
