@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { API } from '../helpers/api';
 import { showError } from '../helpers';
+import useUrlState from '../hooks/useUrlState';
 import {
   AppButton,
   AppDescriptions,
@@ -102,12 +103,23 @@ function AdminChannelAlertsPanel() {
     note: '',
   });
   const [detailAlert, setDetailAlert] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [levelFilter, setLevelFilter] = useState('all');
-  const [timeFilter, setTimeFilter] = useState('all');
-  const [keywordInput, setKeywordInput] = useState('');
-  const [keyword, setKeyword] = useState('');
+  const [
+    {
+      status: statusFilter,
+      type: typeFilter,
+      level: levelFilter,
+      time: timeFilter,
+      keyword,
+    },
+    patchQuery,
+  ] = useUrlState({
+    status: { param: 'status', default: 'all' },
+    type: { param: 'type', default: 'all' },
+    level: { param: 'level', default: 'all' },
+    time: { param: 'time', default: 'all' },
+    keyword: { param: 'q', default: '' },
+  });
+  const [keywordInput, setKeywordInput] = useState(keyword);
   const [page, setPage] = useState(1);
   const [tableSorter, setTableSorter] = useState({
     columnKey: 'createdAt',
@@ -621,28 +633,35 @@ function AdminChannelAlertsPanel() {
           text: item.label,
         }))}
         value={statusFilter}
-        onChange={(e, { value }) => setStatusFilter(value)}
+        onChange={(e, { value }) => patchQuery({ status: value })}
       />
       <AppSelect
         className='router-section-dropdown'
         options={timeOptions}
         value={timeFilter}
-        onChange={(e, { value }) => setTimeFilter(value)}
+        onChange={(e, { value }) => patchQuery({ time: value })}
       />
       <AppSelect
         className='router-section-dropdown'
         options={typeOptions}
         value={typeFilter}
-        onChange={(e, { value }) => setTypeFilter(value)}
+        onChange={(e, { value }) => patchQuery({ type: value })}
       />
       <AppSelect
         className='router-section-dropdown'
         options={levelOptions}
         value={levelFilter}
-        onChange={(e, { value }) => setLevelFilter(value)}
+        onChange={(e, { value }) => patchQuery({ level: value })}
       />
     </div>
   );
+
+  const filtersActive =
+    statusFilter !== 'all' ||
+    typeFilter !== 'all' ||
+    levelFilter !== 'all' ||
+    timeFilter !== 'all' ||
+    keyword !== '';
 
   const searchControls = (
     <div className='admin-dashboard-alert-search-controls'>
@@ -653,7 +672,7 @@ function AdminChannelAlertsPanel() {
         onChange={(e, { value }) => setKeywordInput(value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
-            setKeyword(String(keywordInput || '').trim());
+            patchQuery({ keyword: String(keywordInput || '').trim() });
           }
         }}
       />
@@ -661,20 +680,26 @@ function AdminChannelAlertsPanel() {
         color='blue'
         type='button'
         className='router-page-button'
-        onClick={() => setKeyword(String(keywordInput || '').trim())}
+        onClick={() => patchQuery({ keyword: String(keywordInput || '').trim() })}
       >
         {t('dashboard.admin.alerts.filters.search.submit')}
       </AppButton>
-      {keyword ? (
+      {filtersActive ? (
         <AppButton
           type='button'
           className='router-page-button'
           onClick={() => {
             setKeywordInput('');
-            setKeyword('');
+            patchQuery({
+              status: 'all',
+              type: 'all',
+              level: 'all',
+              time: 'all',
+              keyword: '',
+            });
           }}
         >
-          {t('dashboard.admin.alerts.filters.search.reset')}
+          {t('common.clear_filters')}
         </AppButton>
       ) : null}
     </div>
