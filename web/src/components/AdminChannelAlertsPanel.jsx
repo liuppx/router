@@ -19,6 +19,8 @@ import {
   AppButton,
   AppDescriptions,
   AppDrawer,
+  AppEmpty,
+  AppErrorState,
   AppFilterHeader,
   AppInput,
   AppModal,
@@ -94,6 +96,7 @@ function AdminChannelAlertsPanel() {
   const [total, setTotal] = useState(0);
   const [alertSummary, setAlertSummary] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [acknowledgingAlertID, setAcknowledgingAlertID] = useState('');
   const [resolvingAlertID, setResolvingAlertID] = useState('');
   const [noteModal, setNoteModal] = useState({
@@ -129,6 +132,7 @@ function AdminChannelAlertsPanel() {
 
   const loadAlertItems = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const response = await API.get('/api/v1/admin/channel/alerts', {
         params: {
@@ -147,6 +151,7 @@ function AdminChannelAlertsPanel() {
         showError(
           response?.data?.message || t('dashboard.admin.alerts.load_failed'),
         );
+        setLoadError(true);
         setAlertItems([]);
         setTotal(0);
         setAlertSummary(null);
@@ -161,6 +166,7 @@ function AdminChannelAlertsPanel() {
     } catch (error) {
       console.error('Failed to load channel alerts:', error);
       showError(error?.message || t('dashboard.admin.alerts.load_failed'));
+      setLoadError(true);
       setAlertItems([]);
       setTotal(0);
       setAlertSummary(null);
@@ -976,10 +982,14 @@ function AdminChannelAlertsPanel() {
       {summaryPanel}
       {loading ? (
         <div className='admin-dashboard-empty'>{t('common.loading')}</div>
+      ) : loadError ? (
+        <AppErrorState
+          message={t('dashboard.admin.alerts.load_failed')}
+          onRetry={loadAlertItems}
+          retryText={t('common.retry')}
+        />
       ) : displayAlertItems.length === 0 ? (
-        <div className='admin-dashboard-empty'>
-          {t('dashboard.admin.alerts.empty')}
-        </div>
+        <AppEmpty>{t('dashboard.admin.alerts.empty')}</AppEmpty>
       ) : (
         <div className='router-table-scroll-x'>
           <AppSpin spinning={loading}>
