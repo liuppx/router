@@ -16,6 +16,7 @@ import { exportCSV } from '../../../helpers/csv';
 import { formatDecimalNumber } from '../../../helpers/render';
 import {
   AppButton,
+  AppErrorState,
   AppFilterHeader,
   AppInput,
   AppSelect,
@@ -128,6 +129,7 @@ function BillingPricingAnalysis() {
     };
   }, [defaults]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [rows, setRows] = useState([]);
   const [groupID, setGroupID] = useState(initialContext.groupID);
   const [channelID, setChannelID] = useState(initialContext.channelID);
@@ -211,16 +213,19 @@ function BillingPricingAnalysis() {
       return;
     }
     setLoading(true);
+    setLoadError(false);
     try {
       const response = await API.get('/api/v1/admin/billing/procurement-report', {
         params: { ...queryContext, group_by: 'model', cost_scope: 'all' },
       });
       if (!response.data?.success) {
+        setLoadError(true);
         showError(response.data?.message || t('billing.pricing_analysis.load_failed'));
         return;
       }
       setRows(normalize(response.data.data).items);
     } catch (error) {
+      setLoadError(true);
       showError(error?.message || t('billing.pricing_analysis.load_failed'));
     } finally {
       setLoading(false);
@@ -457,6 +462,13 @@ function BillingPricingAnalysis() {
         }
       />
       <AppSpin spinning={loading}>
+        {loadError ? (
+          <AppErrorState
+            message={t('billing.pricing_analysis.load_failed')}
+            onRetry={() => load().then()}
+            retryText={t('common.retry')}
+          />
+        ) : (
         <AppSection className='billing-pricing-analysis-section'>
           <div className='billing-pricing-analysis-note'>{t('billing.pricing_analysis.context', { start: new Date(startAt * 1000).toLocaleString(), end: new Date(endAt * 1000).toLocaleString() })}</div>
           <div className='billing-pricing-analysis-note'>{t('billing.pricing_analysis.note')}</div>
@@ -499,6 +511,7 @@ function BillingPricingAnalysis() {
           </div>
           <AppTable className='router-detail-table billing-pricing-analysis-table' size='small' pagination={false} rowKey={(row) => row.dimension_key} dataSource={rows} columns={columns} locale={{ emptyText: t('billing.pricing_analysis.empty') }} />
         </AppSection>
+        )}
       </AppSpin>
     </div>
   );

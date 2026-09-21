@@ -28,6 +28,7 @@ import {
 } from '../../../router-ui/theme/charts';
 import {
   AppButton,
+  AppErrorState,
   AppFilterHeader,
   AppInput,
   AppSelect,
@@ -142,6 +143,7 @@ function BillingOverview() {
     };
   }, []);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [report, setReport] = useState(() => normalize({}));
   const [modelReport, setModelReport] = useState(() => normalize({}));
   const [health, setHealth] = useState({ status: 'ok', issues: [], critical_count: 0, warning_count: 0 });
@@ -189,6 +191,7 @@ function BillingOverview() {
       return;
     }
     setLoading(true);
+    setLoadError(false);
     try {
       const filters = { start_at: startAt, end_at: endAt, channel_id: channelID, model: modelName };
       const optionRange = recentRange();
@@ -216,6 +219,7 @@ function BillingOverview() {
       if (trendResponse.data?.success) setTrend(Array.isArray(trendResponse.data?.data?.items) ? trendResponse.data.data.items : []);
       if (consistencyResponse.data?.success) setConsistencyIssues(Array.isArray(consistencyResponse.data?.data?.items) ? consistencyResponse.data.data.items : []);
     } catch (error) {
+      setLoadError(true);
       showError(error?.message || t('billing.overview.load_failed'));
     } finally {
       setLoading(false);
@@ -409,6 +413,14 @@ function BillingOverview() {
       />
       <div className='billing-overview-context'><span>{t('billing.overview.context.range', { start: toDateTimeLocalValue(startAt).replace('T', ' '), end: toDateTimeLocalValue(endAt).replace('T', ' ') })}</span><span>{t('billing.overview.context.currency')}</span></div>
       <AppSpin spinning={loading}>
+        {loadError ? (
+          <AppErrorState
+            message={t('billing.overview.load_failed')}
+            onRetry={() => load().then()}
+            retryText={t('common.retry')}
+          />
+        ) : (
+        <>
         <div className='billing-overview-headline'>
           <div className={`billing-overview-headline-main is-${headlineMarginTone}`}>
             <span className='billing-overview-headline-label'>{t('billing.overview.headline.profit')}</span>
@@ -487,6 +499,8 @@ function BillingOverview() {
             <div className='billing-overview-empty'>{t('billing.overview.consistency.empty')}</div>
           )}
         </section>
+        </>
+        )}
       </AppSpin>
     </div>
   );

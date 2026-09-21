@@ -20,6 +20,7 @@ import { formatDecimalNumber } from '../../../helpers/render';
 import ChannelDetailBillingTab from '../../Channel/components/ChannelDetailBillingTab';
 import {
   AppButton,
+  AppErrorState,
   AppFilterHeader,
   AppInput,
   AppPopconfirm,
@@ -169,6 +170,7 @@ function BillingProcurementReport() {
   const [startAt, setStartAt] = useState(initialContext.startAt);
   const [endAt, setEndAt] = useState(initialContext.endAt);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [healthLoading, setHealthLoading] = useState(false);
   const [report, setReport] = useState(() => normalizeReport({}));
   const [health, setHealth] = useState(() => normalizeHealth({}));
@@ -407,6 +409,7 @@ function BillingProcurementReport() {
       return;
     }
     setLoading(true);
+    setLoadError(false);
     try {
       const res = await API.get('/api/v1/admin/billing/procurement-report', {
         params: {
@@ -422,11 +425,13 @@ function BillingProcurementReport() {
       });
       const { success, message, data } = res.data || {};
       if (!success) {
+        setLoadError(true);
         showError(message || t('billing.procurement_report.messages.load_failed'));
         return;
       }
       setReport(normalizeReport(data));
     } catch (error) {
+      setLoadError(true);
       showError(error?.message || t('billing.procurement_report.messages.load_failed'));
     } finally {
       setLoading(false);
@@ -1083,6 +1088,13 @@ function BillingProcurementReport() {
       />
       <AppSpin spinning={managedChannelID ? procurementLoading : loading}>
         {!managedChannelID ? (
+          loadError ? (
+            <AppErrorState
+              message={t('billing.procurement_report.messages.load_failed')}
+              onRetry={() => loadReport().then()}
+              retryText={t('common.retry')}
+            />
+          ) : (
           <div className='billing-procurement-report-overview'>
           <div className={`billing-procurement-report-health ${healthStatusClass}`}>
             <div className='billing-procurement-report-health-main'>
@@ -1320,6 +1332,7 @@ function BillingProcurementReport() {
           </div>
         ) : null}
           </div>
+          )
         ) : null}
         {managedChannelID ? (
           <div className='billing-procurement-report-detail'>
