@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   useLocation,
@@ -12,13 +12,7 @@ import {
   buildFaceValueUnitOptions,
 } from '../../helpers/billing';
 import {
-  formatAmountWithUnit,
-  formatCreditAmount,
-} from '../../helpers/render';
-import UnitDropdown from '../../components/UnitDropdown';
-import {
   AppButton,
-  AppCompact,
   AppDetailSection,
   AppEmpty,
   AppErrorState,
@@ -26,7 +20,6 @@ import {
   AppFilterHeader,
   AppFormRow,
   AppInput,
-  AppInputNumber,
   AppSelect,
   AppSkeleton,
   AppTag,
@@ -70,23 +63,6 @@ const toGroupOptions = (rows) =>
     text: item.name || item.id,
   }));
 
-const computeChargePreview = (amountValue, unitValue, currencyIndex) => {
-  const amount = Number.parseFloat(`${amountValue ?? ''}`);
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return 0;
-  }
-  const normalizedUnit = (unitValue || YYC_UNIT).toString().trim().toUpperCase();
-  if (normalizedUnit === YYC_UNIT) {
-    return Math.round(amount);
-  }
-  const currency = currencyIndex[normalizedUnit];
-  const rate = Number(currency?.charge_rate || 0);
-  if (!Number.isFinite(rate) || rate <= 0) {
-    return 0;
-  }
-  return Math.round(amount * rate);
-};
-
 const normalizeFaceValueAmount = (data) => `${Number(data?.quota_amount_snapshot || 0)}`;
 const normalizeFaceValueUnit = (data) => (data?.quota_currency_snapshot || 'YYC').toString().trim().toUpperCase();
 
@@ -98,8 +74,6 @@ const formatGroupLabel = (data) => {
   const id = (data?.group_id || '').toString().trim();
   return id || '-';
 };
-
-const resolveCreditedChargeAmount = (data) => Number(data?.quota_amount_snapshot || 0);
 
 const RedemptionDetail = () => {
   const { t } = useTranslation();
@@ -132,11 +106,6 @@ const RedemptionDetail = () => {
     const normalized = from.trim();
     return normalized.startsWith('/') ? normalized : '';
   })();
-
-  const chargePreview = useMemo(
-    () => computeChargePreview(inputs.face_value_amount, inputs.face_value_unit, currencyIndex),
-    [currencyIndex, inputs.face_value_amount, inputs.face_value_unit]
-  );
 
   const syncInputs = useCallback((data) => {
     setInputs({
@@ -395,84 +364,16 @@ const RedemptionDetail = () => {
                     />
                   </AppField>
                 </AppFormRow>
-	                {false && <AppFormRow>
-	                  {isEditing && false ? (
-	                    <AppField label={t('redemption.edit.face_value_amount')}>
-	                      <AppCompact className='router-section-input-with-unit' block>
-	                        <AppInputNumber
-	                          className='router-section-input router-section-input-with-unit-field'
-	                          fluid
-	                          name='face_value_amount'
-	                          value={inputs.face_value_amount}
-	                          placeholder={t('redemption.edit.face_value_amount_placeholder')}
-	                          onChange={handleInputChange}
-	                          step={inputs.face_value_unit === YYC_UNIT ? 1 : 0.01}
-	                          min={0}
-	                        />
-	                        <UnitDropdown
-	                          variant='inputUnit'
-	                          name='face_value_unit'
-	                          placeholder={t('redemption.edit.face_value_unit_placeholder')}
-	                          options={unitOptions}
-	                          value={inputs.face_value_unit}
-	                          onChange={handleInputChange}
-	                        />
-	                      </AppCompact>
-	                    </AppField>
-	                  ) : (
-                    <AppField label='权益额度' readOnly>
-                      <AppInput
-                        className='router-section-input'
-                        value={formatAmountWithUnit(
-                          redemption?.quota_amount_snapshot || 0,
-                          redemption?.quota_currency_snapshot || 'YYC'
-                        )}
-                        readOnly
-                      />
-                    </AppField>
-                  )}
-	                  {isEditing && !redemption?.entitlement_product_id ? (
-	                    <AppField label={t('redemption.edit.credit_yyc')} readOnly>
-	                      <AppInput
-	                        className='router-section-input'
-	                        value={chargePreview > 0 ? formatCreditAmount(chargePreview) : '-'}
-	                        readOnly
-	                      />
-	                    </AppField>
-	                  ) : (
-	                    <AppField label={t('redemption.table.credited_yyc')} readOnly>
-	                      <AppInput
-	                        className='router-section-input'
-                        value={redemption ? formatCreditAmount(resolveCreditedChargeAmount(redemption)) : ''}
-                        readOnly
-                      />
-                    </AppField>
-                  )}
-	                </AppFormRow>}
 	                <AppFormRow>
-                  {isEditing && false ? (
-                    <AppField label={t('redemption.edit.code_validity_days')}>
-                      <AppInputNumber
-                        className='router-section-input'
-                        fluid
-                        name='code_validity_days'
-                        value={inputs.code_validity_days}
-                        placeholder={t('redemption.edit.code_validity_days_placeholder')}
-                        onChange={handleInputChange}
-                        min={0}
-                      />
-                    </AppField>
-                  ) : (
-                    <AppField label={t('redemption.detail.code_validity_days')} readOnly>
-                      <AppInput
-                        className='router-section-input'
-                        value={Number(redemption?.code_validity_days || 0) > 0
-                          ? `${Number(redemption?.code_validity_days || 0)} ${t('common.day')}`
-                          : t('common.never')}
-                        readOnly
-                      />
-                    </AppField>
-                  )}
+                  <AppField label={t('redemption.detail.code_validity_days')} readOnly>
+                    <AppInput
+                      className='router-section-input'
+                      value={Number(redemption?.code_validity_days || 0) > 0
+                        ? `${Number(redemption?.code_validity_days || 0)} ${t('common.day')}`
+                        : t('common.never')}
+                      readOnly
+                    />
+                  </AppField>
                   {/* credit_validity_days 后端更新接口不支持写入,故仅只读展示 */}
                   <AppField label={t('redemption.detail.credit_validity_days')} readOnly>
                     <AppInput
