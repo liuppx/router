@@ -2111,6 +2111,7 @@
     }
   },
   "log": {
+    "drilldown": { "view": "查看日志" },
     "cleanup": {
       "label": "删除此时间之前的日志",
       "button": "删除历史日志",

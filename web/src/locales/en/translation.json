@@ -2111,6 +2111,7 @@
     }
   },
   "log": {
+    "drilldown": { "view": "View logs" },
     "cleanup": {
       "label": "Delete logs before",
       "button": "Delete Historical Logs",

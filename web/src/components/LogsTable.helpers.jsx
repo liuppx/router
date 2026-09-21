@@ -439,6 +439,26 @@ export function parseLogFiltersFromSearch(search, isAdminScope) {
   };
 }
 
+// Build a deep-link into the log page pre-filtered by a single entity, e.g.
+// a channel row → `/admin/log?channel=<id>`. `scope` picks the log surface
+// ('admin' → /admin/log, 'workspace' → /workspace/log). Only non-empty filter
+// keys are appended, and the keys mirror parseLogFiltersFromSearch above so the
+// round-trip (build → parse) stays consistent.
+export function buildLogDrilldownPath(scope, filters = {}) {
+  const base = scope === 'workspace' ? '/workspace/log' : '/admin/log';
+  const params = new URLSearchParams();
+  ['channel', 'group_id', 'username', 'token_name', 'model_name'].forEach(
+    (key) => {
+      const value = (filters[key] ?? '').toString().trim();
+      if (value !== '') {
+        params.set(key, value);
+      }
+    },
+  );
+  const query = params.toString();
+  return query === '' ? base : `${base}?${query}`;
+}
+
 export function currentDatetimeLocalValue() {
   const now = new Date();
   const year = now.getFullYear();
