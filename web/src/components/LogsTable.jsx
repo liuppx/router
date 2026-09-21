@@ -33,6 +33,7 @@ import {
 import {
   AppButton,
   AppEmpty,
+  AppErrorState,
   AppFilterHeader,
   AppFormActions,
   AppModal,
@@ -559,6 +560,7 @@ const LogsTable = () => {
   );
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [activePage, setActivePage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [tableSorter, setTableSorter] = useState({
@@ -1155,20 +1157,28 @@ const LogsTable = () => {
       } else {
         url = `/api/v1/public/log?page=${normalizedPage}&type=${queryLogType}&token_name=${queryTokenName}&model_name=${queryModelName}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`;
       }
-      const res = await API.get(url);
-      const { success, message, data, meta } = res.data;
-      if (success) {
-        const normalizedRows = Array.isArray(data) ? data.map(normalizeLogEntry) : [];
-        setTotalCount(Number(meta?.total || data?.length || 0));
-        if (normalizedPage === 1) {
-          setLogs(normalizedRows);
+      try {
+        const res = await API.get(url);
+        const { success, message, data, meta } = res.data;
+        if (success) {
+          setLoadError(false);
+          const normalizedRows = Array.isArray(data) ? data.map(normalizeLogEntry) : [];
+          setTotalCount(Number(meta?.total || data?.length || 0));
+          if (normalizedPage === 1) {
+            setLogs(normalizedRows);
+          } else {
+            setLogs((prev) => writePagedRows(prev, normalizedPage, ITEMS_PER_PAGE, normalizedRows));
+          }
         } else {
-          setLogs((prev) => writePagedRows(prev, normalizedPage, ITEMS_PER_PAGE, normalizedRows));
+          if (normalizedPage === 1) setLoadError(true);
+          showError(message);
         }
-      } else {
-        showError(message);
+      } catch (error) {
+        if (normalizedPage === 1) setLoadError(true);
+        showError(error?.message || error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     },
     [
       isAdminScope,
@@ -1905,6 +1915,12 @@ const LogsTable = () => {
           locale={{
             emptyText: loading ? (
               t('common.loading')
+            ) : loadError ? (
+              <AppErrorState
+                message={t('common.load_failed')}
+                onRetry={refresh}
+                retryText={t('common.retry')}
+              />
             ) : (
               <AppEmpty
                 action={

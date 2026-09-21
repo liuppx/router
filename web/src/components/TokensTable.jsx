@@ -28,6 +28,7 @@ import {
 import {
   AppButton,
   AppEmpty,
+  AppErrorState,
   AppFilterHeader,
   AppIcon,
   AppInput,
@@ -147,6 +148,7 @@ const TokensTable = () => {
 
   const [tokens, setTokens] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [activePage, setActivePage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
@@ -168,23 +170,31 @@ const TokensTable = () => {
   const loadTokens = useCallback(
     async (page) => {
       const normalizedPage = Number(page) > 0 ? Number(page) : 1;
-      const res = await API.get(`/api/v1/public/token/?page=${normalizedPage}`);
-      const { success, message, data, meta } = res.data;
-      if (success) {
-        const normalizedRows = Array.isArray(data)
-          ? data.map(normalizeTokenRow).filter(Boolean)
-          : [];
-        setIsSearchMode(false);
-        setTotalCount(Number(meta?.total || normalizedRows?.length || 0));
-        if (normalizedPage === 1) {
-          setTokens(normalizedRows);
+      try {
+        const res = await API.get(`/api/v1/public/token/?page=${normalizedPage}`);
+        const { success, message, data, meta } = res.data;
+        if (success) {
+          setLoadError(false);
+          const normalizedRows = Array.isArray(data)
+            ? data.map(normalizeTokenRow).filter(Boolean)
+            : [];
+          setIsSearchMode(false);
+          setTotalCount(Number(meta?.total || normalizedRows?.length || 0));
+          if (normalizedPage === 1) {
+            setTokens(normalizedRows);
+          } else {
+            setTokens((prev) => writePagedRows(prev, normalizedPage, ITEMS_PER_PAGE, normalizedRows));
+          }
         } else {
-          setTokens((prev) => writePagedRows(prev, normalizedPage, ITEMS_PER_PAGE, normalizedRows));
+          if (normalizedPage === 1) setLoadError(true);
+          showError(message);
         }
-      } else {
-        showError(message);
+      } catch (error) {
+        if (normalizedPage === 1) setLoadError(true);
+        showError(error?.message || error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     },
     [],
   );
@@ -477,6 +487,12 @@ const TokensTable = () => {
           locale={{
             emptyText: loading ? (
               t('common.loading')
+            ) : loadError ? (
+              <AppErrorState
+                message={t('common.load_failed')}
+                onRetry={refresh}
+                retryText={t('common.retry')}
+              />
             ) : (
               <AppEmpty
                 action={

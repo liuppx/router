@@ -8,6 +8,8 @@ import {
 } from '../../constants/tableWidthPresets';
 import {
   AppButton,
+  AppEmpty,
+  AppErrorState,
   AppFilterHeader,
   AppFormActions,
   AppPagination,
@@ -252,6 +254,7 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
     return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
   });
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [filters, setFilters] = useState(() => ({
     type: (initialQuery.get('type') || '').trim(),
     status: (initialQuery.get('status') || '').trim(),
@@ -509,13 +512,16 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
         });
         const { success, message, data } = res.data || {};
         if (!success) {
+          setLoadError(true);
           showError(message || t('task.messages.load_failed'));
           return;
         }
+        setLoadError(false);
         setItems(Array.isArray(data?.items) ? data.items : []);
         setTotal(Number(data?.total || 0));
         setPage(Number(data?.page || targetPage || 1));
       } catch (error) {
+        setLoadError(true);
         showError(error?.message || t('task.messages.load_failed'));
       } finally {
         setLoading(false);
@@ -1074,7 +1080,19 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
               scroll={{ x: TASK_LIST_TABLE_MIN_WIDTH }}
               rowKey={(item) => getTaskId(item)}
               dataSource={items}
-              locale={{ emptyText: loading ? t('common.loading') : t('task.empty') }}
+              locale={{
+                emptyText: loading ? (
+                  t('common.loading')
+                ) : loadError ? (
+                  <AppErrorState
+                    message={t('common.load_failed')}
+                    onRetry={() => loadTasks(page)}
+                    retryText={t('common.retry')}
+                  />
+                ) : (
+                  <AppEmpty>{t('task.empty')}</AppEmpty>
+                ),
+              }}
               onRow={(item) => {
                 const taskId = getTaskId(item);
                 return {
