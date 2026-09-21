@@ -2661,6 +2661,10 @@
       "failed_users": "失败用户"
     },
     "search": "搜索用户或钱包ID...",
+    "filter": {
+      "status_all": "全部状态",
+      "role_all": "全部身份"
+    },
     "table": {
       "id": "ID",
       "username": "用户名",

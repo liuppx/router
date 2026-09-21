@@ -14,6 +14,7 @@ import {
   withCardLabels,
 } from '../helpers';
 import { useTranslation } from 'react-i18next';
+import useUrlState from '../hooks/useUrlState';
 import UnitDropdown from './UnitDropdown';
 import UserSectionTabs from './UserSectionTabs';
 
@@ -178,7 +179,18 @@ const UsersTable = () => {
   const [activePage, setActivePage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const [
+    { status: statusFilter, role: roleFilter, keyword: searchKeyword },
+    patchQuery,
+  ] = useUrlState({
+    status: { param: 'status', default: 'all' },
+    role: { param: 'role', default: 'all' },
+    keyword: { param: 'q', default: '' },
+  });
+  const setSearchKeyword = useCallback(
+    (value) => patchQuery({ keyword: (value || '').toString() }),
+    [patchQuery],
+  );
   const [searching, setSearching] = useState(false);
   const [focusLabel, setFocusLabel] = useState('');
   const [focusTotal, setFocusTotal] = useState(0);
@@ -210,10 +222,16 @@ const UsersTable = () => {
   const [batchTopupResult, setBatchTopupResult] = useState(null);
 
   const loadUsers = useCallback(
-    async (page) => {
+    async (page, { status = 'all', role = 'all' } = {}) => {
       const normalizedPage = Number(page) > 0 ? Number(page) : 1;
       try {
-        const res = await API.get(`/api/v1/admin/user/?page=${normalizedPage}`);
+        const params = new URLSearchParams();
+        params.set('page', String(normalizedPage));
+        const normalizedStatus = (status || 'all').toString();
+        const normalizedRole = (role || 'all').toString();
+        if (normalizedStatus !== 'all') params.set('status', normalizedStatus);
+        if (normalizedRole !== 'all') params.set('role', normalizedRole);
+        const res = await API.get(`/api/v1/admin/user/?${params.toString()}`);
         const { success, message, data, meta } = res.data;
         if (success) {
           setLoadError(false);
@@ -277,22 +295,29 @@ const UsersTable = () => {
     setLoading(false);
   }, []);
 
+  const locationSearch = location.search || '';
+  const focusParams = useMemo(() => {
+    const params = new URLSearchParams(locationSearch);
+    return {
+      ids: (params.get('focus_ids') || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+      name: (params.get('focus_name') || '').trim(),
+      total: Number(params.get('focus_total') || 0),
+    };
+  }, [locationSearch]);
+  const focusKey = focusParams.ids.join(',');
+
   const refresh = async () => {
     setLoading(true);
-    const params = new URLSearchParams(location.search || '');
-    const focusIDs = (params.get('focus_ids') || '')
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-    const focusName = (params.get('focus_name') || '').trim();
-    const focusTotalHint = Number(params.get('focus_total') || 0);
-    if (focusIDs.length > 0) {
-      await loadUsersByIDs(focusIDs, focusName, focusTotalHint);
+    if (focusParams.ids.length > 0) {
+      await loadUsersByIDs(focusParams.ids, focusParams.name, focusParams.total);
       return;
     }
     setIsFocusMode(false);
     setFocusTotal(0);
-    await loadUsers(activePage);
+    await loadUsers(activePage, { status: statusFilter, role: roleFilter });
   };
 
   const loadTopupPlanOptions = useCallback(async () => {
@@ -322,40 +347,44 @@ const UsersTable = () => {
       const nextPage = Number(activePage) > 0 ? Number(activePage) : 1;
       const hasLoadedPageRows = hasLoadedPagedRows(users, nextPage, ITEMS_PER_PAGE);
       if (!isSearchMode && !hasLoadedPageRows) {
-        await loadUsers(nextPage);
+        await loadUsers(nextPage, { status: statusFilter, role: roleFilter });
       }
       setActivePage(nextPage);
     })();
   };
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search || '');
-    const focusIDs = (params.get('focus_ids') || '')
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-    const focusName = (params.get('focus_name') || '').trim();
-    const focusTotalHint = Number(params.get('focus_total') || 0);
     setLoading(true);
-    if (focusIDs.length > 0) {
-      loadUsersByIDs(focusIDs, focusName, focusTotalHint).catch((reason) => {
-        setLoadError(true);
-        showError(reason?.message || reason);
-        setLoading(false);
-      });
+    if (focusParams.ids.length > 0) {
+      loadUsersByIDs(focusParams.ids, focusParams.name, focusParams.total).catch(
+        (reason) => {
+          setLoadError(true);
+          showError(reason?.message || reason);
+          setLoading(false);
+        },
+      );
       return;
     }
     setFocusLabel('');
     setFocusTotal(0);
     setIsFocusMode(false);
-    loadUsers(1)
+    setActivePage(1);
+    loadUsers(1, { status: statusFilter, role: roleFilter })
       .then()
       .catch((reason) => {
         setLoadError(true);
         showError(reason);
         setLoading(false);
       });
-  }, [loadUsers, loadUsersByIDs, location.search]);
+  }, [
+    loadUsers,
+    loadUsersByIDs,
+    focusKey,
+    focusParams.name,
+    focusParams.total,
+    statusFilter,
+    roleFilter,
+  ]);
 
   useEffect(() => {
     let disposed = false;
@@ -535,7 +564,7 @@ const UsersTable = () => {
     setIsFocusMode(false);
     if (searchKeyword === '') {
       // if keyword is blank, load files instead.
-      await loadUsers(1);
+      await loadUsers(1, { status: statusFilter, role: roleFilter });
       setActivePage(1);
       return;
     }
@@ -571,8 +600,11 @@ const UsersTable = () => {
   }, [navigate]);
 
   useEffect(() => {
-    if (!initializedSearchRef.current) {
-      initializedSearchRef.current = true;
+    const firstRun = !initializedSearchRef.current;
+    initializedSearchRef.current = true;
+    if (firstRun && searchKeyword === '') {
+      // Initial list load is owned by the filter effect; only auto-run search
+      // on mount when a keyword was restored from the URL.
       return undefined;
     }
     if (isFocusMode && searchKeyword === '') {
@@ -777,6 +809,39 @@ const UsersTable = () => {
                 onChange={handleKeywordChange}
               />
             </div>
+            <AppSelect
+              className='router-section-select'
+              value={statusFilter}
+              onChange={(_, { value }) => patchQuery({ status: value })}
+              options={[
+                { value: 'all', label: t('user.filter.status_all') },
+                { value: '1', label: t('user.table.status_types.activated') },
+                { value: '2', label: t('user.table.status_types.banned') },
+              ]}
+            />
+            <AppSelect
+              className='router-section-select'
+              value={roleFilter}
+              onChange={(_, { value }) => patchQuery({ role: value })}
+              options={[
+                { value: 'all', label: t('user.filter.role_all') },
+                { value: '1', label: t('user.table.role_types.normal') },
+                { value: '10', label: t('user.table.role_types.admin') },
+              ]}
+            />
+            <AppButton
+              className='router-section-button'
+              disabled={
+                statusFilter === 'all' &&
+                roleFilter === 'all' &&
+                searchKeyword === ''
+              }
+              onClick={() =>
+                patchQuery({ status: 'all', role: 'all', keyword: '' })
+              }
+            >
+              {t('common.clear_filters')}
+            </AppButton>
             {focusLabel ? (
               <AppTag className='router-tag'>{focusLabel}</AppTag>
             ) : null}

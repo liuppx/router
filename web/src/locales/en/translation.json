@@ -2661,6 +2661,10 @@
       "failed_users": "Failed Users"
     },
     "search": "Search users or wallet ID...",
+    "filter": {
+      "status_all": "All Status",
+      "role_all": "All Roles"
+    },
     "table": {
       "id": "ID",
       "username": "Username",
