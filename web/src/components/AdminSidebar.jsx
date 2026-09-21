@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   buildUnifiedWorkspaceMenuGroups,
+  isAdminItemActive,
   isAdminRouteActive,
 } from '../constants/adminMenu';
 import { isUserRouteActive } from '../constants/userMenu';
@@ -69,12 +70,17 @@ const AdminSidebar = ({ compact = false }) => {
       ? isAdminRouteActive(location, to)
       : isUserRouteActive(location, to);
 
+  // An entity item highlights on its primary `to` OR any of its face routes
+  // (`matchPaths`), each routed through the matcher that fits its prefix.
+  const isItemActive = (item) =>
+    isAdminItemActive(location, item, (_loc, path) => isRouteActive(path));
+
   const selectedKeys = useMemo(() => {
     const active = [];
     menuItems.forEach((group) => {
       if (Array.isArray(group.items)) {
         group.items.forEach((item) => {
-          if (isRouteActive(item.to)) {
+          if (isItemActive(item)) {
             active.push(item.to);
           }
         });

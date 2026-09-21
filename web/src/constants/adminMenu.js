@@ -230,6 +230,23 @@ export const isAdminRouteActive = (location, to) => {
   );
 };
 
+// A single sidebar item can stand for one operational entity whose several
+// "faces" live at different routes (e.g. 渠道 = list + health + alerts + tasks).
+// `matchPaths` lists those extra face routes so the item highlights on any of
+// them; the primary `to` stays the entity's default (list) face. Paths may be
+// admin or /workspace/* — the caller picks the right matcher per path.
+export const isAdminItemActive = (location, item, routeMatcher) => {
+  if (!item) {
+    return false;
+  }
+  const match =
+    typeof routeMatcher === 'function' ? routeMatcher : isAdminRouteActive;
+  if (match(location, item.to)) {
+    return true;
+  }
+  return (item.matchPaths || []).some((path) => match(location, path));
+};
+
 export const isAdminGroupActive = (location, group) =>
   Array.isArray(group?.items) &&
   group.items.some((item) => isAdminRouteActive(location, item.to));
