@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { API, showError } from '../../../helpers';
+import { API, showError, withCardLabels } from '../../../helpers';
 import { exportCSV } from '../../../helpers/csv';
 import { formatDecimalNumber } from '../../../helpers/render';
 import {
@@ -509,7 +509,7 @@ function BillingPricingAnalysis() {
               </ResponsiveContainer>
             </div>
           </div>
-          <AppTable className='router-detail-table billing-pricing-analysis-table' size='small' pagination={false} rowKey={(row) => row.dimension_key} dataSource={rows} columns={columns} locale={{ emptyText: t('billing.pricing_analysis.empty') }} />
+          <AppTable className='router-detail-table billing-pricing-analysis-table router-table-cardify' size='small' pagination={false} rowKey={(row) => row.dimension_key} dataSource={rows} columns={withCardLabels(columns)} locale={{ emptyText: t('billing.pricing_analysis.empty') }} />
         </AppSection>
         )}
       </AppSpin>

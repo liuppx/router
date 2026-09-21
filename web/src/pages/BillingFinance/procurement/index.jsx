@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { API, showError, showInfo, showSuccess, timestamp2string } from '../../../helpers';
+import { API, showError, showInfo, showSuccess, timestamp2string, withCardLabels } from '../../../helpers';
 import { exportCSV } from '../../../helpers/csv';
 import { formatDecimalNumber } from '../../../helpers/render';
 import ChannelDetailBillingTab from '../../Channel/components/ChannelDetailBillingTab';
@@ -1291,10 +1291,10 @@ function BillingProcurementReport() {
             <h2>{t('billing.procurement_report.title')}</h2>
           </div>
           <AppTable
-            className='router-detail-table router-table-fit-page billing-procurement-report-table'
+            className='router-detail-table router-table-fit-page billing-procurement-report-table router-table-cardify'
             rowKey={(row) => `${row.dimension_type}-${row.dimension_key}`}
             dataSource={report.items}
-            columns={columns}
+            columns={withCardLabels(columns)}
             pagination={false}
             scroll={{ x: groupBy === 'model' ? 1470 : 1250 }}
             locale={{
@@ -1316,10 +1316,10 @@ function BillingProcurementReport() {
             </AppButton>
           </div>
           <AppTable
-            className='router-detail-table router-table-fit-page billing-procurement-report-table'
+            className='router-detail-table router-table-fit-page billing-procurement-report-table router-table-cardify'
             rowKey='id'
             dataSource={retryItems}
-            columns={retryColumns}
+            columns={withCardLabels(retryColumns)}
             pagination={false}
             loading={retryLoading}
             scroll={{ x: 1470 }}

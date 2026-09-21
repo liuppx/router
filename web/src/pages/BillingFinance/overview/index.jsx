@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { API, showError, timestamp2string } from '../../../helpers';
+import { API, showError, timestamp2string, withCardLabels } from '../../../helpers';
 import { formatDecimalNumber } from '../../../helpers/render';
 import {
   BILLING_DECIMALS,
@@ -489,7 +489,7 @@ function BillingOverview() {
         <section className='billing-overview-section'>
           <div className='billing-overview-section-heading'><h2>{t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.title`)}</h2><div className='billing-overview-section-controls'><AppSegmented options={[{ value: 'channel', label: t('billing.overview.channels.title') }, { value: 'model', label: t('billing.overview.models.title') }]} value={dimension} onChange={(e, { value }) => setDimension(value)} /><Link to={buildTarget(dimension === 'channel' ? '/admin/finance/procurement' : '/admin/finance/profit')}>{t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.view_details`)}</Link></div></div>
           <div className='billing-overview-table-note'>{t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.sorted_note`)}</div>
-          <AppTable className='router-detail-table' size='small' pagination={false} rowKey={(row) => row.dimension_key} dataSource={activeDimensionRows} columns={activeDimensionColumns} scroll={{ x: dimension === 'channel' ? 1000 : 840 }} locale={{ emptyText: t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.empty`) }} />
+          <AppTable className='router-detail-table router-table-cardify' size='small' pagination={false} rowKey={(row) => row.dimension_key} dataSource={activeDimensionRows} columns={withCardLabels(activeDimensionColumns)} scroll={{ x: dimension === 'channel' ? 1000 : 840 }} locale={{ emptyText: t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.empty`) }} />
         </section>
         <section className='billing-overview-section'>
           <div className='billing-overview-section-heading'><h2>{t('billing.overview.consistency.title')}</h2><span>{t('billing.overview.consistency.summary', { count: formatCount(consistencyIssues.length) })}</span></div>
