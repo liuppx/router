@@ -70,7 +70,19 @@ func GetMaxUserId() string {
 }
 
 func GetAll(startIdx int, num int, order string) ([]*model.User, error) {
+	return GetAllFiltered(startIdx, num, order, 0, 0)
+}
+
+// GetAllFiltered 列出非删除用户,可选按状态 / 角色过滤。
+// statusFilter / roleFilter 传 0 表示该维度不过滤。
+func GetAllFiltered(startIdx int, num int, order string, statusFilter int, roleFilter int) ([]*model.User, error) {
 	query := model.DB.Limit(num).Offset(startIdx).Omit("password").Where("status != ?", model.UserStatusDeleted)
+	if statusFilter != 0 {
+		query = query.Where("status = ?", statusFilter)
+	}
+	if roleFilter != 0 {
+		query = query.Where("role = ?", roleFilter)
+	}
 
 	switch order {
 	case "quota":
@@ -86,6 +98,20 @@ func GetAll(startIdx int, num int, order string) ([]*model.User, error) {
 	var users []*model.User
 	err := query.Find(&users).Error
 	return users, err
+}
+
+// CountAllFiltered 统计非删除用户总数,过滤条件与 GetAllFiltered 保持一致。
+func CountAllFiltered(statusFilter int, roleFilter int) (int64, error) {
+	query := model.DB.Model(&model.User{}).Where("status != ?", model.UserStatusDeleted)
+	if statusFilter != 0 {
+		query = query.Where("status = ?", statusFilter)
+	}
+	if roleFilter != 0 {
+		query = query.Where("role = ?", roleFilter)
+	}
+	var total int64
+	err := query.Count(&total).Error
+	return total, err
 }
 
 func Search(keyword string) ([]*model.User, error) {

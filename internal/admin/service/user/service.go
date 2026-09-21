@@ -15,6 +15,14 @@ func GetAll(start, num int, order string) ([]*model.User, error) {
 	return userrepo.GetAll(start, num, order)
 }
 
+func GetAllFiltered(start, num int, order string, statusFilter, roleFilter int) ([]*model.User, error) {
+	return userrepo.GetAllFiltered(start, num, order, statusFilter, roleFilter)
+}
+
+func CountAllFiltered(statusFilter, roleFilter int) (int64, error) {
+	return userrepo.CountAllFiltered(statusFilter, roleFilter)
+}
+
 func Search(keyword string) ([]*model.User, error) {
 	return userrepo.Search(keyword)
 }

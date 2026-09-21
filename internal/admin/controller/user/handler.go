@@ -531,14 +531,33 @@ func Register(c *gin.Context) {
 	return
 }
 
+// userMaxPageSize 是用户列表 page_size 的硬上限。
+const userMaxPageSize = 100
+
+// resolveUserPageSize 解析 page_size：缺省用 config.ItemsPerPage,>100 夹到 100,<1 回退缺省。
+func resolveUserPageSize(c *gin.Context) int {
+	pageSize, err := strconv.Atoi(c.Query("page_size"))
+	if err != nil || pageSize < 1 {
+		return config.ItemsPerPage
+	}
+	if pageSize > userMaxPageSize {
+		return userMaxPageSize
+	}
+	return pageSize
+}
+
 func GetAllUsers(c *gin.Context) {
 	page, _ := strconv.Atoi(c.Query("page"))
 	if page < 1 {
 		page = 1
 	}
+	pageSize := resolveUserPageSize(c)
+
+	statusFilter, _ := strconv.Atoi(c.Query("status"))
+	roleFilter, _ := strconv.Atoi(c.Query("role"))
 
 	order := c.DefaultQuery("order", "")
-	users, err := usersvc.GetAll((page-1)*config.ItemsPerPage, config.ItemsPerPage, order)
+	users, err := usersvc.GetAllFiltered((page-1)*pageSize, pageSize, order, statusFilter, roleFilter)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -546,10 +565,8 @@ func GetAllUsers(c *gin.Context) {
 		})
 		return
 	}
-	var total int64
-	if err := model.DB.Model(&model.User{}).
-		Where("status != ?", model.UserStatusDeleted).
-		Count(&total).Error; err != nil {
+	total, err := usersvc.CountAllFiltered(statusFilter, roleFilter)
+	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": err.Error(),
@@ -580,7 +597,7 @@ func GetAllUsers(c *gin.Context) {
 		"meta": gin.H{
 			"total":     total,
 			"page":      page,
-			"page_size": config.ItemsPerPage,
+			"page_size": pageSize,
 		},
 	})
 }
