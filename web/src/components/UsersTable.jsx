@@ -11,6 +11,7 @@ import {
   timestamp2string,
   hasLoadedPagedRows,
   writePagedRows,
+  withCardLabels,
 } from '../helpers';
 import { useTranslation } from 'react-i18next';
 import UnitDropdown from './UnitDropdown';
@@ -811,7 +812,7 @@ const UsersTable = () => {
       <div className='router-table-scroll-x'>
         <AppSpin spinning={loading}>
           <AppTable
-            className='router-hover-table router-list-table router-table-fit-page router-user-list-table'
+            className='router-hover-table router-list-table router-table-fit-page router-user-list-table router-table-cardify'
             pagination={false}
             scroll={{ x: USER_LIST_TABLE_MIN_WIDTH }}
             locale={{
@@ -854,7 +855,7 @@ const UsersTable = () => {
               navigate(`/admin/user/detail/${user.id}`);
             },
           })}
-          columns={[
+          columns={withCardLabels([
           {
             title: t('user.table.username'),
             dataIndex: 'username',
@@ -1086,7 +1087,7 @@ const UsersTable = () => {
               );
             },
           },
-          ]}
+          ])}
           />
         </AppSpin>
       </div>
