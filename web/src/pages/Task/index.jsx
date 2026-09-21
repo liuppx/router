@@ -2,6 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API, showError, showSuccess, timestamp2string } from '../../helpers';
+import useList, {
+  adaptListResponse,
+  sorterToSort,
+  sortOrderForColumn,
+} from '../../hooks/useList';
 import {
   TASK_LIST_COLUMN_WIDTHS,
   TASK_LIST_TABLE_MIN_WIDTH,
@@ -247,14 +252,6 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
     () => new URLSearchParams(location.search),
     [location.search],
   );
-  const [items, setItems] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(() => {
-    const parsed = Number(initialQuery.get('page') || 1);
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
-  });
-  const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
   const [filters, setFilters] = useState(() => ({
     type: (initialQuery.get('type') || '').trim(),
     status: (initialQuery.get('status') || '').trim(),
@@ -290,11 +287,6 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
     users: [],
   });
 
-  const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(total / PAGE_SIZE)),
-    [total],
-  );
-
   const taskTypeOptions = useMemo(
     () => getTaskTypeOptions(t, isUserTaskPage ? 'user' : 'admin'),
     [isUserTaskPage, t],
@@ -308,6 +300,86 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
     () => getTaskOptionsEndpoint(pageKind),
     [pageKind],
   );
+
+  const fetchTasks = useCallback(
+    async ({ page: reqPage, pageSize, orderBy, order }) => {
+      const enabledFilters = new Set(activeFilterKeys);
+      const res = await API.get(endpoint, {
+        params: {
+          page: reqPage,
+          page_size: pageSize,
+          order_by: orderBy || '',
+          order: order || '',
+          type: enabledFilters.has('type') ? filters.type : '',
+          status: enabledFilters.has('status') ? filters.status : '',
+          channel_id: enabledFilters.has('channel_id')
+            ? filters.channel_id.trim()
+            : '',
+          model: enabledFilters.has('model') ? filters.model.trim() : '',
+          user_keyword:
+            isAdminUserTaskPage && enabledFilters.has('user_keyword')
+              ? filters.user_keyword.trim()
+              : '',
+        },
+      });
+      const { success, message } = res.data || {};
+      if (!success) {
+        showError(message || t('task.messages.load_failed'));
+        throw new Error(message || 'load failed');
+      }
+      return adaptListResponse(res.data);
+    },
+    [
+      activeFilterKeys,
+      endpoint,
+      filters.channel_id,
+      filters.model,
+      filters.status,
+      filters.type,
+      filters.user_keyword,
+      isAdminUserTaskPage,
+      t,
+    ],
+  );
+
+  const {
+    rows: items,
+    total,
+    loading,
+    loadError,
+    page,
+    sort,
+    setPage,
+    load: loadTasks,
+    setSort,
+  } = useList({
+    fetcher: fetchTasks,
+    pageSize: PAGE_SIZE,
+    initialPage: (() => {
+      const parsed = Number(initialQuery.get('page') || 1);
+      return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+    })(),
+    initialSort: (() => {
+      const field = (initialQuery.get('order_by') || '').trim();
+      if (field === '') {
+        return null;
+      }
+      return { field, order: (initialQuery.get('order') || '').trim() === 'asc' ? 'asc' : 'desc' };
+    })(),
+  });
+
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(total / PAGE_SIZE)),
+    [total],
+  );
+
+  const handleTableChange = useCallback(
+    (_pagination, _filters, sorter) => {
+      setSort(sorterToSort(sorter));
+    },
+    [setSort],
+  );
+
   const conditionalFilterConfig = useMemo(() => {
     const items = [
       {
@@ -489,60 +561,12 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
     }
   }, [optionsEndpoint, t]);
 
-  const loadTasks = useCallback(
-    async (targetPage = 1) => {
-      setLoading(true);
-      try {
-        const enabledFilters = new Set(activeFilterKeys);
-        const res = await API.get(endpoint, {
-          params: {
-            page: targetPage,
-            page_size: PAGE_SIZE,
-            type: enabledFilters.has('type') ? filters.type : '',
-            status: enabledFilters.has('status') ? filters.status : '',
-            channel_id: enabledFilters.has('channel_id')
-              ? filters.channel_id.trim()
-              : '',
-            model: enabledFilters.has('model') ? filters.model.trim() : '',
-            user_keyword:
-              isAdminUserTaskPage && enabledFilters.has('user_keyword')
-                ? filters.user_keyword.trim()
-                : '',
-          },
-        });
-        const { success, message, data } = res.data || {};
-        if (!success) {
-          setLoadError(true);
-          showError(message || t('task.messages.load_failed'));
-          return;
-        }
-        setLoadError(false);
-        setItems(Array.isArray(data?.items) ? data.items : []);
-        setTotal(Number(data?.total || 0));
-        setPage(Number(data?.page || targetPage || 1));
-      } catch (error) {
-        setLoadError(true);
-        showError(error?.message || t('task.messages.load_failed'));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [
-      activeFilterKeys,
-      endpoint,
-      filters.channel_id,
-      filters.model,
-      filters.status,
-      filters.type,
-      filters.user_keyword,
-      isAdminUserTaskPage,
-      t,
-    ],
-  );
-
+  // Reload page 1 whenever the request shape (filters / endpoint) changes.
+  // `loadTasks` (useList.load) is stable, so `fetchTasks` is the real trigger.
   useEffect(() => {
-    loadTasks(1).then();
-  }, [loadTasks]);
+    loadTasks(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchTasks]);
 
   useEffect(() => {
     loadFilterOptions().then();
@@ -576,6 +600,10 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
     ) {
       query.set('channel_id', filters.channel_id.trim());
     }
+    if (sort?.field) {
+      query.set('order_by', sort.field);
+      query.set('order', sort.order === 'asc' ? 'asc' : 'desc');
+    }
     const nextSearch = query.toString();
     const currentSearch = location.search.startsWith('?')
       ? location.search.slice(1)
@@ -603,6 +631,7 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
     location.pathname,
     navigate,
     page,
+    sort,
     taskPageNavState,
   ]);
 
@@ -1080,6 +1109,7 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
               scroll={{ x: TASK_LIST_TABLE_MIN_WIDTH }}
               rowKey={(item) => getTaskId(item)}
               dataSource={items}
+              onChange={handleTableChange}
               locale={{
                 emptyText: loading ? (
                   t('common.loading')
@@ -1167,6 +1197,8 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
                 key: 'created_at',
                 className: 'router-table-col-datetime',
                 width: TASK_LIST_COLUMN_WIDTHS.createdAt,
+                sorter: true,
+                sortOrder: sortOrderForColumn(sort, 'created_at'),
                 render: (value) => (value ? timestamp2string(value) : '-'),
               },
               {
