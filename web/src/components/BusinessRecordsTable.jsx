@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { API, showError, timestamp2string } from '../helpers';
+import { API, showError, timestamp2string, withCardLabels } from '../helpers';
 import { ITEMS_PER_PAGE } from '../constants';
 import useUrlState, { parsePageParam } from '../hooks/useUrlState';
 import {
@@ -949,7 +949,7 @@ const BusinessRecordsTable = ({
 
       <div className={`router-table-scroll-x ${config.tableWrapperClassName || ''}`.trim()}>
         <AppTable
-          className='router-hover-table router-list-table router-table-fit-page'
+          className='router-hover-table router-list-table router-table-fit-page router-table-cardify'
           pagination={false}
           scroll={{ x: tableMinWidth }}
           rowKey={(row) => row.id || row.transaction_id || row.package_id}
@@ -975,7 +975,7 @@ const BusinessRecordsTable = ({
                 ? { cursor: 'pointer' }
                 : undefined,
           })}
-          columns={visibleColumns.map((column) => ({
+          columns={withCardLabels(visibleColumns.map((column) => ({
             title: column.label,
             key: column.key,
             className: column.cellClassName || '',
@@ -988,7 +988,7 @@ const BusinessRecordsTable = ({
               className: column.headerClassName || '',
             }),
             render: (_, row) => column.render(row),
-          }))}
+          })))}
         />
       </div>
 
