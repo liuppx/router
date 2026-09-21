@@ -766,8 +766,6 @@
         "title_edit": "Edit Provider",
         "title_detail": "Provider Details",
         "detail_basic_title": "Basic Information",
-        "delete_title": "Confirm Delete Provider",
-        "delete_content": "Are you sure you want to delete provider {{provider}}?",
         "delete_model_title": "Confirm Delete Model",
         "delete_model_content": "Delete model {{model}} from this provider? It will no longer be available.",
         "delete_model_batch_title": "Confirm Batch Delete",

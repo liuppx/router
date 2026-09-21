@@ -937,7 +937,6 @@ const ProvidersManager = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [deletingRow, setDeletingRow] = useState(null);
   const [creating, setCreating] = useState(false);
   const [createRow, setCreateRow] = useState(createEmptyRow());
   const [viewingProvider, setViewingProvider] = useState('');
@@ -1652,17 +1651,6 @@ const ProvidersManager = () => {
     }
   }
 
-  const openDeleteModal = (row) => {
-    if (saving || creating) return;
-    if (!row) return;
-    setDeletingRow(row);
-  };
-
-  const closeDeleteModal = () => {
-    if (saving) return;
-    setDeletingRow(null);
-  };
-
   const closeModelDeleteModal = () => {
     if (saving || creating) return;
     setModelDeleteConfirmOpen(false);
@@ -1673,33 +1661,6 @@ const ProvidersManager = () => {
     if (saving || creating) return;
     setModelBatchDeleteConfirmOpen(false);
     setPendingModelBatchDeleteIndexes([]);
-  };
-
-  const confirmDeleteRow = async () => {
-    const provider = normalizeProvider(deletingRow?.id || '');
-    if (!provider) {
-      setDeletingRow(null);
-      return;
-    }
-    setSaving(true);
-    try {
-      const res = await API.delete(`/api/v1/admin/providers/${provider}`);
-      const { success, message } = res.data || {};
-      if (!success) {
-        showError(message || t('channel.providers.dialog.delete_confirm'));
-        return;
-      }
-      showSuccess(t('channel.providers.dialog.delete_confirm'));
-      if (viewingProvider === provider) {
-        closeViewer();
-      }
-      await reloadCatalog();
-      setDeletingRow(null);
-    } catch (error) {
-      showError(error);
-    } finally {
-      setSaving(false);
-    }
   };
 
   const saveViewerSection = async (section) => {
@@ -3781,50 +3742,6 @@ const ProvidersManager = () => {
     </div>
   );
 
-  const renderDeleteModal = () => {
-    const providerName =
-      formatProviderDisplayName(deletingRow?.id, deletingRow?.name) ||
-      formatProviderDisplayId(deletingRow?.id) ||
-      '-';
-    return (
-      <AppModal
-        open={!!deletingRow}
-        onClose={closeDeleteModal}
-        size='tiny'
-        closeOnDimmerClick={!saving}
-        title={t('channel.providers.dialog.delete_title')}
-        footer={[
-          <AppButton
-            key='cancel'
-            type='button'
-            className='router-modal-button'
-            onClick={closeDeleteModal}
-            disabled={saving}
-          >
-            {t('channel.providers.dialog.cancel_create')}
-          </AppButton>,
-          <AppButton
-            key='confirm'
-            type='button'
-            className='router-modal-button'
-            color='red'
-            loading={saving}
-            disabled={saving}
-            onClick={confirmDeleteRow}
-          >
-            {t('channel.providers.dialog.delete_confirm')}
-          </AppButton>,
-        ]}
-      >
-        <div>
-          {t('channel.providers.dialog.delete_content', {
-            provider: providerName,
-          })}
-        </div>
-      </AppModal>
-    );
-  };
-
   const renderModelDeleteModal = () => {
     const sourceRow = cloneEditableRow(viewRow);
     const details = Array.isArray(sourceRow?.model_details)
@@ -4052,7 +3969,6 @@ const ProvidersManager = () => {
 
   return (
     <div>
-      {renderDeleteModal()}
       {renderModelDetailEditorModal()}
       {renderModelDeleteModal()}
       {renderModelBatchDeleteModal()}

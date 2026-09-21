@@ -28,7 +28,7 @@ const PaymentRecordsPageInner = () => {
         ]}
         title={t('topup.payment_history.title')}
       />
-      <TopUpRecordsPage recordKey='payment' embedded />
+      <TopUpRecordsPage embedded />
     </div>
   );
 };

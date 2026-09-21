@@ -57,7 +57,7 @@ identity:
   # Node 信任包目录，包含 issuer-metadata.json、jwks.json、manifest.json。
   # 插件钱包身份登录使用该目录本地校验 JWT-VC 凭证。
   trust_dir: "/data/node"
-  # 在 Node 应用中心发布的 Router 应用 ID。
+  # 在 Node 应用中心发布的 Router 稳定应用 ID；版本升级必须复用同一个值。
   # 仅用于无钱包插件的通行证登录。
   app_id: ""
   # 可选。留空时使用 server.public_url + /api/v1/public/oauth/identity/callback。

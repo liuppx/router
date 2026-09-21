@@ -44,7 +44,7 @@ const TopUpLayout = () => {
       case 'history':
         return <QuotaHistoryPageInner embedded />;
       case 'records':
-        return <TopUpRecordsPage recordKey='payment' embedded />;
+        return <TopUpRecordsPage embedded />;
       case 'logs':
         return <Log embedded />;
       case 'quota':

@@ -766,8 +766,6 @@
         "title_edit": "编辑厂家",
         "title_detail": "厂家详情",
         "detail_basic_title": "基础信息",
-        "delete_title": "确认删除厂家",
-        "delete_content": "确定要删除厂家 {{provider}} 吗？",
         "delete_model_title": "确认删除模型",
         "delete_model_content": "确定要从厂家中删除模型 {{model}} 吗？删除后该模型将不再可用。",
         "delete_model_batch_title": "确认批量删除模型",
