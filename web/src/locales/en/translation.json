@@ -602,7 +602,8 @@
       "providers": "Providers",
       "list": "List",
       "health": "Health",
-      "alerts": "Alerts"
+      "alerts": "Alerts",
+      "tasks": "System tasks"
     },
     "search": "Search channels by identifier...",
     "table": {

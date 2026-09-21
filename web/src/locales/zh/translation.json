@@ -602,7 +602,8 @@
       "providers": "厂家",
       "list": "列表",
       "health": "健康",
-      "alerts": "告警"
+      "alerts": "告警",
+      "tasks": "系统任务"
     },
     "search": "搜索渠道标识...",
     "table": {
