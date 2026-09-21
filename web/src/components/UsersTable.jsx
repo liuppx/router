@@ -32,6 +32,7 @@ import {
   resolvePreferredDisplayCurrency,
   chargeAmountToBillingInputValue,
 } from '../helpers/billing';
+import useBatchRowActions from '../hooks/useBatchRowActions';
 import {
   AppButton,
   AppEmpty,
@@ -192,8 +193,12 @@ const UsersTable = () => {
   const [balanceUnit, setBalanceUnit] = useState(() =>
     resolvePreferredDisplayCurrency(buildPublicDisplayCurrencyIndex([]), 'USD'),
   );
-  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-  const [batchSelectionMode, setBatchSelectionMode] = useState(false);
+  const batchActions = useBatchRowActions();
+  const {
+    isSelecting: batchSelectionMode,
+    selectedRowKeys,
+    setSelectedRowKeys,
+  } = batchActions;
   const [topupPlanOptions, setTopupPlanOptions] = useState([]);
   const [topupPlanOptionsLoading, setTopupPlanOptionsLoading] = useState(false);
   const [batchTopupOpen, setBatchTopupOpen] = useState(false);
@@ -449,17 +454,16 @@ const UsersTable = () => {
   }, [selectedRowKeys.length, t]);
 
   const enterBatchSelectionMode = useCallback(() => {
-    setBatchSelectionMode(true);
-  }, []);
+    batchActions.enter();
+  }, [batchActions]);
 
   const cancelBatchSelectionMode = useCallback(() => {
     if (batchTopupSubmitting) {
       return;
     }
-    setBatchSelectionMode(false);
-    setSelectedRowKeys([]);
+    batchActions.exit();
     setBatchTopupResult(null);
-  }, [batchTopupSubmitting]);
+  }, [batchActions, batchTopupSubmitting]);
 
   const closeBatchTopupModal = useCallback(() => {
     if (batchTopupSubmitting) {
@@ -514,7 +518,7 @@ const UsersTable = () => {
       if (result.failed === 0) {
         setBatchTopupForm({ plan_id: '' });
         setBatchTopupOpen(false);
-        setBatchSelectionMode(false);
+        batchActions.exit();
       }
       await refresh();
     } catch (error) {

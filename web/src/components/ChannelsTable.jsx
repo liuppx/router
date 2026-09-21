@@ -20,6 +20,7 @@ import {
   getChannelProtocolOptions,
   loadChannelProtocolOptions,
 } from '../helpers/helper';
+import useBatchRowActions from '../hooks/useBatchRowActions';
 import {
   AppButton,
   AppEmpty,
@@ -121,6 +122,9 @@ const ChannelsTable = () => {
   const [searching, setSearching] = useState(false);
   const [disableBlockedImpact, setDisableBlockedImpact] = useState(null);
   const [statusMutatingId, setStatusMutatingId] = useState('');
+  const [batchRunning, setBatchRunning] = useState(false);
+  const batchActions = useBatchRowActions();
+  const { isSelecting: isBatchSelecting, selectedCount: batchSelectedCount } = batchActions;
   const currentPagePath = `${location.pathname}${location.search}${location.hash}`;
   const [tableSorter, setTableSorter] = useState({
     columnKey: 'created_time',
@@ -276,6 +280,80 @@ const ChannelsTable = () => {
     }
   };
 
+  // Batch enable/disable by looping the existing per-row PUT. The backend has
+  // no batch endpoint for channel status, so we serialize N PUTs and report a
+  // single aggregated result toast (success count / failure count) at the end
+  // rather than showing the first error and dropping the rest.
+  const runBatchToggle = useCallback(
+    async (action) => {
+      if (batchRunning) {
+        return;
+      }
+      if (action !== 'enable' && action !== 'disable') {
+        return;
+      }
+      const targetStatus = action === 'enable' ? 1 : 2;
+      const keys = batchActions.selectedRowKeys;
+      if (keys.length === 0) {
+        showInfo(t('channel.batch.select_required'));
+        return;
+      }
+      setBatchRunning(true);
+      let successCount = 0;
+      const failures = [];
+      for (const id of keys) {
+        try {
+          const res = await API.put('/api/v1/admin/channel/', {
+            id,
+            status: targetStatus,
+          });
+          if (res?.data?.success) {
+            successCount += 1;
+          } else {
+            failures.push({ id, message: res?.data?.message || '-' });
+          }
+        } catch (error) {
+          failures.push({
+            id,
+            message: error?.message || String(error),
+          });
+        }
+      }
+      setBatchRunning(false);
+      const failedCount = failures.length;
+      if (failedCount === 0) {
+        showSuccess(
+          t(
+            action === 'enable'
+              ? 'channel.batch.enable_all_success'
+              : 'channel.batch.disable_all_success',
+            { count: successCount },
+          ),
+        );
+      } else if (successCount === 0) {
+        showError(
+          t(
+            action === 'enable'
+              ? 'channel.batch.enable_all_failed'
+              : 'channel.batch.disable_all_failed',
+            { count: failedCount },
+          ),
+        );
+      } else {
+        showError(
+          t('channel.batch.partial', {
+            success: successCount,
+            failed: failedCount,
+          }),
+        );
+      }
+      batchActions.exit();
+      setLoading(true);
+      await loadChannels({ page: activePage, keyword: searchKeyword });
+    },
+    [activePage, batchActions, batchRunning, loadChannels, searchKeyword, t],
+  );
+
   const statusTooltipText = (status, t) => {
     switch (status) {
       case 1:
@@ -412,16 +490,74 @@ const ChannelsTable = () => {
             <AppButton
               className='router-page-button'
               color='blue'
-              disabled={actionBusy}
+              disabled={actionBusy || isBatchSelecting}
               onClick={() => navigate('/admin/channel/add')}
             >
               {t('channel.buttons.add')}
             </AppButton>
+            {isBatchSelecting ? (
+              <>
+                <AppPopconfirm
+                  title={t('channel.batch.confirm_enable', {
+                    count: batchSelectedCount,
+                  })}
+                  okText={t('common.confirm')}
+                  cancelText={t('common.cancel')}
+                  disabled={batchSelectedCount === 0 || batchRunning}
+                  onConfirm={() => runBatchToggle('enable')}
+                >
+                  <AppButton
+                    className='router-page-button'
+                    disabled={batchSelectedCount === 0 || batchRunning}
+                    loading={batchRunning}
+                  >
+                    {t('channel.batch.enable_selected', {
+                      count: batchSelectedCount,
+                    })}
+                  </AppButton>
+                </AppPopconfirm>
+                <AppPopconfirm
+                  title={t('channel.batch.confirm_disable', {
+                    count: batchSelectedCount,
+                  })}
+                  okText={t('common.confirm')}
+                  cancelText={t('common.cancel')}
+                  disabled={batchSelectedCount === 0 || batchRunning}
+                  onConfirm={() => runBatchToggle('disable')}
+                >
+                  <AppButton
+                    className='router-page-button'
+                    color='red'
+                    disabled={batchSelectedCount === 0 || batchRunning}
+                    loading={batchRunning}
+                  >
+                    {t('channel.batch.disable_selected', {
+                      count: batchSelectedCount,
+                    })}
+                  </AppButton>
+                </AppPopconfirm>
+                <AppButton
+                  className='router-page-button'
+                  disabled={batchRunning}
+                  onClick={batchActions.exit}
+                >
+                  {t('channel.batch.cancel_selection')}
+                </AppButton>
+              </>
+            ) : (
+              <AppButton
+                className='router-page-button'
+                disabled={actionBusy}
+                onClick={batchActions.enter}
+              >
+                {t('channel.batch.enter_selection')}
+              </AppButton>
+            )}
             <AppButton
               className='router-page-button'
               onClick={refresh}
               loading={loading}
-              disabled={actionBusy}
+              disabled={actionBusy || batchRunning}
             >
               {t('channel.buttons.refresh')}
             </AppButton>
@@ -452,6 +588,16 @@ const ChannelsTable = () => {
           scroll={{ x: CHANNEL_LIST_TABLE_MIN_WIDTH }}
           rowKey={(channel) => channel.id}
           onChange={handleTableChange}
+          rowSelection={
+            isBatchSelecting
+              ? {
+                  ...batchActions.tableSelection,
+                  renderCell: (_, __, ___, originNode) => (
+                    <span onClick={stopRowClick}>{originNode}</span>
+                  ),
+                }
+              : undefined
+          }
           dataSource={visibleChannels}
           locale={{
             emptyText: loading ? (
@@ -467,8 +613,10 @@ const ChannelsTable = () => {
             ),
           }}
           onRow={(channel) => ({
-            onClick: () => openChannelByStatus(channel),
-            className: 'router-row-clickable',
+            onClick: isBatchSelecting
+              ? undefined
+              : () => openChannelByStatus(channel),
+            className: isBatchSelecting ? undefined : 'router-row-clickable',
           })}
           columns={withCardLabels([
           {

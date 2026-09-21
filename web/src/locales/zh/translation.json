@@ -577,6 +577,20 @@
   },
   "channel": {
     "title": "管理渠道",
+    "batch": {
+      "enter_selection": "批量操作",
+      "cancel_selection": "取消选择",
+      "enable_selected": "批量启用（{{count}}）",
+      "disable_selected": "批量停用（{{count}}）",
+      "confirm_enable": "确认启用选中的 {{count}} 个渠道？",
+      "confirm_disable": "确认停用选中的 {{count}} 个渠道？",
+      "select_required": "请先选择至少一个渠道。",
+      "enable_all_success": "已启用 {{count}} 个渠道。",
+      "disable_all_success": "已停用 {{count}} 个渠道。",
+      "enable_all_failed": "{{count}} 个渠道启用失败。",
+      "disable_all_failed": "{{count}} 个渠道停用失败。",
+      "partial": "批量完成：成功 {{success}}，失败 {{failed}}。"
+    },
     "error": {
       "id_invalid": "渠道 ID 无效"
     },
@@ -1551,6 +1565,20 @@
   },
   "group_manage": {
     "title": "分组管理",
+    "batch": {
+      "enter_selection": "批量操作",
+      "cancel_selection": "取消选择",
+      "enable_selected": "批量启用（{{count}}）",
+      "disable_selected": "批量停用（{{count}}）",
+      "confirm_enable": "确认启用选中的 {{count}} 个分组？",
+      "confirm_disable": "确认停用选中的 {{count}} 个分组？",
+      "select_required": "请先选择至少一个分组。",
+      "enable_all_success": "已启用 {{count}} 个分组。",
+      "disable_all_success": "已停用 {{count}} 个分组。",
+      "enable_all_failed": "{{count}} 个分组启用失败。",
+      "disable_all_failed": "{{count}} 个分组停用失败。",
+      "partial": "批量完成：成功 {{success}}，失败 {{failed}}。"
+    },
     "search": "搜索分组标识或描述",
     "table": {
       "id": "分组标识",
@@ -1581,6 +1609,9 @@
       "sort_order": "排序值",
       "channels": "分组渠道",
       "channels_placeholder": "选择该分组可用的渠道"
+    },
+    "filter": {
+      "status_all": "全部状态"
     },
     "buttons": {
       "add": "新增分组",

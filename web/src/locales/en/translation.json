@@ -577,6 +577,20 @@
   },
   "channel": {
     "title": "Channel Management",
+    "batch": {
+      "enter_selection": "Batch actions",
+      "cancel_selection": "Cancel selection",
+      "enable_selected": "Enable selected ({{count}})",
+      "disable_selected": "Disable selected ({{count}})",
+      "confirm_enable": "Enable the {{count}} selected channels?",
+      "confirm_disable": "Disable the {{count}} selected channels?",
+      "select_required": "Select at least one channel first.",
+      "enable_all_success": "{{count}} channels enabled.",
+      "disable_all_success": "{{count}} channels disabled.",
+      "enable_all_failed": "Failed to enable {{count}} channels.",
+      "disable_all_failed": "Failed to disable {{count}} channels.",
+      "partial": "Batch done: {{success}} succeeded, {{failed}} failed."
+    },
     "error": {
       "id_invalid": "Channel ID is invalid"
     },
@@ -1551,6 +1565,20 @@
   },
   "group_manage": {
     "title": "Group Management",
+    "batch": {
+      "enter_selection": "Batch actions",
+      "cancel_selection": "Cancel selection",
+      "enable_selected": "Enable selected ({{count}})",
+      "disable_selected": "Disable selected ({{count}})",
+      "confirm_enable": "Enable the {{count}} selected groups?",
+      "confirm_disable": "Disable the {{count}} selected groups?",
+      "select_required": "Select at least one group first.",
+      "enable_all_success": "{{count}} groups enabled.",
+      "disable_all_success": "{{count}} groups disabled.",
+      "enable_all_failed": "Failed to enable {{count}} groups.",
+      "disable_all_failed": "Failed to disable {{count}} groups.",
+      "partial": "Batch done: {{success}} succeeded, {{failed}} failed."
+    },
     "search": "Search group ID or description",
     "table": {
       "id": "Group ID",
@@ -1581,6 +1609,9 @@
       "sort_order": "Sort Value",
       "channels": "Bound Channels",
       "channels_placeholder": "Select channels available for this group"
+    },
+    "filter": {
+      "status_all": "All statuses"
     },
     "buttons": {
       "add": "Add Group",
