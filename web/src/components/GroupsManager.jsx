@@ -12,6 +12,8 @@ import {
   AppAlert,
   AppButton,
   AppDetailSection,
+  AppEmpty,
+  AppErrorState,
   AppField,
   AppFilterHeader,
   AppFormActions,
@@ -22,6 +24,7 @@ import {
   AppModal,
   AppPopconfirm,
   AppSelect,
+  AppSpin,
   AppSwitch,
   AppTable,
   AppTableActionButton,
@@ -270,6 +273,7 @@ const GroupsManager = ({ detailGroupId = '' }) => {
   const [mode, setMode] = useState(MODE_LIST);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [statusMutatingGroupId, setStatusMutatingGroupId] = useState('');
   const [batchRunning, setBatchRunning] = useState(false);
@@ -383,10 +387,12 @@ const GroupsManager = ({ detailGroupId = '' }) => {
 
   const loadCatalog = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const items = await fetchAllGroups();
       setRows(Array.isArray(items) ? items : []);
     } catch (error) {
+      setLoadError(true);
       showError(error);
     } finally {
       setLoading(false);
@@ -1441,14 +1447,26 @@ const GroupsManager = ({ detailGroupId = '' }) => {
       />
 
       <div className='router-table-scroll-x'>
-        <AppTable
-          className='router-hover-table router-list-table router-table-fit-page'
-          rowKey='id'
-          pagination={false}
-          loading={loading}
-          scroll={{ x: GROUP_LIST_TABLE_MIN_WIDTH }}
-          locale={{ emptyText: t('group_manage.messages.empty') }}
-          dataSource={visibleRows}
+        <AppSpin spinning={loading}>
+          <AppTable
+            className='router-hover-table router-list-table router-table-fit-page'
+            rowKey='id'
+            pagination={false}
+            scroll={{ x: GROUP_LIST_TABLE_MIN_WIDTH }}
+            locale={{
+              emptyText: loading ? (
+                t('common.loading')
+              ) : loadError ? (
+                <AppErrorState
+                  message={t('common.load_failed')}
+                  onRetry={loadCatalog}
+                  retryText={t('common.retry')}
+                />
+              ) : (
+                <AppEmpty>{t('common.no_data')}</AppEmpty>
+              ),
+            }}
+            dataSource={visibleRows}
           rowSelection={
             isBatchSelecting
               ? {
@@ -1541,6 +1559,7 @@ const GroupsManager = ({ detailGroupId = '' }) => {
           },
           ]}
         />
+        </AppSpin>
       </div>
     </>
   );
