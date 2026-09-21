@@ -145,6 +145,9 @@ const RedemptionsTable = ({ headerMeta = null }) => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [activePage, setActivePage] = useState(1);
+  const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
+  const pageSizeRef = useRef(ITEMS_PER_PAGE);
+  pageSizeRef.current = pageSize;
   const [totalCount, setTotalCount] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [{ status: statusFilter, keyword: searchKeyword }, patchQuery] =
@@ -207,6 +210,8 @@ const RedemptionsTable = ({ headerMeta = null }) => {
     try {
       const params = new URLSearchParams();
       params.set('page', String(normalizedPage));
+      const size = pageSizeRef.current;
+      params.set('page_size', String(size));
       const normalizedStatus = (status || 'all').toString();
       if (normalizedStatus !== 'all') params.set('status', normalizedStatus);
       const res = await API.get(`/api/v1/admin/redemption/?${params.toString()}`);
@@ -219,7 +224,7 @@ const RedemptionsTable = ({ headerMeta = null }) => {
         if (normalizedPage === 1) {
           setRedemptions(nextRows);
         } else {
-          setRedemptions((prev) => writePagedRows(prev, normalizedPage, ITEMS_PER_PAGE, nextRows));
+          setRedemptions((prev) => writePagedRows(prev, normalizedPage, size, nextRows));
         }
       } else {
         if (normalizedPage === 1) setLoadError(true);
@@ -233,10 +238,22 @@ const RedemptionsTable = ({ headerMeta = null }) => {
     }
   }, []);
 
-  const onPaginationChange = (e, { activePage }) => {
+  const onPaginationChange = (e, { activePage, pageSize: nextPageSize }) => {
     (async () => {
+      const size = Number(nextPageSize) > 0 ? Number(nextPageSize) : pageSize;
+      if (size !== pageSize) {
+        pageSizeRef.current = size;
+        setPageSize(size);
+        setActivePage(1);
+        if (!isSearchMode) {
+          // 每页条数变了,按旧尺寸建立的行缓存已失效,重建
+          setRedemptions([]);
+          await loadRedemptions(1, { status: statusFilter });
+        }
+        return;
+      }
       const nextPage = Number(activePage) > 0 ? Number(activePage) : 1;
-      const hasLoadedPageRows = hasLoadedPagedRows(redemptions, nextPage, ITEMS_PER_PAGE);
+      const hasLoadedPageRows = hasLoadedPagedRows(redemptions, nextPage, size);
       if (!isSearchMode && !hasLoadedPageRows) {
         await loadRedemptions(nextPage, { status: statusFilter });
       }
@@ -281,7 +298,7 @@ const RedemptionsTable = ({ headerMeta = null }) => {
       showSuccess(t('token.messages.operation_success'));
       let redemption = res.data.data;
       let newRedemptions = [...redemptions];
-      let realIdx = (activePage - 1) * ITEMS_PER_PAGE + idx;
+      let realIdx = (activePage - 1) * pageSize + idx;
       if (action === 'delete') {
         newRedemptions[realIdx].deleted = true;
         setTotalCount((prev) => Math.max(prev - 1, 0));
@@ -358,10 +375,7 @@ const RedemptionsTable = ({ headerMeta = null }) => {
   };
 
   const visibleRedemptionCount = redemptions.filter((row) => !row?.deleted).length;
-  const totalPages = Math.max(
-    Math.ceil((isSearchMode ? visibleRedemptionCount : totalCount) / ITEMS_PER_PAGE),
-    1,
-  );
+  const paginationTotal = isSearchMode ? visibleRedemptionCount : totalCount;
 
   return (
     <>
@@ -444,8 +458,8 @@ const RedemptionsTable = ({ headerMeta = null }) => {
           onChange={handleTableChange}
           dataSource={redemptions
             .slice(
-              (activePage - 1) * ITEMS_PER_PAGE,
-              activePage * ITEMS_PER_PAGE,
+              (activePage - 1) * pageSize,
+              activePage * pageSize,
             )
             .filter((redemption) => !redemption?.deleted)}
           onRow={(redemption) => ({
@@ -597,7 +611,8 @@ const RedemptionsTable = ({ headerMeta = null }) => {
           activePage={activePage}
           onPageChange={onPaginationChange}
           siblingRange={1}
-          totalPages={totalPages}
+          total={paginationTotal}
+          pageSize={pageSize}
         />
       </div>
     </>
