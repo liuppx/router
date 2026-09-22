@@ -3248,6 +3248,9 @@
       "models": {
         "title": "模型概览",
         "description": "按当前统计周期聚合模型请求、消费与测试健康数据。",
+        "headline": {
+          "hint": "点击风险模型数,下钻到需处置的模型列表。"
+        },
         "summary": {
           "selected_model_count": "已启用模型数",
           "tested_model_count": "已测试模型数",

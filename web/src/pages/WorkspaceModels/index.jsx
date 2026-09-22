@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API } from '../../helpers/api';
 import { copy, showError, showSuccess } from '../../helpers';
 import { buildLogDrilldownPath } from '../../components/LogsTable.helpers';
@@ -235,7 +235,13 @@ const WorkspaceModels = () => {
   const [payload, setPayload] = useState(EMPTY_PAYLOAD);
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState('');
-  const [healthFilter, setHealthFilter] = useState('all');
+  // Seed the health filter from the URL so cross-page CTAs (e.g. the admin
+  // dashboard "at-risk models" headline) can deep-link straight to a filtered view.
+  const [searchParams] = useSearchParams();
+  const [healthFilter, setHealthFilter] = useState(() => {
+    const requested = (searchParams.get('health') || '').trim().toLowerCase();
+    return FILTER_OPTIONS.includes(requested) ? requested : 'all';
+  });
   const [sortBy, setSortBy] = useState('health');
 
   // Admins can jump straight from a model to the publish tab of a channel that

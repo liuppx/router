@@ -217,6 +217,23 @@
   color: var(--router-status-danger, var(--router-status-danger, #dc2626));
 }
 
+.admin-dashboard-model-headline-cta {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.admin-dashboard-model-headline-cta:hover {
+  opacity: 0.82;
+  text-decoration: underline;
+}
+
 .admin-dashboard-spending-headline-hint {
   color: var(--router-text-secondary, var(--router-text-secondary, #475569));
   font-size: 13px;

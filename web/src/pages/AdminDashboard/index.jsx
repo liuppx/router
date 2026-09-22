@@ -2057,79 +2057,46 @@ const AdminDashboard = () => {
           )}
         />
       </div>
-      <div className='admin-dashboard-kpi-grid admin-dashboard-kpi-grid-compact'>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.models.summary.selected_model_count')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatCount(dashboard.model_summary.selected_model_count)}
-          </div>
-        </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.models.summary.tested_model_count')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatCount(dashboard.model_summary.tested_model_count)}
-          </div>
-        </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.models.summary.healthy_model_count')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatCount(dashboard.model_summary.healthy_model_count)}
-          </div>
-        </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.models.summary.warning_model_count')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatCount(dashboard.model_summary.warning_model_count)}
-          </div>
-        </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
+      <div className='admin-dashboard-spending-headline'>
+        <div className='admin-dashboard-spending-headline-main'>
+          <div className='admin-dashboard-spending-headline-label'>
             {t('dashboard.admin.models.summary.critical_model_count')}
           </div>
-          <div className='admin-dashboard-kpi-value'>
+          <button
+            type='button'
+            className={`admin-dashboard-spending-headline-value admin-dashboard-model-headline-cta${
+              Number(dashboard.model_summary.critical_model_count) > 0
+                ? ' admin-dashboard-spending-headline-value-negative'
+                : ''
+            }`}
+            onClick={() =>
+              navigate('/workspace/service/models?health=critical')
+            }
+          >
             {formatCount(dashboard.model_summary.critical_model_count)}
+          </button>
+          <div className='admin-dashboard-spending-headline-hint'>
+            {t('dashboard.admin.models.headline.hint')}
           </div>
         </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.models.summary.request_count')}
+        <div className='admin-dashboard-spending-headline-side'>
+          <div className='admin-dashboard-spending-headline-row'>
+            <span>{t('dashboard.admin.models.summary.selected_model_count')}</span>
+            <strong>
+              {formatCount(dashboard.model_summary.selected_model_count)}
+            </strong>
           </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatCount(dashboard.model_summary.request_count)}
+          <div className='admin-dashboard-spending-headline-row'>
+            <span>{t('dashboard.admin.models.summary.tested_model_count')}</span>
+            <strong>
+              {formatCount(dashboard.model_summary.tested_model_count)}
+            </strong>
           </div>
-        </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.models.summary.total_spend')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatUsd(dashboard.model_summary.spend_amount)}
-          </div>
-        </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.models.summary.avg_pass_rate')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatPercent(dashboard.model_summary.avg_pass_rate)}
-          </div>
-        </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.models.summary.avg_latency')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
-            {dashboard.model_summary.avg_latency_ms > 0
-              ? `${dashboard.model_summary.avg_latency_ms} ms`
-              : '-'}
+          <div className='admin-dashboard-spending-headline-row'>
+            <span>{t('dashboard.admin.models.summary.healthy_model_count')}</span>
+            <strong>
+              {formatCount(dashboard.model_summary.healthy_model_count)}
+            </strong>
           </div>
         </div>
       </div>

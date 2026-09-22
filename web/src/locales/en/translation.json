@@ -3248,6 +3248,9 @@
       "models": {
         "title": "Model Overview",
         "description": "Aggregate model requests, spend, and test health for the selected period.",
+        "headline": {
+          "hint": "Click the at-risk count to drill into models that need attention."
+        },
         "summary": {
           "selected_model_count": "Selected Models",
           "tested_model_count": "Tested Models",
