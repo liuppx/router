@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import BusinessRecordsTable from '../../components/BusinessRecordsTable';
 import EntitlementSectionTabs from '../../components/EntitlementSectionTabs';
+import RedemptionSectionTabs from '../../components/RedemptionSectionTabs';
 
 const RECORD_CONFIG = {
   purchase: {
@@ -42,6 +43,9 @@ const RecordListPage = ({ kind }) => {
     <div className='dashboard-container'>
       {kind === 'purchase' ? (
         <EntitlementSectionTabs active='records' />
+      ) : null}
+      {kind === 'redemption' ? (
+        <RedemptionSectionTabs active='records' />
       ) : null}
       <BusinessRecordsTable
         kind={config.tableKind || kind}

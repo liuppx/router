@@ -2018,6 +2018,10 @@
   },
   "redemption": {
     "title": "兑换管理",
+    "tabs": {
+      "list": "兑换码",
+      "records": "兑换记录"
+    },
     "search": "搜索兑换码和名称 ...",
     "filter": {
       "status_all": "全部状态"

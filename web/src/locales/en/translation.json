@@ -2018,6 +2018,10 @@
   },
   "redemption": {
     "title": "Redemption Management",
+    "tabs": {
+      "list": "Codes",
+      "records": "Redemption records"
+    },
     "search": "Search redemption codes and names ...",
     "filter": {
       "status_all": "All Status"
