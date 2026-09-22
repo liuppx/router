@@ -41,6 +41,7 @@ import {
   AppTooltip,
   AppToolbar,
 } from '../router-ui';
+import { buildLogDrilldownPath } from './LogsTable.helpers';
 
 // Frontend column key → backend sort column (whitelisted server-side). Columns
 // absent from this map are not sortable via the backend (name / status).
@@ -867,6 +868,18 @@ const TokensTable = () => {
                   className='router-action-group router-table-actions-icon-compact'
                   onClick={(event) => stopRowClick(event)}
                 >
+                  <AppTableActionButton
+                    icon='book'
+                    title={t('log.drilldown.view')}
+                    disabled={!token.name}
+                    onClick={() => {
+                      navigate(
+                        buildLogDrilldownPath('workspace', {
+                          token_name: token.name,
+                        }),
+                      );
+                    }}
+                  />
                   <AppTableActionButton
                     icon='comments'
                     title={t('token.buttons.chat')}
