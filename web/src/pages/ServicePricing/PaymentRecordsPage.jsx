@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppFilterHeader } from '../../router-ui';
 import TopUpRecordsPage from '../TopUp/TopUpRecordsPage';
 import TopUpWorkspaceProvider from '../TopUp/provider.jsx';
+import ServicePricingSectionTabs from '../../components/ServicePricingSectionTabs';
 
 const PaymentRecordsPageInner = () => {
   const { t } = useTranslation();
@@ -28,6 +29,7 @@ const PaymentRecordsPageInner = () => {
         ]}
         title={t('topup.payment_history.title')}
       />
+      <ServicePricingSectionTabs active='records' />
       <TopUpRecordsPage embedded />
     </div>
   );
