@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ITEMS_PER_PAGE } from '../../constants';
 import { API, showError, showSuccess, timestamp2string } from '../../helpers';
 import { formatDecimalNumber } from '../../helpers/render';
+import useUrlState, { parseListPageSize } from '../../hooks/useUrlState';
 import {
   SERVICE_PACKAGE_PERIOD_DAILY,
   SERVICE_PACKAGE_PERIOD_MONTHLY,
@@ -14,6 +15,8 @@ import {
 } from '../../helpers/package';
 import {
   AppButton,
+  AppEmpty,
+  AppErrorState,
   AppField,
   AppFilterHeader,
   AppFormActions,
@@ -227,11 +230,21 @@ const Entitlement = () => {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activePage, setActivePage] = useState(1);
-  const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
+  const [loadError, setLoadError] = useState(false);
   const [total, setTotal] = useState(0);
-  const [kind, setKind] = useState(PRODUCT_KIND_ALL);
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const [
+    { kind, keyword: searchKeyword, page: activePage, pageSize },
+    patchQuery,
+  ] = useUrlState({
+    kind: { param: 'ent_kind', default: PRODUCT_KIND_ALL },
+    keyword: { param: 'ent_q', default: '' },
+    page: { param: 'ent_page', default: 1, parse: (raw) => Number(raw) || 1 },
+    pageSize: {
+      param: 'ent_page_size',
+      default: ITEMS_PER_PAGE,
+      parse: parseListPageSize,
+    },
+  });
   const [groupOptions, setGroupOptions] = useState([]);
   const [groupLoading, setGroupLoading] = useState(false);
   const [userOptions, setUserOptions] = useState([]);
@@ -262,13 +275,20 @@ const Entitlement = () => {
       });
       const payload = response.data || {};
       if (!payload.success) {
+        setLoadError(true);
+        setRows([]);
+        setTotal(0);
         showError(payload.message || t('common.failed'));
         return;
       }
       const data = payload.data || {};
       setRows(Array.isArray(data.items) ? data.items : []);
       setTotal(Number(data.total || 0) || 0);
+      setLoadError(false);
     } catch (error) {
+      setLoadError(true);
+      setRows([]);
+      setTotal(0);
       showError(error.message || t('common.failed'));
     } finally {
       setLoading(false);
@@ -893,8 +913,10 @@ const Entitlement = () => {
               }))}
               value={kind}
               onChange={(_, { value }) => {
-                setKind((value || PRODUCT_KIND_ALL).toString());
-                setActivePage(1);
+                patchQuery({
+                  kind: (value || PRODUCT_KIND_ALL).toString(),
+                  page: 1,
+                });
               }}
             />
             <AppInput
@@ -902,8 +924,7 @@ const Entitlement = () => {
               placeholder={t('entitlement.placeholder.search')}
               value={searchKeyword}
               onChange={(_, { value }) => {
-                setSearchKeyword(value || '');
-                setActivePage(1);
+                patchQuery({ keyword: value || '', page: 1 });
               }}
             />
           </div>
@@ -943,7 +964,17 @@ const Entitlement = () => {
           dataSource={rows}
           loading={loading}
           locale={{
-            emptyText: loading ? t('common.loading') : t('common.no_data'),
+            emptyText: loading ? (
+              t('common.loading')
+            ) : loadError ? (
+              <AppErrorState
+                message={t('common.load_failed')}
+                onRetry={loadProducts}
+                retryText={t('common.retry')}
+              />
+            ) : (
+              <AppEmpty>{t('common.no_data')}</AppEmpty>
+            ),
           }}
           onRow={(row) => ({
             className: row?.id ? 'router-row-clickable' : '',
@@ -963,11 +994,10 @@ const Entitlement = () => {
             onPageChange={(_, { activePage: nextActivePage, pageSize: nextSize }) => {
               const size = Number(nextSize) > 0 ? Number(nextSize) : pageSize;
               if (size !== pageSize) {
-                setPageSize(size);
-                setActivePage(1);
+                patchQuery({ pageSize: size, page: 1 });
                 return;
               }
-              setActivePage(Number(nextActivePage) || 1);
+              patchQuery({ page: Number(nextActivePage) || 1 });
             }}
           />
         </div>
