@@ -136,7 +136,7 @@ function renderStatus(status, t) {
   }
 }
 
-const RedemptionsTable = ({ headerMeta = null }) => {
+const RedemptionsTable = ({ sectionTabs = null }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -387,8 +387,6 @@ const RedemptionsTable = ({ headerMeta = null }) => {
           { key: 'redemption', label: t('header.redemption'), active: true },
         ]}
         title={t('header.redemption')}
-        meta={headerMeta}
-        metaClassName='router-page-header-meta-links'
         actions={
           <div className='router-list-toolbar-actions'>
             <AppButton
@@ -436,6 +434,8 @@ const RedemptionsTable = ({ headerMeta = null }) => {
           </div>
         }
       />
+
+      {sectionTabs}
 
       <div className='router-table-scroll-x'>
         <AppTable

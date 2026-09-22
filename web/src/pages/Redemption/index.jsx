@@ -5,8 +5,9 @@ import RedemptionSectionTabs from '../../components/RedemptionSectionTabs';
 const Redemption = () => {
   return (
     <div className='dashboard-container'>
-      <RedemptionSectionTabs active='list' />
-      <RedemptionsTable />
+      <RedemptionsTable
+        sectionTabs={<RedemptionSectionTabs active='list' />}
+      />
     </div>
   );
 };

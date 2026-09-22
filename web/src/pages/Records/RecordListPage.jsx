@@ -39,17 +39,19 @@ const RecordListPage = ({ kind }) => {
           { key: 'business', label: t('header.operation') },
         ];
 
+  const sectionTabs =
+    kind === 'purchase' ? (
+      <EntitlementSectionTabs active='records' />
+    ) : kind === 'redemption' ? (
+      <RedemptionSectionTabs active='records' />
+    ) : null;
+
   return (
     <div className='dashboard-container'>
-      {kind === 'purchase' ? (
-        <EntitlementSectionTabs active='records' />
-      ) : null}
-      {kind === 'redemption' ? (
-        <RedemptionSectionTabs active='records' />
-      ) : null}
       <BusinessRecordsTable
         kind={config.tableKind || kind}
         title={t(config.titleKey)}
+        sectionTabs={sectionTabs}
         detailBasePath={config.detailBasePath}
         breadcrumbs={[
           { key: 'admin', label: t('header.admin_workspace') },

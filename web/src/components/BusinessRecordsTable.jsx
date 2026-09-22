@@ -132,6 +132,7 @@ const BusinessRecordsTable = ({
   searchPlaceholder = '',
   emptyText = '',
   hiddenColumnKeys = EMPTY_ARRAY,
+  sectionTabs = null,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -961,6 +962,8 @@ const BusinessRecordsTable = ({
           </div>
         }
       />
+
+      {sectionTabs}
 
       <div className={`router-table-scroll-x ${config.tableWrapperClassName || ''}`.trim()}>
         <AppTable
