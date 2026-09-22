@@ -30,6 +30,7 @@ import {
   AppTextarea,
 } from '../../router-ui';
 import { normalizeSupportedModels } from '../TopUp/shared.jsx';
+import EntitlementSectionTabs from '../../components/EntitlementSectionTabs';
 
 const PRODUCT_KIND_BALANCE = 'balance';
 const PRODUCT_KIND_SUBSCRIPTION = 'subscription';
@@ -875,6 +876,7 @@ const Entitlement = () => {
 
   return (
     <div className='dashboard-container'>
+      <EntitlementSectionTabs active='list' />
       <AppFilterHeader
         className='router-block-gap-md'
         breadcrumbs={[
@@ -882,16 +884,6 @@ const Entitlement = () => {
           { key: 'model', label: t('header.model') },
           { key: 'entitlement', label: t('header.entitlement'), active: true },
         ]}
-        meta={
-          <button
-            type='button'
-            className='router-breadcrumb-link router-page-header-link'
-            onClick={() => navigate('/admin/entitlement/payments')}
-          >
-            {t('entitlement.payment_records')}
-          </button>
-        }
-        metaClassName='router-page-header-meta-links'
         query={
           <div className='router-list-toolbar-query router-list-toolbar-query-compact'>
             <AppSelect

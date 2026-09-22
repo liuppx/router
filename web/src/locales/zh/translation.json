@@ -4392,7 +4392,11 @@
       "concurrency_total": "总并发",
       "balance_fallback": "余额兜底"
     },
-    "payment_records": "支付记录"
+    "payment_records": "支付记录",
+    "tabs": {
+      "list": "权益商品",
+      "records": "支付记录"
+    }
   },
   "personal_setting": {
     "unset": "未设置",

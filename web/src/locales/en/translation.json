@@ -4392,7 +4392,11 @@
       "concurrency_total": "Total concurrency",
       "balance_fallback": "Balance fallback"
     },
-    "payment_records": "Payment records"
+    "payment_records": "Payment records",
+    "tabs": {
+      "list": "Products",
+      "records": "Purchase records"
+    }
   },
   "personal_setting": {
     "unset": "Not set",
