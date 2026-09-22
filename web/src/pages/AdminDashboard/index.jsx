@@ -1754,93 +1754,37 @@ const AdminDashboard = () => {
           </div>
         ))}
       </div>
-      <div className='admin-dashboard-kpi-grid admin-dashboard-kpi-grid-compact'>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.users.summary.active_users')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatCount(userGrowthKpis.active_users)}
-          </div>
-          <div className='admin-dashboard-kpi-hint'>
-            {t('dashboard.admin.users.summary.active_users_hint')}
-          </div>
-          <div
-            className={`admin-dashboard-kpi-delta admin-dashboard-kpi-delta-${deltaTone(
-              userGrowthKpis.active_users_comparison?.delta,
-            )}`}
-          >
-            <span>
-              {userGrowthComparisonLabel}{' '}
-              {formatSignedCount(userGrowthKpis.active_users_comparison?.delta)}
-            </span>
-            <span>{formatGrowthRate(userGrowthKpis.active_users_comparison)}</span>
-          </div>
-        </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
-            {t('dashboard.admin.users.summary.topup_users')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
-            {formatCount(userGrowthKpis.topup_users)}
-          </div>
-          <div className='admin-dashboard-kpi-hint'>
-            {t('dashboard.admin.users.summary.topup_users_hint')}
-          </div>
-          <div
-            className={`admin-dashboard-kpi-delta admin-dashboard-kpi-delta-${deltaTone(
-              userGrowthKpis.topup_users_comparison?.delta,
-            )}`}
-          >
-            <span>
-              {userGrowthComparisonLabel}{' '}
-              {formatSignedCount(userGrowthKpis.topup_users_comparison?.delta)}
-            </span>
-            <span>{formatGrowthRate(userGrowthKpis.topup_users_comparison)}</span>
-          </div>
-        </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
+      <div className='admin-dashboard-user-monetization-strip'>
+        <div className='admin-dashboard-user-monetization-item'>
+          <span className='admin-dashboard-user-monetization-label'>
             {t('dashboard.admin.users.summary.paid_conversion_rate')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
+          </span>
+          <strong className='admin-dashboard-user-monetization-value'>
             {formatPercent(userGrowthKpis.paid_conversion_rate)}
-          </div>
-          <div className='admin-dashboard-kpi-hint'>
-            {t('dashboard.admin.users.summary.paid_conversion_hint')}
-          </div>
-          <div
-            className={`admin-dashboard-kpi-delta admin-dashboard-kpi-delta-${deltaTone(
+          </strong>
+          <span
+            className={`admin-dashboard-user-monetization-delta admin-dashboard-kpi-delta-${deltaTone(
               userGrowthKpis.paid_conversion_delta,
             )}`}
           >
-            <span>
-              {userGrowthComparisonLabel}{' '}
-              {formatSignedPercent(userGrowthKpis.paid_conversion_delta)}
-            </span>
-          </div>
+            {formatSignedPercent(userGrowthKpis.paid_conversion_delta)}
+          </span>
         </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
+        <div className='admin-dashboard-user-monetization-item'>
+          <span className='admin-dashboard-user-monetization-label'>
             {t('dashboard.admin.users.summary.arpu')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
+          </span>
+          <strong className='admin-dashboard-user-monetization-value'>
             {formatUsd(userGrowthKpis.arpu)}
-          </div>
-          <div className='admin-dashboard-kpi-hint'>
-            {t('dashboard.admin.users.summary.arpu_hint')}
-          </div>
+          </strong>
         </div>
-        <div className='admin-dashboard-kpi-item'>
-          <div className='admin-dashboard-kpi-label'>
+        <div className='admin-dashboard-user-monetization-item'>
+          <span className='admin-dashboard-user-monetization-label'>
             {t('dashboard.admin.users.summary.user_balance_total')}
-          </div>
-          <div className='admin-dashboard-kpi-value'>
+          </span>
+          <strong className='admin-dashboard-user-monetization-value'>
             {formatUsd(userGrowthKpis.user_balance_total)}
-          </div>
-          <div className='admin-dashboard-kpi-hint'>
-            {t('dashboard.admin.users.summary.user_balance_hint')}
-          </div>
+          </strong>
         </div>
       </div>
       <div className='admin-dashboard-user-growth-panel'>

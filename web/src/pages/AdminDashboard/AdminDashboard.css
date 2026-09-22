@@ -266,6 +266,39 @@
   font-weight: 600;
 }
 
+/* User section: monetization metrics as a slim inline strip, not a card grid. */
+.admin-dashboard-user-monetization-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 10px;
+  background: var(--router-surface, var(--router-surface, #fff));
+}
+
+.admin-dashboard-user-monetization-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.admin-dashboard-user-monetization-label {
+  color: var(--router-text-muted, var(--router-text-muted, #64748b));
+  font-size: 12px;
+}
+
+.admin-dashboard-user-monetization-value {
+  color: var(--router-text-primary, var(--router-text-primary, #0f172a));
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.admin-dashboard-user-monetization-delta {
+  font-size: 12px;
+}
+
 /* Channel section: bell row at the top, single row, loud only when active. */
 .admin-dashboard-channel-bells {
   display: grid;
