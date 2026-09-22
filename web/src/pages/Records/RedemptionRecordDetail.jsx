@@ -138,8 +138,33 @@ const RedemptionRecordDetail = () => {
                       {t('user.table.username')}
                     </div>
                     <pre className='router-detail-value'>
-                      {readOnlyText(
-                        record?.redeemed_by_username || record?.redeemed_by_user_id,
+                      {record?.redeemed_by_user_id ? (
+                        <button
+                          type='button'
+                          className='router-link-button router-link-inline'
+                          onClick={() =>
+                            navigate(
+                              `/admin/user/detail/${encodeURIComponent(
+                                record.redeemed_by_user_id,
+                              )}`,
+                              {
+                                state: {
+                                  from: `${location.pathname}${location.search}`,
+                                },
+                              },
+                            )
+                          }
+                        >
+                          {readOnlyText(
+                            record?.redeemed_by_username ||
+                              record?.redeemed_by_user_id,
+                          )}
+                        </button>
+                      ) : (
+                        readOnlyText(
+                          record?.redeemed_by_username ||
+                            record?.redeemed_by_user_id,
+                        )
                       )}
                     </pre>
                   </div>
@@ -156,7 +181,28 @@ const RedemptionRecordDetail = () => {
                       {t('redemption.table.group')}
                     </div>
                     <pre className='router-detail-value'>
-                      {readOnlyText(record?.group_name || record?.group_id)}
+                      {record?.group_id ? (
+                        <button
+                          type='button'
+                          className='router-link-button router-link-inline'
+                          onClick={() =>
+                            navigate(
+                              `/admin/group/detail/${encodeURIComponent(
+                                record.group_id,
+                              )}`,
+                              {
+                                state: {
+                                  from: `${location.pathname}${location.search}`,
+                                },
+                              },
+                            )
+                          }
+                        >
+                          {readOnlyText(record?.group_name || record?.group_id)}
+                        </button>
+                      ) : (
+                        readOnlyText(record?.group_name || record?.group_id)
+                      )}
                     </pre>
                   </div>
                   <div className='router-detail-item'>
