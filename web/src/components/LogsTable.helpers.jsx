@@ -444,7 +444,13 @@ export function parseLogFiltersFromSearch(search, isAdminScope) {
 // ('admin' → /admin/log, 'workspace' → /workspace/log). Only non-empty filter
 // keys are appended, and the keys mirror parseLogFiltersFromSearch above so the
 // round-trip (build → parse) stays consistent.
-export function buildLogDrilldownPath(scope, filters = {}) {
+//
+// By default the link also carries a "last 24h" time window (start/end unix
+// seconds) so entity drill-downs land on a bounded, shareable view instead of
+// the unbounded all-time log. Callers can override the window by passing an
+// explicit `start_timestamp`/`end_timestamp` in `filters`, or opt out entirely
+// with `{ rangeDays: 0 }`. No log_type is prefilled.
+export function buildLogDrilldownPath(scope, filters = {}, options = {}) {
   const base = scope === 'workspace' ? '/workspace/log' : '/admin/log';
   const params = new URLSearchParams();
   ['channel', 'group_id', 'username', 'token_name', 'model_name'].forEach(
@@ -455,6 +461,26 @@ export function buildLogDrilldownPath(scope, filters = {}) {
       }
     },
   );
+
+  const explicitStart = (filters.start_timestamp ?? '').toString().trim();
+  const explicitEnd = (filters.end_timestamp ?? '').toString().trim();
+  if (explicitStart !== '' || explicitEnd !== '') {
+    // Explicit range wins — mirror whatever the caller passed.
+    if (explicitStart !== '') {
+      params.set('start_timestamp', explicitStart);
+    }
+    if (explicitEnd !== '') {
+      params.set('end_timestamp', explicitEnd);
+    }
+  } else {
+    const rangeDays = options.rangeDays === undefined ? 1 : options.rangeDays;
+    if (rangeDays > 0) {
+      const nowSec = Math.floor(Date.now() / 1000);
+      params.set('start_timestamp', String(nowSec - rangeDays * 86400));
+      params.set('end_timestamp', String(nowSec));
+    }
+  }
+
   const query = params.toString();
   return query === '' ? base : `${base}?${query}`;
 }
