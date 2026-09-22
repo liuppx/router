@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { API } from '../../helpers/api';
 import { copy, showError, showSuccess } from '../../helpers';
+import { buildLogDrilldownPath } from '../../components/LogsTable.helpers';
 import { useIsAdmin } from '../../hooks/useAuth';
 import ModelSectionTabs from '../../components/ModelSectionTabs';
 import {
@@ -673,6 +674,22 @@ const WorkspaceModels = () => {
                       disabled={!item.model}
                     >
                       {t('workspace_models.card.create_token')}
+                    </AppButton>
+                    <AppButton
+                      size='small'
+                      className='router-inline-button'
+                      icon={<AppIcon name='book' />}
+                      onClick={() =>
+                        navigate(
+                          buildLogDrilldownPath(
+                            hasAdminAccess ? 'admin' : 'workspace',
+                            { model_name: item.model },
+                          ),
+                        )
+                      }
+                      disabled={!item.model}
+                    >
+                      {t('log.drilldown.view')}
                     </AppButton>
                   </div>
                 </div>
