@@ -357,11 +357,32 @@ const RedemptionDetail = () => {
                     </button>
                   </AppField>
                   <AppField label={t('redemption.detail.redeemed_by')} readOnly>
-                    <AppInput
-                      className='router-section-input'
-                      value={redeemedByValue}
-                      readOnly
-                    />
+                    {redemption?.redeemed_by_user_id ? (
+                      <button
+                        type='button'
+                        className='router-link-button router-link-inline'
+                        onClick={() =>
+                          navigate(
+                            `/admin/user/detail/${encodeURIComponent(
+                              redemption.redeemed_by_user_id,
+                            )}`,
+                            {
+                              state: {
+                                from: `${location.pathname}${location.search}`,
+                              },
+                            },
+                          )
+                        }
+                      >
+                        {redeemedByValue}
+                      </button>
+                    ) : (
+                      <AppInput
+                        className='router-section-input'
+                        value={redeemedByValue}
+                        readOnly
+                      />
+                    )}
                   </AppField>
                 </AppFormRow>
 	                <AppFormRow>
