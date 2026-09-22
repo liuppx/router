@@ -876,7 +876,6 @@ const Entitlement = () => {
 
   return (
     <div className='dashboard-container'>
-      <EntitlementSectionTabs active='list' />
       <AppFilterHeader
         className='router-block-gap-md'
         breadcrumbs={[
@@ -932,6 +931,8 @@ const Entitlement = () => {
           </div>
         }
       />
+
+      <EntitlementSectionTabs active='list' />
 
       <div className='router-table-scroll-x'>
         <AppTable

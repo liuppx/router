@@ -884,12 +884,6 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
 
   return (
     <div className='dashboard-container'>
-      {isSystemTaskPage && returnPath === '' ? (
-        <ChannelSectionTabs active='tasks' />
-      ) : null}
-      {isAdminUserTaskPage && returnPath === '' ? (
-        <UserSectionTabs active='tasks' />
-      ) : null}
       {returnPath !== '' ? (
         <AppFilterHeader
           breadcrumbs={
@@ -972,6 +966,13 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
             }
             endClassName='router-log-query-wrap'
       />
+
+      {isSystemTaskPage && returnPath === '' ? (
+        <ChannelSectionTabs active='tasks' />
+      ) : null}
+      {isAdminUserTaskPage && returnPath === '' ? (
+        <UserSectionTabs active='tasks' />
+      ) : null}
 
       <div className='router-table-scroll-x'>
         <AppTable

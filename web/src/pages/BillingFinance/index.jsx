@@ -42,16 +42,14 @@ const BillingFinance = () => {
           { key: 'finance', label: t('header.finance') },
           { key: 'billing', label: t('header.finance'), active: true },
         ]}
-        query={
-          <SectionTabs
-            active={activeKey}
-            tabs={TABS.map((tab) => ({
-              key: tab.key,
-              label: t(tab.labelKey),
-              to: `/admin/finance/${tab.path}`,
-            }))}
-          />
-        }
+      />
+      <SectionTabs
+        active={activeKey}
+        tabs={TABS.map((tab) => ({
+          key: tab.key,
+          label: t(tab.labelKey),
+          to: `/admin/finance/${tab.path}`,
+        }))}
       />
       <Suspense fallback={<AppSpin spinning />}>
         <Routes>
