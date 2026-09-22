@@ -61,11 +61,11 @@ export const ADMIN_MENU_GROUPS = [
     icon: 'users',
     items: [
       {
-        // 用户的「分析」面在仪表盘,归入本项高亮范围。
+        // 用户的「分析」面在仪表盘、「用户任务」面在 /admin/task,均归入本项高亮范围。
         name: 'header.user',
         to: '/admin/user',
         icon: 'user',
-        matchPaths: ['/admin/dashboard?section=users'],
+        matchPaths: ['/admin/dashboard?section=users', '/admin/task'],
       },
       {
         name: 'header.redemption',
@@ -95,15 +95,12 @@ export const ADMIN_MENU_GROUPS = [
     ],
   },
   {
+    // 「用户任务」已归入用户 SectionTabs,系统组瘦身到只剩日志;单项组按规则
+    // 渲染为扁平叶子(日志现已是各实体下钻的落点,升为近顶层更合理)。
     key: 'system',
     name: 'header.system',
-    icon: 'cog',
+    icon: 'book',
     items: [
-      {
-        name: 'header.task',
-        to: '/admin/task',
-        icon: 'tasks',
-      },
       {
         name: 'header.log',
         to: '/admin/log',
