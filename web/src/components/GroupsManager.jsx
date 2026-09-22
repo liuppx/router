@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API, showError, showInfo, showSuccess, timestamp2string, withCardLabels } from '../helpers';
+import { buildLogDrilldownPath } from './LogsTable.helpers';
 import useBatchRowActions from '../hooks/useBatchRowActions';
 import useUrlState from '../hooks/useUrlState';
 import {
@@ -1541,9 +1542,19 @@ const GroupsManager = ({ detailGroupId = '' }) => {
             title: t('group_manage.table.actions'),
             key: 'actions',
             className: 'router-table-col-actions-icon',
-            width: 72,
+            width: 104,
             render: (_, row) => (
               <div className='router-action-group-tight router-table-actions-icon-compact'>
+                <AppTableActionButton
+                  icon='book'
+                  title={t('log.drilldown.view')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(
+                      buildLogDrilldownPath('admin', { group_id: row.id }),
+                    );
+                  }}
+                />
                 <AppTableActionButton
                   icon='trash'
                   title={t('group_manage.buttons.delete')}
@@ -2504,6 +2515,21 @@ const GroupsManager = ({ detailGroupId = '' }) => {
           },
         ]}
         title={t('group_manage.detail.title')}
+        actions={
+          activeGroup.id ? (
+            <AppButton
+              className='router-page-button'
+              icon={<AppIcon name='book' />}
+              onClick={() =>
+                navigate(
+                  buildLogDrilldownPath('admin', { group_id: activeGroup.id }),
+                )
+              }
+            >
+              {t('log.drilldown.view')}
+            </AppButton>
+          ) : null
+        }
       />
       <div className='router-tab-detail-page router-entity-detail-page'>
         <div className='router-entity-detail-tabs router-block-gap-sm'>
