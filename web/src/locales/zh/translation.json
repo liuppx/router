@@ -2037,6 +2037,7 @@
       "created_time": "创建时间",
       "code_expires_at": "兑换码过期时间",
       "redeemed_time": "兑换时间",
+      "product_name": "权益名称",
       "actions": "操作",
       "no_name": "无",
       "not_redeemed": "尚未兑换"
@@ -2655,7 +2656,8 @@
       "operation_failed": "操作失败",
       "active_package_load_failed": "加载用户套餐失败",
       "wallet_copy_success": "钱包地址已复制",
-      "wallet_copy_failed": "复制失败，请手动复制"
+      "wallet_copy_failed": "复制失败，请手动复制",
+      "load_entitlement_products_failed": "权益商品加载失败"
     },
     "focus": {
       "title": "当前筛选用户",

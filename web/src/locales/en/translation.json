@@ -2037,6 +2037,7 @@
       "created_time": "Created Time",
       "code_expires_at": "Code Expires At",
       "redeemed_time": "Redeemed Time",
+      "product_name": "Product Name",
       "actions": "Actions",
       "no_name": "None",
       "not_redeemed": "Not Redeemed"
@@ -2655,7 +2656,8 @@
       "operation_failed": "Operation failed",
       "active_package_load_failed": "Failed to load packages",
       "wallet_copy_success": "Wallet address copied",
-      "wallet_copy_failed": "Copy failed, please copy manually"
+      "wallet_copy_failed": "Copy failed, please copy manually",
+      "load_entitlement_products_failed": "Failed to load entitlement products"
     },
     "focus": {
       "title": "Filtered Users",
