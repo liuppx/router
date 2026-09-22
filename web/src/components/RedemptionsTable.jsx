@@ -496,7 +496,7 @@ const RedemptionsTable = ({ sectionTabs = null }) => {
             render: (value) => renderStatus(value, t),
           },
           {
-            title: '权益名称',
+            title: t('redemption.table.product_name'),
             key: 'product_name_snapshot',
             width: REDEMPTION_LIST_COLUMN_WIDTHS.faceValue,
             render: (_, redemption) => redemption?.product_name_snapshot || redemption?.entitlement_product_id || '-',
@@ -514,7 +514,7 @@ const RedemptionsTable = ({ sectionTabs = null }) => {
               renderTimestamp(redemption.createdTime || redemption.created_time),
           },
           {
-            title: '过期时间',
+            title: t('redemption.table.code_expires_at'),
             dataIndex: 'code_expires_at',
             key: 'code_expires_at',
             className: 'router-table-col-datetime',

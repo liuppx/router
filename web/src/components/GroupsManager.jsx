@@ -2599,7 +2599,7 @@ const GroupsManager = ({ detailGroupId = '' }) => {
             }
           >
               <AppFormRow>
-                <AppField label='分组ID' readOnly>
+                <AppField label={t('group_manage.table.id')} readOnly>
                   <AppInput
                     className='router-section-input'
                     value={activeGroup.id || '-'}

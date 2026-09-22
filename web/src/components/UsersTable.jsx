@@ -150,7 +150,7 @@ const loadAllEntitlementProducts = async (kind) => {
     });
     const { success, message, data } = res.data || {};
     if (!success) {
-      throw new Error(message || '权益商品加载失败');
+      throw new Error(message || '');
     }
     const pageItems = Array.isArray(data?.items) ? data.items : [];
     items.push(...pageItems);
@@ -335,7 +335,10 @@ const UsersTable = () => {
       const items = await loadAllEntitlementProducts('balance');
       setTopupPlanOptions(toTopupPlanOptions(items, t));
     } catch (error) {
-      showError(error?.message || error);
+      showError(
+        error?.message ||
+          t('user.messages.load_entitlement_products_failed'),
+      );
     } finally {
       setTopupPlanOptionsLoading(false);
     }

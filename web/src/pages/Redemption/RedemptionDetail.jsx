@@ -344,7 +344,7 @@ const RedemptionDetail = () => {
                   </AppField>
                 </AppFormRow>
                 <AppFormRow>
-                  <AppField label='权益名称' readOnly>
+                  <AppField label={t('redemption.table.product_name')} readOnly>
                     <button
                       type='button'
                       className='router-link-button router-link-inline'
