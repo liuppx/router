@@ -1432,6 +1432,28 @@ const UserDetail = () => {
                       const usage = item?.usage || null;
                       const groupLabel =
                         readOnlyValue(item?.group_name || item?.group_id);
+                      const groupId = (item?.group_id || '').toString().trim();
+                      const packageId = (item?.package_id || '').toString().trim();
+                      const linkState = {
+                        from: `${location.pathname}${location.search}`,
+                      };
+                      const renderGroupLink = () =>
+                        groupId ? (
+                          <button
+                            type='button'
+                            className='router-link-button router-link-inline'
+                            onClick={() =>
+                              navigate(
+                                `/admin/group/detail/${encodeURIComponent(groupId)}`,
+                                { state: linkState },
+                              )
+                            }
+                          >
+                            {groupLabel}
+                          </button>
+                        ) : (
+                          groupLabel
+                        );
                       return (
                         <div
                           key={item.id || item.package_id}
@@ -1440,10 +1462,31 @@ const UserDetail = () => {
                           <div className='router-package-purchase-card-header'>
                             <div>
                               <div className='router-package-purchase-card-title'>
-                                {readOnlyValue(item?.package_name || item?.package_id)}
+                                {packageId ? (
+                                  <button
+                                    type='button'
+                                    className='router-link-button router-link-inline'
+                                    onClick={() =>
+                                      navigate(
+                                        `/admin/entitlement/package/detail/${encodeURIComponent(
+                                          packageId,
+                                        )}`,
+                                        { state: linkState },
+                                      )
+                                    }
+                                  >
+                                    {readOnlyValue(
+                                      item?.package_name || item?.package_id,
+                                    )}
+                                  </button>
+                                ) : (
+                                  readOnlyValue(
+                                    item?.package_name || item?.package_id,
+                                  )
+                                )}
                               </div>
                               <div className='router-text-muted router-package-purchase-description'>
-                                {groupLabel}
+                                {renderGroupLink()}
                               </div>
                             </div>
                             {renderPackageStatusLabel(item?.status, t)}
@@ -1454,7 +1497,7 @@ const UserDetail = () => {
                                 {t('user.detail.package_group')}
                               </div>
                               <div className='router-current-package-info-value'>
-                                {groupLabel}
+                                {renderGroupLink()}
                               </div>
                             </div>
                             <div className='router-current-package-info-card'>
