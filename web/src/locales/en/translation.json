@@ -2524,7 +2524,8 @@
     "title": "User Management",
     "tabs": {
       "list": "List",
-      "analytics": "Analytics"
+      "analytics": "Analytics",
+      "tasks": "User tasks"
     },
     "detail": {
       "title": "User Detail",

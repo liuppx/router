@@ -2524,7 +2524,8 @@
     "title": "用户管理",
     "tabs": {
       "list": "列表",
-      "analytics": "转化分析"
+      "analytics": "转化分析",
+      "tasks": "用户任务"
     },
     "detail": {
       "title": "用户详情",

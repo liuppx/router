@@ -24,6 +24,7 @@ import {
 } from '../../router-ui';
 import ListFilterBar from '../../components/ListFilterBar';
 import ChannelSectionTabs from '../../components/ChannelSectionTabs';
+import UserSectionTabs from '../../components/UserSectionTabs';
 
 const PAGE_SIZE = 20;
 export const TASK_PAGE_KIND_WORKSPACE_USER = 'workspace_user';
@@ -885,6 +886,9 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
     <div className='dashboard-container'>
       {isSystemTaskPage && returnPath === '' ? (
         <ChannelSectionTabs active='tasks' />
+      ) : null}
+      {isAdminUserTaskPage && returnPath === '' ? (
+        <UserSectionTabs active='tasks' />
       ) : null}
       {returnPath !== '' ? (
         <AppFilterHeader
