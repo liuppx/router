@@ -32,6 +32,7 @@ import {
   AppFilterHeader,
   AppFormActions,
   AppFormRow,
+  AppIcon,
   AppInput,
   AppInputNumber,
   AppSegmented,
@@ -42,6 +43,7 @@ import {
   AppTag,
   AppTextarea,
 } from '../../router-ui';
+import { buildLogDrilldownPath } from '../../components/LogsTable.helpers';
 
 const EditToken = () => {
   const { t } = useTranslation();
@@ -935,6 +937,23 @@ const EditToken = () => {
             },
           ]}
           title={t('token.detail.title')}
+          actions={
+            inputs.name ? (
+              <AppButton
+                className='router-page-button'
+                icon={<AppIcon name='book' />}
+                onClick={() =>
+                  navigate(
+                    buildLogDrilldownPath('workspace', {
+                      token_name: inputs.name,
+                    }),
+                  )
+                }
+              >
+                {t('log.drilldown.view')}
+              </AppButton>
+            ) : null
+          }
         />
       ) : (
         <AppFilterHeader
