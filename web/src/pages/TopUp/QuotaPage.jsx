@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { API, showError } from '../../helpers';
 import { AppButton, AppSection, AppSkeleton, AppStatistic } from '../../router-ui';
 import QuotaCardItem from './QuotaCardItem';
@@ -14,6 +14,8 @@ import {
 const QuotaPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentPagePath = `${location.pathname}${location.search}${location.hash}`;
   const { displayCurrency, displayCurrencyIndex } = useTopUpWorkspace();
   const [overview, setOverview] = useState(null);
   const [cards, setCards] = useState([]);
@@ -99,9 +101,10 @@ const QuotaPage = () => {
       }
       navigate(
         `/workspace/topup/cards/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`,
+        { state: { from: currentPagePath } },
       );
     },
-    [navigate],
+    [navigate, currentPagePath],
   );
 
   return (

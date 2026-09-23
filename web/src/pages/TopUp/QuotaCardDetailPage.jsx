@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { API, showError, timestamp2string } from '../../helpers';
 import { formatPaymentAmount } from '../../helpers/render';
 import {
@@ -40,7 +40,15 @@ const renderStatus = (status, t) => {
 const QuotaCardDetailPageInner = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { kind, id } = useParams();
+  // 按来源返回:优先回到进入时记录的列表路径,否则回落到额度页。
+  const returnPath = useMemo(() => {
+    const from = location.state?.from;
+    if (typeof from !== 'string') return '';
+    const normalized = from.trim();
+    return normalized.startsWith('/') ? normalized : '';
+  }, [location.state]);
   const { displayCurrency, displayCurrencyIndex } = useTopUpWorkspace();
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -174,7 +182,7 @@ const QuotaCardDetailPageInner = () => {
           {
             key: 'quota',
             label: t('topup.mine.quota'),
-            onClick: () => navigate('/workspace/topup?tab=quota'),
+            onClick: () => navigate(returnPath || '/workspace/topup?tab=quota'),
           },
           { key: 'card', label: cardName, active: true },
         ]}

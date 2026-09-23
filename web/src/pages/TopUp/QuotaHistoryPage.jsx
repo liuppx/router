@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { API, showError } from '../../helpers';
 import {
   AppButton,
@@ -23,6 +23,8 @@ const PAGE_SIZE = 20;
 export const QuotaHistoryPageInner = ({ embedded = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentPagePath = `${location.pathname}${location.search}${location.hash}`;
   const { displayCurrency, displayCurrencyIndex } = useTopUpWorkspace();
   const [cards, setCards] = useState([]);
   const [{ kind, page }, patchQuery] = useUrlState({
@@ -97,9 +99,10 @@ export const QuotaHistoryPageInner = ({ embedded = false }) => {
     (card) => {
       navigate(
         `/workspace/topup/cards/${encodeURIComponent(card.kind)}/${encodeURIComponent(card.id)}`,
+        { state: { from: currentPagePath } },
       );
     },
-    [navigate],
+    [navigate, currentPagePath],
   );
 
   const historyBody = (
