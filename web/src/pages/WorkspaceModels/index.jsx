@@ -6,6 +6,7 @@ import { copy, showError, showSuccess } from '../../helpers';
 import { buildLogDrilldownPath } from '../../components/LogsTable.helpers';
 import { useIsAdmin } from '../../hooks/useAuth';
 import ModelSectionTabs from '../../components/ModelSectionTabs';
+import ModelOperationsSection from '../AdminDashboard/sections/ModelOperationsSection';
 import {
   AppButton,
   AppFilterHeader,
@@ -21,6 +22,8 @@ import {
   AppToolbar,
 } from '../../router-ui';
 import './WorkspaceModels.css';
+import '../AdminDashboard/Dashboard.css';
+import '../AdminDashboard/AdminDashboard.css';
 
 const MODEL_HEALTH_HISTORY_SIZE = 60;
 
@@ -238,6 +241,13 @@ const WorkspaceModels = () => {
   // Seed the health filter from the URL so cross-page CTAs (e.g. the admin
   // dashboard "at-risk models" headline) can deep-link straight to a filtered view.
   const [searchParams] = useSearchParams();
+  // The models page doubles as the models shell: catalog is the default,
+  // URL-stable body every workspace user sees; operations is an admin-only tab
+  // hosting the model operations section. A non-admin hand-typing ?tab=operations
+  // falls back to catalog so we never mount the admin-only section for them.
+  const rawTab = (searchParams.get('tab') || '').trim().toLowerCase();
+  const activeTab =
+    hasAdminAccess && rawTab === 'operations' ? 'operations' : 'catalog';
   const [healthFilter, setHealthFilter] = useState(() => {
     const requested = (searchParams.get('health') || '').trim().toLowerCase();
     return FILTER_OPTIONS.includes(requested) ? requested : 'all';
@@ -443,8 +453,11 @@ const WorkspaceModels = () => {
         ]}
         title={t('workspace_models.title')}
       />
-      {hasAdminAccess ? <ModelSectionTabs active='catalog' /> : null}
-      <AppSpin spinning={loading}>
+      {hasAdminAccess ? <ModelSectionTabs active={activeTab} /> : null}
+      {activeTab === 'operations' ? (
+        <ModelOperationsSection />
+      ) : (
+        <AppSpin spinning={loading}>
       <AppSection className='workspace-models-section'>
         <div className='workspace-models-toolbar'>
           <div className='workspace-models-summary-grid'>
@@ -705,6 +718,7 @@ const WorkspaceModels = () => {
         )}
       </AppSection>
       </AppSpin>
+      )}
     </div>
   );
 };

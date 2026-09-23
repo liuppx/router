@@ -12,12 +12,12 @@ function ModelSectionTabs({ active = 'catalog' }) {
         {
           key: 'catalog',
           label: t('dashboard.admin.model_tabs.catalog'),
-          to: '/workspace/service/models',
+          to: '/workspace/service/models?tab=catalog',
         },
         {
           key: 'operations',
           label: t('dashboard.admin.model_tabs.operations'),
-          to: '/admin/dashboard?section=models',
+          to: '/workspace/service/models?tab=operations',
         },
       ]}
     />
