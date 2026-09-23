@@ -1,16 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import { API, showError, withCardLabels } from '../../../helpers';
 import { exportCSV } from '../../../helpers/csv';
 import { formatDecimalNumber } from '../../../helpers/render';
@@ -24,11 +14,8 @@ import {
   AppSpin,
   AppTable,
   AppTag,
-  chartAxisStyle,
-  chartGridStyle,
   chartNeutralColor,
   chartStatusPalette,
-  chartTooltipStyle,
   formatCnyChart,
   formatCnyFixed,
   formatCsvCurrency,
@@ -131,6 +118,7 @@ function BillingPricingAnalysis() {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [rows, setRows] = useState([]);
+  const [stateFilter, setStateFilter] = useState('all');
   const [groupID, setGroupID] = useState(initialContext.groupID);
   const [channelID, setChannelID] = useState(initialContext.channelID);
   const [model, setModel] = useState(initialContext.model);
@@ -279,6 +267,16 @@ function BillingPricingAnalysis() {
     }));
   }, [rows, t]);
 
+  const displayedRows = useMemo(
+    () =>
+      stateFilter === 'all'
+        ? rows
+        : (Array.isArray(rows) ? rows : []).filter(
+            (row) => pricingState(row) === stateFilter,
+          ),
+    [rows, stateFilter],
+  );
+
   const columns = [
     {
       title: t('billing.pricing_analysis.columns.model'),
@@ -354,31 +352,27 @@ function BillingPricingAnalysis() {
 
   const summaryKpis = [
     {
-      key: 'models',
-      label: t('billing.pricing_analysis.summary.models'),
-      value: formatCount(summaryTotals.models),
-      hint: t('billing.pricing_analysis.summary.low_margin_models') + ` ${formatCount(summaryTotals.lowMarginCount)}`,
-      danger: false,
-    },
-    {
-      key: 'loss',
-      label: t('billing.pricing_analysis.summary.loss_models'),
-      value: formatCount(summaryTotals.lossCount),
-      hint: formatCNY(summaryTotals.profit),
-      danger: summaryTotals.lossCount > 0,
-    },
-    {
       key: 'revenue',
       label: t('billing.pricing_analysis.summary.total_revenue'),
       value: formatCNY(summaryTotals.revenue),
-      hint: formatCNY(summaryTotals.cost),
       danger: false,
+    },
+    {
+      key: 'cost',
+      label: t('billing.pricing_analysis.summary.total_cost'),
+      value: formatCNY(summaryTotals.cost),
+      danger: false,
+    },
+    {
+      key: 'profit',
+      label: t('billing.pricing_analysis.summary.total_profit'),
+      value: formatCNY(summaryTotals.profit),
+      danger: summaryTotals.profit < 0,
     },
     {
       key: 'margin',
       label: t('billing.pricing_analysis.summary.avg_margin'),
       value: formatPercent(summaryTotals.weightedMargin),
-      hint: formatCNY(summaryTotals.profit),
       danger: summaryTotals.weightedMargin < 0.1,
     },
   ];
@@ -482,7 +476,6 @@ function BillingPricingAnalysis() {
               >
                 <div className='billing-pricing-analysis-summary-label'>{item.label}</div>
                 <div className='billing-pricing-analysis-summary-value'>{item.value}</div>
-                <div className='billing-pricing-analysis-summary-hint'>{item.hint}</div>
               </div>
             ))}
           </div>
@@ -493,23 +486,47 @@ function BillingPricingAnalysis() {
             <div className='billing-pricing-analysis-distribution-hint'>
               {t('billing.pricing_analysis.distribution.hint')}
             </div>
-            <div className='chart-container'>
-              <ResponsiveContainer width='100%' height={200}>
-                <BarChart data={stateDistribution}>
-                  <CartesianGrid {...chartGridStyle()} />
-                  <XAxis dataKey='label' {...chartAxisStyle()} />
-                  <YAxis {...chartAxisStyle()} allowDecimals={false} />
-                  <Tooltip contentStyle={chartTooltipStyle()} />
-                  <Bar dataKey='count' radius={[4, 4, 0, 0]}>
-                    {stateDistribution.map((item) => (
-                      <Cell key={item.key} fill={item.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            <div className='billing-pricing-analysis-health-strip'>
+              <button
+                type='button'
+                className={`billing-pricing-analysis-health-chip${
+                  stateFilter === 'all' ? ' is-active' : ''
+                }`}
+                onClick={() => setStateFilter('all')}
+              >
+                <span className='billing-pricing-analysis-health-label'>
+                  {t('common.all')}
+                </span>
+                <strong className='billing-pricing-analysis-health-count'>
+                  {formatCount(summaryTotals.models)}
+                </strong>
+              </button>
+              {stateDistribution.map((item) => (
+                <button
+                  key={item.key}
+                  type='button'
+                  className={`billing-pricing-analysis-health-chip${
+                    stateFilter === item.key ? ' is-active' : ''
+                  }`}
+                  onClick={() =>
+                    setStateFilter((prev) => (prev === item.key ? 'all' : item.key))
+                  }
+                >
+                  <span
+                    className='billing-pricing-analysis-health-dot'
+                    style={{ background: item.color }}
+                  />
+                  <span className='billing-pricing-analysis-health-label'>
+                    {item.label}
+                  </span>
+                  <strong className='billing-pricing-analysis-health-count'>
+                    {formatCount(item.count)}
+                  </strong>
+                </button>
+              ))}
             </div>
           </div>
-          <AppTable className='router-detail-table billing-pricing-analysis-table router-table-cardify' size='small' pagination={false} rowKey={(row) => row.dimension_key} dataSource={rows} columns={withCardLabels(columns)} locale={{ emptyText: t('billing.pricing_analysis.empty') }} />
+          <AppTable className='router-detail-table billing-pricing-analysis-table router-table-cardify' size='small' pagination={false} rowKey={(row) => row.dimension_key} dataSource={displayedRows} columns={withCardLabels(columns)} locale={{ emptyText: t('billing.pricing_analysis.empty') }} />
         </AppSection>
         )}
       </AppSpin>

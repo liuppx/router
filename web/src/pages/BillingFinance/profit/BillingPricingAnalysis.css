@@ -70,6 +70,52 @@
   font-size: 11px;
 }
 
+/* Health breakdown as a clickable filter strip (replaces the redundant bar chart). */
+.billing-pricing-analysis-health-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.billing-pricing-analysis-health-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
+  background: var(--router-surface, var(--router-surface, #fff));
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.billing-pricing-analysis-health-chip:hover {
+  border-color: rgba(15, 23, 42, 0.28);
+}
+
+.billing-pricing-analysis-health-chip.is-active {
+  border-color: var(--router-primary, #2563eb);
+  background: var(--router-primary-soft, rgba(37, 99, 235, 0.08));
+}
+
+.billing-pricing-analysis-health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.billing-pricing-analysis-health-label {
+  color: var(--router-text-secondary, var(--router-text-secondary, #475569));
+  font-size: 12px;
+}
+
+.billing-pricing-analysis-health-count {
+  color: var(--router-text-primary, var(--router-text-primary, #0f172a));
+  font-size: 14px;
+  font-weight: 600;
+}
+
 @media (max-width: 1200px) {
   .billing-pricing-analysis-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
