@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ITEMS_PER_PAGE } from '../../constants';
 import { API, showError, showSuccess, timestamp2string } from '../../helpers';
@@ -228,6 +228,7 @@ const buildProductPayload = (form) => {
 const Entitlement = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -504,7 +505,27 @@ const Entitlement = () => {
         key: 'group',
         width: 150,
         ellipsis: true,
-        render: (_, row) => row.group_name || row.group_id || '-',
+        render: (_, row) => {
+          const groupId = row?.group_id;
+          const label = row.group_name || row.group_id || '-';
+          if (!groupId) {
+            return label;
+          }
+          return (
+            <button
+              type='button'
+              className='router-link-button router-link-inline'
+              onClick={(event) => {
+                event.stopPropagation();
+                navigate(`/admin/group/detail/${encodeURIComponent(groupId)}`, {
+                  state: { from: `${location.pathname}${location.search}` },
+                });
+              }}
+            >
+              {label}
+            </button>
+          );
+        },
       },
       {
         title: t('entitlement.columns.supported_models'),

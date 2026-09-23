@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { API, showError, showInfo, showSuccess, timestamp2string } from '../../helpers';
 import {
   buildBillingCurrencyIndex,
@@ -233,6 +233,7 @@ const normalizeModels = (models) =>
 const PackageDetail = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState(null);
@@ -1185,11 +1186,32 @@ const PackageDetail = () => {
                             <AppInput className='router-section-input' value={detail?.name || '-'} readOnly />
                           </AppField>
                           <AppField label={t('package_manage.table.group')} readOnly>
-                            <AppInput
-                              className='router-section-input'
-                              value={detail?.group_name || detail?.group_id || '-'}
-                              readOnly
-                            />
+                            {detail?.group_id ? (
+                              <button
+                                type='button'
+                                className='router-link-button router-link-inline'
+                                onClick={() =>
+                                  navigate(
+                                    `/admin/group/detail/${encodeURIComponent(
+                                      detail.group_id,
+                                    )}`,
+                                    {
+                                      state: {
+                                        from: `${location.pathname}${location.search}`,
+                                      },
+                                    },
+                                  )
+                                }
+                              >
+                                {detail?.group_name || detail?.group_id}
+                              </button>
+                            ) : (
+                              <AppInput
+                                className='router-section-input'
+                                value={detail?.group_name || detail?.group_id || '-'}
+                                readOnly
+                              />
+                            )}
                           </AppField>
                         </AppFormRow>
                         <AppFormRow>
@@ -1454,7 +1476,29 @@ const PackageDetail = () => {
                                           title: t('user.table.username'),
                                           dataIndex: 'name',
                                           key: 'name',
-                                          render: (value) => value || '-',
+                                          render: (value, row) =>
+                                            row?.id ? (
+                                              <button
+                                                type='button'
+                                                className='router-link-button router-link-inline'
+                                                onClick={() =>
+                                                  navigate(
+                                                    `/admin/user/detail/${encodeURIComponent(
+                                                      row.id,
+                                                    )}`,
+                                                    {
+                                                      state: {
+                                                        from: `${location.pathname}${location.search}`,
+                                                      },
+                                                    },
+                                                  )
+                                                }
+                                              >
+                                                {value || row.id}
+                                              </button>
+                                            ) : (
+                                              value || '-'
+                                            ),
                                         },
                                         {
                                           title: t('user.table.wallet'),

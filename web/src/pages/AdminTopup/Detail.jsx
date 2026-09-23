@@ -590,11 +590,25 @@ const TopupPlanDetail = () => {
           <AppInput className='router-section-input' value={readOnlyText(plan?.name)} readOnly />
         </AppField>
         <AppField label={t('topup.manage.columns.group')} readOnly>
-          <AppInput
-            className='router-section-input'
-            value={readOnlyText(plan?.group_name || plan?.group_id)}
-            readOnly
-          />
+          {plan?.group_id ? (
+            <button
+              type='button'
+              className='router-link-button router-link-inline'
+              onClick={() =>
+                navigate(`/admin/group/detail/${encodeURIComponent(plan.group_id)}`, {
+                  state: { from: `${location.pathname}${location.search}` },
+                })
+              }
+            >
+              {readOnlyText(plan?.group_name || plan?.group_id)}
+            </button>
+          ) : (
+            <AppInput
+              className='router-section-input'
+              value={readOnlyText(plan?.group_name || plan?.group_id)}
+              readOnly
+            />
+          )}
         </AppField>
       </AppFormRow>
       <AppFormRow>

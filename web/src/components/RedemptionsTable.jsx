@@ -499,7 +499,27 @@ const RedemptionsTable = ({ sectionTabs = null }) => {
             title: t('redemption.table.product_name'),
             key: 'product_name_snapshot',
             width: REDEMPTION_LIST_COLUMN_WIDTHS.faceValue,
-            render: (_, redemption) => redemption?.product_name_snapshot || redemption?.entitlement_product_id || '-',
+            render: (_, redemption) => {
+              const productId = redemption?.entitlement_product_id;
+              const label = redemption?.product_name_snapshot || redemption?.entitlement_product_id || '-';
+              if (!productId) {
+                return label;
+              }
+              return (
+                <button
+                  type='button'
+                  className='router-link-button router-link-inline'
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    navigate(`/admin/entitlement/package/detail/${encodeURIComponent(productId)}`, {
+                      state: { from: currentPagePath },
+                    });
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            },
           },
           {
             title: t('redemption.table.created_time'),

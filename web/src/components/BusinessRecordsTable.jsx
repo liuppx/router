@@ -619,7 +619,28 @@ const BusinessRecordsTable = ({
           key: 'group',
           label: t('redemption.table.group'),
           width: BUSINESS_FLOW_COLUMN_WIDTHS.group,
-          render: (row) => readOnlyText(row.group_name || row.group_id),
+          render: (row) => {
+            const groupId = readOnlyText(row.group_id);
+            const label = readOnlyText(row.group_name || row.group_id);
+            if (groupId === '-') {
+              return label;
+            }
+            return (
+              <AppButton
+                type='button'
+                basic
+                className='router-inline-button'
+                onClick={(event) => {
+                  event.stopPropagation();
+                  navigate(`/admin/group/detail/${encodeURIComponent(groupId)}`, {
+                    state: { from: currentPagePath },
+                  });
+                }}
+              >
+                {label}
+              </AppButton>
+            );
+          },
         },
         {
           key: 'face_value',

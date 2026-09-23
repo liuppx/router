@@ -351,7 +351,21 @@ const PaymentRecordDetail = () => {
                       {t('flow.topup_reconcile.detail.fields.user')}
                     </div>
                     <pre className='router-detail-value'>
-                      {readOnlyText(order?.username || order?.user_id)}
+                      {order?.user_id ? (
+                        <button
+                          type='button'
+                          className='router-link-button router-link-inline'
+                          onClick={() =>
+                            navigate(`/admin/user/detail/${encodeURIComponent(order.user_id)}`, {
+                              state: { from: `${location.pathname}${location.search}` },
+                            })
+                          }
+                        >
+                          {readOnlyText(order?.username || order?.user_id)}
+                        </button>
+                      ) : (
+                        readOnlyText(order?.username || order?.user_id)
+                      )}
                     </pre>
                   </div>
                   <div className='router-detail-item'>
