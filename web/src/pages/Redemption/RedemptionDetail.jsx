@@ -7,6 +7,7 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import { API, showError, showSuccess, timestamp2string } from '../../helpers';
+import CopyButton from '../../components/CopyButton';
 import {
   buildBillingCurrencyIndex,
   buildFaceValueUnitOptions,
@@ -332,11 +333,20 @@ const RedemptionDetail = () => {
                     </AppField>
                   )}
                   <AppField label={t('redemption.detail.code')} readOnly>
-                    <AppInput
-                      className='router-section-input router-machine-input'
-                      value={redemption?.code || ''}
-                      readOnly
-                    />
+                    <div className='router-action-group-tight'>
+                      <AppInput
+                        className='router-section-input router-machine-input'
+                        value={redemption?.code || ''}
+                        readOnly
+                      />
+                      {redemption?.code ? (
+                        <CopyButton
+                          value={redemption.code}
+                          size='small'
+                          basic
+                        />
+                      ) : null}
+                    </div>
                   </AppField>
                 </AppFormRow>
                 <AppFormRow>
