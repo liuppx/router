@@ -28,16 +28,11 @@ export const ADMIN_MENU_GROUPS = [
         icon: 'cubes',
       },
       {
-        // 渠道的「面」:列表(此项)/健康/告警/系统任务 —— 后三者进渠道页 tab 条,
-        // 侧边栏只保留一个「渠道」项,并在这些面路由上一并高亮。
+        // 渠道的「面」:列表 / 健康 / 告警 / 系统任务 现已全部落在 /admin/channel?tab=…,
+        // 与 /admin/channel/* 详情路由同前缀,基准 `to` 即可覆盖全部面,无需 matchPaths。
         name: 'header.channel',
         to: '/admin/channel',
         icon: 'sitemap',
-        matchPaths: [
-          '/admin/dashboard?section=channels',
-          '/admin/alerts',
-          '/admin/channel/tasks',
-        ],
       },
       {
         name: 'header.group',
@@ -47,11 +42,10 @@ export const ADMIN_MENU_GROUPS = [
       {
         // The model catalog is a supply-side artifact (published models backed
         // by providers/channels), so it belongs with供给 rather than客户.
-        // 「运营」面在仪表盘,归入本项的高亮范围。
+        // 「运营」面现为模型页的 ?tab=operations,与 catalog 同路径,基准 `to` 即覆盖。
         name: 'header.model',
         to: '/workspace/service/models',
         icon: 'cube',
-        matchPaths: ['/admin/dashboard?section=models'],
       },
     ],
   },
@@ -61,11 +55,13 @@ export const ADMIN_MENU_GROUPS = [
     icon: 'users',
     items: [
       {
-        // 用户的「分析」面在仪表盘、「用户任务」面在 /admin/task,均归入本项高亮范围。
+        // 用户的「分析」/「任务」面现为 /admin/user?tab=…(基准 `to` 覆盖)。
+        // /admin/task 列表已重定向到 tab 条,但任务详情仍在 /admin/task/:id,
+        // 故保留该 matchPath 前缀以在详情页高亮本项。
         name: 'header.user',
         to: '/admin/user',
         icon: 'user',
-        matchPaths: ['/admin/dashboard?section=users', '/admin/task'],
+        matchPaths: ['/admin/task'],
       },
       {
         name: 'header.redemption',
