@@ -746,7 +746,22 @@ const ChannelsTable = () => {
                 retryText={t('common.retry')}
               />
             ) : (
-              <AppEmpty>{t('common.no_data')}</AppEmpty>
+              <AppEmpty
+                action={
+                  <AppButton
+                    color='blue'
+                    onClick={() =>
+                      navigate('/admin/channel/add', {
+                        state: { from: currentPagePath },
+                      })
+                    }
+                  >
+                    {t('channel.buttons.add')}
+                  </AppButton>
+                }
+              >
+                {t('channel.table.empty_cta')}
+              </AppEmpty>
             ),
           }}
           onRow={(channel) => ({

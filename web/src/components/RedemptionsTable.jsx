@@ -583,7 +583,22 @@ const RedemptionsTable = ({ sectionTabs = null }) => {
                 retryText={t('common.retry')}
               />
             ) : (
-              <AppEmpty>{t('common.no_data')}</AppEmpty>
+              <AppEmpty
+                action={
+                  <AppButton
+                    color='blue'
+                    onClick={() =>
+                      navigate('/admin/redemption/add', {
+                        state: { from: currentPagePath },
+                      })
+                    }
+                  >
+                    {t('redemption.buttons.add')}
+                  </AppButton>
+                }
+              >
+                {t('redemption.table.empty_cta')}
+              </AppEmpty>
             ),
           }}
           scroll={{ x: REDEMPTION_LIST_TABLE_MIN_WIDTH }}

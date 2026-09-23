@@ -1041,7 +1041,24 @@ const UsersTable = () => {
                   retryText={t('common.retry')}
                 />
               ) : (
-                <AppEmpty>{t('common.no_data')}</AppEmpty>
+                <AppEmpty
+                  action={
+                    <AppButton
+                      color='blue'
+                      onClick={() =>
+                        navigate('/admin/user/add', {
+                          state: {
+                            from: `${location.pathname}${location.search}`,
+                          },
+                        })
+                      }
+                    >
+                      {t('user.buttons.add')}
+                    </AppButton>
+                  }
+                >
+                  {t('user.table.empty_cta')}
+                </AppEmpty>
               ),
             }}
             rowKey={(user) => user.id}

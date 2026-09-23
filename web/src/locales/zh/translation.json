@@ -623,6 +623,7 @@
     },
     "search": "搜索渠道标识...",
     "table": {
+      "empty_cta": "还没有任何渠道,添加一个即可开始接入模型",
       "id": "渠道标识",
       "name": "渠道",
       "group": "分组",
@@ -2068,6 +2069,7 @@
       "status_all": "全部状态"
     },
     "table": {
+      "empty_cta": "还没有任何兑换码,生成一批即可分发",
       "id": "ID",
       "name": "名称",
       "group": "分组",
@@ -2737,6 +2739,7 @@
       "role_all": "全部身份"
     },
     "table": {
+      "empty_cta": "还没有任何用户,新增一个即可开始管理",
       "id": "ID",
       "username": "用户名",
       "wallet_identity": "钱包身份 DID",
@@ -4409,6 +4412,7 @@
     "enabled": "启用",
     "disabled": "停用",
     "add_title": "新增权益",
+    "empty_cta": "还没有任何权益,创建一个即可开始配置套餐",
     "delete_title": "删除权益",
     "confirm_delete": "确认删除 {name}？",
     "type": "权益类型",

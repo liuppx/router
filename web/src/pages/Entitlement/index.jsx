@@ -998,7 +998,20 @@ const Entitlement = () => {
                 retryText={t('common.retry')}
               />
             ) : (
-              <AppEmpty>{t('common.no_data')}</AppEmpty>
+              <AppEmpty
+                action={
+                  <AppButton
+                    type='button'
+                    color='blue'
+                    onClick={openCreate}
+                    disabled={submitting}
+                  >
+                    {t('common.add')}
+                  </AppButton>
+                }
+              >
+                {t('entitlement.empty_cta')}
+              </AppEmpty>
             ),
           }}
           onRow={(row) => ({

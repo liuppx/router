@@ -623,6 +623,7 @@
     },
     "search": "Search channels by identifier...",
     "table": {
+      "empty_cta": "No channels yet. Add one to start routing models.",
       "id": "Channel Identifier",
       "name": "Channel",
       "group": "Group",
@@ -2068,6 +2069,7 @@
       "status_all": "All Status"
     },
     "table": {
+      "empty_cta": "No redemption codes yet. Generate a batch to distribute.",
       "id": "ID",
       "name": "Name",
       "group": "Group",
@@ -2737,6 +2739,7 @@
       "role_all": "All Roles"
     },
     "table": {
+      "empty_cta": "No users yet. Add one to get started.",
       "id": "ID",
       "username": "Username",
       "wallet_identity": "Wallet Identity DID",
@@ -4409,6 +4412,7 @@
     "enabled": "Enabled",
     "disabled": "Disabled",
     "add_title": "Add entitlement",
+    "empty_cta": "No entitlements yet. Create one to start configuring packages.",
     "delete_title": "Delete entitlement",
     "confirm_delete": "Confirm delete {name}?",
     "type": "Entitlement type",
