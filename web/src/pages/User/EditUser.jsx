@@ -16,6 +16,7 @@ import {
 import UnitDropdown from '../../components/UnitDropdown';
 import { buildLogDrilldownPath } from '../../components/LogsTable.helpers';
 import BusinessRecordsTable from '../../components/BusinessRecordsTable';
+import CopyButton from '../../components/CopyButton';
 import {
   AppButton,
   AppCompact,
@@ -1308,11 +1309,16 @@ const UserDetail = () => {
               >
                 <AppFormRow>
                   <AppField label={t('user.detail.user_id')} readOnly>
-                    <AppInput
-                      className='router-section-input router-machine-input'
-                      value={readOnlyValue(userId)}
-                      readOnly
-                    />
+                    <div className='router-action-group-tight'>
+                      <AppInput
+                        className='router-section-input router-machine-input'
+                        value={readOnlyValue(userId)}
+                        readOnly
+                      />
+                      {userId ? (
+                        <CopyButton value={userId} size='small' basic />
+                      ) : null}
+                    </div>
                   </AppField>
                 </AppFormRow>
 
@@ -1372,10 +1378,24 @@ const UserDetail = () => {
                   {renderReadonlyMetaField({
                     label: t('user.table.wallet_identity'),
                     value: readOnlyValue(inputs.wallet_identity_did),
+                    action: inputs.wallet_identity_did ? (
+                      <CopyButton
+                        value={inputs.wallet_identity_did}
+                        size='small'
+                        basic
+                      />
+                    ) : null,
                   })}
                   {renderReadonlyMetaField({
                     label: t('user.table.wallet'),
                     value: readOnlyValue(inputs.wallet_address),
+                    action: inputs.wallet_address ? (
+                      <CopyButton
+                        value={inputs.wallet_address}
+                        size='small'
+                        basic
+                      />
+                    ) : null,
                   })}
                 </AppFormRow>
 
