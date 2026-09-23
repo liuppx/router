@@ -1489,6 +1489,7 @@ const AdminDashboard = () => {
             label: t('dashboard.admin.health.summary.active_circuit_breaker'),
             value: Number(channelHealthSummary.active_circuit_breaker_count || 0),
             tone: 'critical',
+            to: '/admin/alerts?type=circuit&status=active',
           },
           {
             key: 'risk_count',
@@ -1508,17 +1509,31 @@ const AdminDashboard = () => {
             value: Number(channelHealthSummary.high_latency_count || 0),
             tone: 'warning',
           },
-        ].map((bell) => (
-          <div
-            key={bell.key}
-            className={`admin-dashboard-channel-bell is-${bell.tone}${
-              bell.value > 0 ? ' is-active' : ''
-            }`}
-          >
-            <div className='admin-dashboard-channel-bell-value'>{bell.value}</div>
-            <div className='admin-dashboard-channel-bell-label'>{bell.label}</div>
-          </div>
-        ))}
+        ].map((bell) =>
+          bell.to ? (
+            <button
+              type='button'
+              key={bell.key}
+              className={`admin-dashboard-channel-bell admin-dashboard-channel-bell-cta is-${bell.tone}${
+                bell.value > 0 ? ' is-active' : ''
+              }`}
+              onClick={() => navigate(bell.to)}
+            >
+              <div className='admin-dashboard-channel-bell-value'>{bell.value}</div>
+              <div className='admin-dashboard-channel-bell-label'>{bell.label}</div>
+            </button>
+          ) : (
+            <div
+              key={bell.key}
+              className={`admin-dashboard-channel-bell is-${bell.tone}${
+                bell.value > 0 ? ' is-active' : ''
+              }`}
+            >
+              <div className='admin-dashboard-channel-bell-value'>{bell.value}</div>
+              <div className='admin-dashboard-channel-bell-label'>{bell.label}</div>
+            </div>
+          ),
+        )}
       </div>
       <div className='admin-dashboard-channel-meta-strip'>
         <div className='admin-dashboard-channel-meta-item'>
@@ -1596,6 +1611,14 @@ const AdminDashboard = () => {
                   item.circuit_breaker,
                 );
                 const canOpenDetail = Boolean(item.channel_id);
+                // For a problematic channel (circuit-broken or warning/critical)
+                // the obvious next step is to test it, so deep-link straight to
+                // the tests tab instead of the overview.
+                const needsTest =
+                  activeCircuit ||
+                  ['warning', 'critical'].includes(
+                    (item.health_level || '').toString().toLowerCase(),
+                  );
                 return (
                   <div
                     key={item.id}
@@ -1615,7 +1638,7 @@ const AdminDashboard = () => {
                             navigate(
                               `/admin/channel/detail/${encodeURIComponent(
                                 item.channel_id,
-                              )}`,
+                              )}${needsTest ? '?tab=tests' : ''}`,
                             );
                           }}
                         >

@@ -349,6 +349,25 @@
   color: var(--router-status-warning, var(--router-status-warning, #b45309));
 }
 
+/* Clickable circuit-breaker bell: reset button chrome, keep the bell look,
+   add pointer + hover so it reads as a drill-down into the alerts list. */
+.admin-dashboard-channel-bell-cta {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.admin-dashboard-channel-bell-cta:hover {
+  border-color: rgba(15, 23, 42, 0.28);
+}
+
+.admin-dashboard-channel-bell-cta.is-critical.is-active:hover {
+  border-color: var(--router-status-danger, #dc2626);
+}
+
 /* Channel section: ambient fleet stats as a slim strip below the alert bells. */
 .admin-dashboard-channel-meta-strip {
   display: flex;
