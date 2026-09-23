@@ -1387,7 +1387,7 @@ const UserDetail = () => {
                     ) : null,
                   })}
                   {renderReadonlyMetaField({
-                    label: t('user.table.wallet'),
+                    label: t('user.table.wallet_address'),
                     value: readOnlyValue(inputs.wallet_address),
                     action: inputs.wallet_address ? (
                       <CopyButton

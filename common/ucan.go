@@ -394,8 +394,8 @@ func matchPattern(pattern, value string) bool {
 	if pattern == "" || value == "" {
 		return false
 	}
-	patternLower := strings.ToLower(normalizeLoopbackAlias(pattern))
-	valueLower := strings.ToLower(normalizeLoopbackAlias(value))
+	patternLower := strings.ToLower(pattern)
+	valueLower := strings.ToLower(value)
 	if pattern == "*" {
 		return true
 	}
@@ -659,24 +659,13 @@ func verifyProofChain(currentDid string, required []UcanCapability, requiredExp 
 
 const base58Alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
-func normalizeLoopbackAlias(raw string) string {
-	trimmed := strings.TrimSpace(raw)
-	if trimmed == "" {
-		return ""
-	}
-	return strings.ReplaceAll(trimmed, "127.0.0.1", "localhost")
-}
-
 func isEquivalentAudience(left, right string) bool {
 	leftTrimmed := strings.TrimSpace(left)
 	rightTrimmed := strings.TrimSpace(right)
 	if leftTrimmed == "" || rightTrimmed == "" {
 		return false
 	}
-	if strings.EqualFold(leftTrimmed, rightTrimmed) {
-		return true
-	}
-	return strings.EqualFold(normalizeLoopbackAlias(leftTrimmed), normalizeLoopbackAlias(rightTrimmed))
+	return strings.EqualFold(leftTrimmed, rightTrimmed)
 }
 
 func isTrustedUcanIssuerDid(did string) bool {

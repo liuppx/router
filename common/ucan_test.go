@@ -139,6 +139,27 @@ func TestCapsAllow_RequiredInvokeDoesNotMatchWrite(t *testing.T) {
 	}
 }
 
+func TestIsEquivalentAudience_DoesNotAliasLoopbackHosts(t *testing.T) {
+	if isEquivalentAudience("did:web:localhost:3011", "did:web:127.0.0.1:3011") {
+		t.Fatal("localhost and 127.0.0.1 must remain distinct UCAN audiences")
+	}
+	if !isEquivalentAudience(" DID:WEB:LOCALHOST:3011 ", "did:web:localhost:3011") {
+		t.Fatal("expected audience comparison to remain case-insensitive and trim whitespace")
+	}
+}
+
+func TestCapsAllow_DoesNotAliasLoopbackHosts(t *testing.T) {
+	available := []UcanCapability{
+		{Resource: "app:did:web:127.0.0.1:6065", Action: "write"},
+	}
+	required := []UcanCapability{
+		{Resource: "app:did:web:localhost:6065", Action: "write"},
+	}
+	if capsAllow(available, required) {
+		t.Fatal("localhost and 127.0.0.1 must remain distinct capability resources")
+	}
+}
+
 func assertHasSingleCapabilitySet(t *testing.T, sets [][]UcanCapability, target UcanCapability) {
 	t.Helper()
 	for _, set := range sets {

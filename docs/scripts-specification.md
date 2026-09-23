@@ -130,7 +130,7 @@ scripts/config_backup.sh
 ```bash
 scripts/health-check.sh --level readiness
 scripts/health-check.sh --level all --format json
-scripts/health-check.sh --wait 30 --base-url http://127.0.0.1:3011
+scripts/health-check.sh --wait 30 --base-url http://localhost:3011
 ```
 
 主要检查层级：

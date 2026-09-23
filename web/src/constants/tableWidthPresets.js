@@ -154,8 +154,6 @@ export const TOKEN_LIST_TABLE_MIN_WIDTH =
 export const USER_LIST_COLUMN_WIDTHS = {
   username: 160,
   identity: 220,
-  wallet: 150,
-  package: 140,
   balance: 120,
   requestCount: 100,
   createdAt: 148,
@@ -168,8 +166,6 @@ export const USER_LIST_COLUMN_WIDTHS = {
 export const USER_LIST_TABLE_MIN_WIDTH =
   USER_LIST_COLUMN_WIDTHS.username +
   USER_LIST_COLUMN_WIDTHS.identity +
-  USER_LIST_COLUMN_WIDTHS.wallet +
-  USER_LIST_COLUMN_WIDTHS.package +
   USER_LIST_COLUMN_WIDTHS.balance +
   USER_LIST_COLUMN_WIDTHS.requestCount +
   USER_LIST_COLUMN_WIDTHS.createdAt +

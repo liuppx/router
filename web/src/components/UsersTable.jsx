@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   API,
-  copy,
   downloadTextAsFile,
   isRoot,
   showError,
@@ -43,7 +42,6 @@ import {
   AppField,
   AppFilterHeader,
   AppFormActions,
-  AppIcon,
   AppInput,
   AppModal,
   AppPagination,
@@ -78,13 +76,6 @@ function renderRole(role, t) {
       );
   }
 }
-
-const maskWalletAddress = (walletAddress) => {
-  if (typeof walletAddress !== 'string') return '';
-  const trimmedWallet = walletAddress.trim();
-  if (trimmedWallet.length < 7) return trimmedWallet;
-  return `${trimmedWallet.slice(0, 3)}...${trimmedWallet.slice(-3)}`;
-};
 
 const formatFullNumber = (value) => {
   const numericValue = Number(value);
@@ -485,15 +476,6 @@ const UsersTable = ({ embedded = false }) => {
           </AppTag>
         );
     }
-  };
-
-  const copyWalletAddress = async (walletAddress) => {
-    if (!walletAddress) return;
-    if (await copy(walletAddress)) {
-      showSuccess(t('user.messages.wallet_copy_success'));
-      return;
-    }
-    showError(t('user.messages.wallet_copy_failed'));
   };
 
   const openBatchTopupModal = useCallback(() => {
@@ -1132,47 +1114,6 @@ const UsersTable = ({ embedded = false }) => {
               ) : (
                 '-'
               ),
-          },
-          {
-            title: t('user.table.wallet'),
-            dataIndex: 'wallet_address',
-            key: 'wallet_address',
-            width: USER_LIST_COLUMN_WIDTHS.wallet,
-            render: (value) =>
-              value ? (
-                <span className='router-action-group'>
-                  <AppTooltip title={value}>
-                    <span>{maskWalletAddress(value)}</span>
-                  </AppTooltip>
-                  <button
-                    type='button'
-                    className='router-icon-button'
-                    onClick={(event) => {
-                      stopRowClick(event);
-                      copyWalletAddress(value);
-                    }}
-                  >
-                    <AppIcon name='copy outline' />
-                  </button>
-                </span>
-              ) : (
-                '-'
-              ),
-          },
-          {
-            title: t('user.table.package'),
-            dataIndex: 'active_package_name',
-            key: 'active_package_name',
-            width: USER_LIST_COLUMN_WIDTHS.package,
-            ellipsis: true,
-            sorter: (a, b) =>
-              compareTextValue(a.active_package_name, b.active_package_name),
-            sortDirections: ['ascend', 'descend'],
-            sortOrder:
-              tableSorter.columnKey === 'active_package_name'
-                ? tableSorter.order
-                : null,
-            render: (value) => (value ? renderText(value, 18) : '-'),
           },
           {
             title: (

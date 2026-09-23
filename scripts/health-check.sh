@@ -272,7 +272,7 @@ resolve_base_url() {
   if [[ -z "$port" ]]; then
     port="3011"
   fi
-  BASE_URL="http://127.0.0.1:$port"
+  BASE_URL="http://localhost:$port"
 }
 
 project_version() {

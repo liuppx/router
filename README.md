@@ -71,7 +71,7 @@ http://localhost:5181
 检查后端状态：
 
 ```bash
-curl http://127.0.0.1:3011/api/v1/public/status
+curl http://localhost:3011/api/v1/public/status
 ```
 
 ## 本地登录调试

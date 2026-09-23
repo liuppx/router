@@ -51,7 +51,7 @@ node:
   polling_interval_seconds: 0
 
 identity:
-  # 夜莺 Node 钱包身份 API 地址，例如 http://127.0.0.1:8100。
+  # 夜莺 Node 钱包身份 API 地址，例如 http://localhost:8100。
   # 仅用于无钱包插件的通行证登录；插件钱包身份登录不实时依赖 Node。
   node_url: ""
   # Node 信任包目录，包含 issuer-metadata.json、jwks.json、manifest.json。
