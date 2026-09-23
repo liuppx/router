@@ -683,7 +683,7 @@ const ChannelsTable = () => {
           </div>
         }
         query={
-          <div className='router-list-toolbar-query'>
+          <div className='router-list-toolbar-query router-channel-list-query'>
             <AppSelect
               className='router-section-select'
               value={statusFilter}
@@ -696,7 +696,7 @@ const ChannelsTable = () => {
               ]}
             />
             <AppInput
-              className='router-section-input'
+              className='router-section-input router-channel-list-search'
               icon='search'
               iconPosition='left'
               fluid
