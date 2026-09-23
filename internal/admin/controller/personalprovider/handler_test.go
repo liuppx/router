@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yeying-community/router/common/config"
@@ -21,17 +22,20 @@ func newPersonalProviderControllerTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	if err := db.AutoMigrate(&model.PersonalProviderConnection{}, &model.PersonalModelRoute{}); err != nil {
+	if err := db.AutoMigrate(&model.PersonalProviderConnection{}, &model.PersonalModelRoute{}, &model.Log{}); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	previousDB := model.DB
+	previousLogDB := model.LOG_DB
 	previousSecret := config.JWTSecret
 	previousFallbacks := config.JWTFallbackSecrets
 	model.DB = db
+	model.LOG_DB = db
 	config.JWTSecret = "personal-provider-controller-test-secret"
 	config.JWTFallbackSecrets = nil
 	t.Cleanup(func() {
 		model.DB = previousDB
+		model.LOG_DB = previousLogDB
 		config.JWTSecret = previousSecret
 		config.JWTFallbackSecrets = previousFallbacks
 	})
@@ -183,5 +187,30 @@ func TestCreateConnectionRejectsUnsupportedProtocol(t *testing.T) {
 	response := decodePersonalProviderResponse(t, recorder)
 	if success, _ := response["success"].(bool); success {
 		t.Fatalf("unsupported protocol unexpectedly succeeded: %#v", response)
+	}
+}
+
+func TestRoutingQuotaCountsPersonalChannelID(t *testing.T) {
+	db := newPersonalProviderControllerTestDB(t)
+	now := time.Now().UTC()
+	rows := []model.Log{
+		{Id: "personal-current", UserId: "user-a", ChannelId: "personal:connection-a", CreatedAt: now.Unix()},
+		{Id: "community-current", UserId: "user-a", ChannelId: "channel-a", CreatedAt: now.Unix()},
+		{Id: "personal-other-user", UserId: "user-b", ChannelId: "personal:connection-b", CreatedAt: now.Unix()},
+	}
+	if err := db.Create(&rows).Error; err != nil {
+		t.Fatalf("create logs: %v", err)
+	}
+	c, recorder := newPersonalProviderContext(t, http.MethodGet, "/routing-quota", "user-a", nil)
+
+	RoutingQuota(c)
+
+	response := decodePersonalProviderResponse(t, recorder)
+	if success, _ := response["success"].(bool); !success {
+		t.Fatalf("routing quota response = %#v", response)
+	}
+	data, ok := response["data"].(map[string]any)
+	if !ok || data["used_requests"] != float64(1) {
+		t.Fatalf("routing quota data = %#v, want one personal request", response["data"])
 	}
 }

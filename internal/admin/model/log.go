@@ -79,7 +79,7 @@ type Log struct {
 	BillingChargeDeltaAmount         int64   `json:"billing_charge_delta_amount" gorm:"bigint;default:0"`
 	PromptTokens                     int     `json:"prompt_tokens" gorm:"default:0"`
 	CompletionTokens                 int     `json:"completion_tokens" gorm:"default:0"`
-	ChannelId                        string  `json:"channel" gorm:"type:varchar(64);index"`
+	ChannelId                        string  `json:"channel" gorm:"column:channel_id;type:varchar(64);index"`
 	Provider                         string  `json:"provider,omitempty" gorm:"type:varchar(128);index"`
 	ChannelName                      string  `json:"channel_name,omitempty" gorm:"-"`
 	UpstreamSource                   string  `json:"upstream_source" gorm:"type:varchar(32);default:'';index"`

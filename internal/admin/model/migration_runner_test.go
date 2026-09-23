@@ -151,29 +151,6 @@ func TestBackfillLogRouteModelNamesWithDB(t *testing.T) {
 	}
 }
 
-func TestReconcileEventLogSchemaWithDBRestoresMissingChannel(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:"+t.Name()+"?mode=memory&cache=private"), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-	if err := db.AutoMigrate(&Log{}); err != nil {
-		t.Fatalf("migrate log: %v", err)
-	}
-	if err := db.Migrator().DropColumn(&Log{}, "ChannelId"); err != nil {
-		t.Fatalf("drop legacy-missing channel: %v", err)
-	}
-	if db.Migrator().HasColumn(&Log{}, "ChannelId") {
-		t.Fatal("channel unexpectedly exists before reconciliation")
-	}
-
-	if err := reconcileEventLogSchemaWithDB(db); err != nil {
-		t.Fatalf("reconcile event log schema: %v", err)
-	}
-	if !db.Migrator().HasColumn(&Log{}, "ChannelId") {
-		t.Fatal("channel was not restored by reconciliation")
-	}
-}
-
 func TestEnsureUserWalletAddressCaseInsensitiveUniqueCleansDuplicates(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {

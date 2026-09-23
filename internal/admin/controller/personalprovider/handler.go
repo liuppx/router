@@ -186,7 +186,7 @@ func RoutingQuota(c *gin.Context) {
 	start := time.Now().UTC()
 	start = time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC)
 	var used int64
-	err := model.LOG_DB.Model(&model.Log{}).Where("user_id = ? AND created_at >= ? AND channel LIKE ?", c.GetString(ctxkey.Id), start.Unix(), model.PersonalProviderChannelPrefix+"%").Count(&used).Error
+	err := model.LOG_DB.Model(&model.Log{}).Where("user_id = ? AND created_at >= ? AND channel_id LIKE ?", c.GetString(ctxkey.Id), start.Unix(), model.PersonalProviderChannelPrefix+"%").Count(&used).Error
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
 		return
