@@ -2065,9 +2065,15 @@ const AdminDashboard = () => {
           </div>
           <div className='admin-dashboard-spending-headline-row'>
             <span>{t('dashboard.admin.models.summary.healthy_model_count')}</span>
-            <strong>
+            <button
+              type='button'
+              className='admin-dashboard-spending-headline-row-cta'
+              onClick={() =>
+                navigate('/workspace/service/models?health=healthy')
+              }
+            >
               {formatCount(dashboard.model_summary.healthy_model_count)}
-            </strong>
+            </button>
           </div>
         </div>
       </div>
