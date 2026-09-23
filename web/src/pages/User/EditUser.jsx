@@ -963,11 +963,7 @@ const UserDetail = () => {
   }, [basicEditInputs.email, basicEditInputs.username, inputs.group, updateUser]);
 
   const backToList = useCallback(() => {
-    if (returnPath !== '') {
-      navigate(-1);
-      return;
-    }
-    navigate('/admin/user');
+    navigate(returnPath || '/admin/user');
   }, [navigate, returnPath]);
 
   const refreshBalanceSection = useCallback(async () => {

@@ -242,11 +242,7 @@ const RedemptionDetail = () => {
     t('redemption.table.not_redeemed');
 
   const handleBack = () => {
-    if (returnPath !== '') {
-      navigate(-1);
-      return;
-    }
-    navigate('/admin/redemption');
+    navigate(returnPath || '/admin/redemption');
   };
 
   return (

@@ -401,18 +401,14 @@ const EditToken = () => {
       return;
     }
     if (returnPath !== '') {
-      navigate(-1);
+      navigate(returnPath);
       return;
     }
     navigate('/token');
   };
 
   const handleBack = () => {
-    if (returnPath !== '') {
-      navigate(-1);
-      return;
-    }
-    navigate('/token');
+    navigate(returnPath || '/token');
   };
 
   const setExpiredTime = (month, day, hour, minute) => {

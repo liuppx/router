@@ -630,11 +630,7 @@ const GroupsManager = ({ detailGroupId = '' }) => {
   const backToList = () => {
     if (submitting) return;
     if (isDetailRoute) {
-      if (returnPath !== '') {
-        navigate(-1);
-        return;
-      }
-      navigate('/admin/group');
+      navigate(returnPath || '/admin/group');
       return;
     }
     resetToList();

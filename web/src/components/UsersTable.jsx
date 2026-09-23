@@ -935,7 +935,9 @@ const UsersTable = () => {
                 );
                 return;
               }
-              navigate(`/admin/user/detail/${user.id}`);
+              navigate(`/admin/user/detail/${user.id}`, {
+                state: { from: `${location.pathname}${location.search}` },
+              });
             },
           })}
           columns={withCardLabels([
