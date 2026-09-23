@@ -748,6 +748,21 @@ const LogsTable = () => {
     }));
   }, []);
 
+  const clearAllFilters = useCallback(() => {
+    setActiveFilterKeys([]);
+    setLogType(0);
+    setInputs((prev) => ({
+      ...prev,
+      username: '',
+      token_name: '',
+      model_name: '',
+      start_timestamp: '',
+      end_timestamp: '',
+      channel: '',
+      group_id: '',
+    }));
+  }, []);
+
   const loadDisplayUnits = useCallback(async () => {
     try {
       if (!isAdminScope) {
@@ -1181,6 +1196,8 @@ const LogsTable = () => {
             }
             onQuery={refresh}
             queryLoading={loading}
+            onClearFilters={clearAllFilters}
+            clearDisabled={activeFilterKeys.length === 0}
             addButtonText={t('log.filters.add')}
             addButtonClassName='router-section-button'
             queryButtonText={t('log.buttons.submit')}

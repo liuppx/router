@@ -49,6 +49,11 @@ function ListFilterBar({
   // Query row
   onQuery,
   queryLoading = false,
+  // Clear-all (optional): renders a reset button after the query button when provided
+  onClearFilters,
+  clearButtonText,
+  clearButtonClassName = 'router-section-button',
+  clearDisabled = false,
   // Labels & class overrides
   addButtonText,
   addButtonClassName = 'router-section-button',
@@ -265,6 +270,16 @@ function ListFilterBar({
       >
         {queryButtonText}
       </AppButton>
+      {onClearFilters ? (
+        <AppButton
+          type='button'
+          className={clearButtonClassName}
+          disabled={clearDisabled}
+          onClick={onClearFilters}
+        >
+          {clearButtonText ?? t('common.clear_filters')}
+        </AppButton>
+      ) : null}
     </>
   );
 }
