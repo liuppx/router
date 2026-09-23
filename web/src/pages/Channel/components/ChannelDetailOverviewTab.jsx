@@ -8,6 +8,7 @@ import {
   AppSelect,
 } from '../../../router-ui';
 import ChannelDetailBillingTab from './ChannelDetailBillingTab';
+import CopyButton from '../../../components/CopyButton';
 
 const normalizeBillingSourceValue = (source) => {
   const normalizedSource = (source || '').toString().trim().toLowerCase();
@@ -219,11 +220,16 @@ const ChannelDetailOverviewTab = ({
       >
         <AppFormRow>
           <AppField label={t('channel.edit.id')} readOnly>
-            <AppInput
-              className='router-section-input'
-              value={inputs.id || '-'}
-              readOnly
-            />
+            <div className='router-action-group-tight'>
+              <AppInput
+                className='router-section-input'
+                value={inputs.id || '-'}
+                readOnly
+              />
+              {inputs.id ? (
+                <CopyButton value={inputs.id} size='small' basic />
+              ) : null}
+            </div>
           </AppField>
           <AppField
             label={t('channel.edit.identifier')}
