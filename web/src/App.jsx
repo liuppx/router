@@ -71,9 +71,6 @@ const QuotaCardDetailPage = lazy(
 );
 const Chat = lazy(() => import('./pages/Chat'));
 const ServicePricing = lazy(() => import('./pages/ServicePricing'));
-const PaymentRecordsPage = lazy(
-  () => import('./pages/ServicePricing/PaymentRecordsPage'),
-);
 const WorkspaceModels = lazy(() => import('./pages/WorkspaceModels'));
 const HelpDoc = lazy(() => import('./pages/HelpDoc'));
 const RouterGuideDoc = lazy(() => import('./pages/HelpDoc/RouterGuideDoc'));
@@ -768,9 +765,7 @@ function App() {
         <Route
           path='/workspace/service/pricing/history'
           element={
-            <Suspense fallback={<Loading />}>
-              <PaymentRecordsPage />
-            </Suspense>
+            <TabRedirect to='/workspace/service/pricing' tab='records' />
           }
         />
         <Route

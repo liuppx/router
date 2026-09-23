@@ -12,12 +12,12 @@ function ServicePricingSectionTabs({ active = 'pricing' }) {
         {
           key: 'pricing',
           label: t('topup.pricing.title'),
-          to: '/workspace/service/pricing',
+          to: '/workspace/service/pricing?tab=pricing',
         },
         {
           key: 'records',
           label: t('topup.payment_history.title'),
-          to: '/workspace/service/pricing/history',
+          to: '/workspace/service/pricing?tab=records',
         },
       ]}
     />
