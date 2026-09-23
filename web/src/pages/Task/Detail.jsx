@@ -238,11 +238,18 @@ const TaskDetail = ({ detailKind: detailKindOverride = '' }) => {
         }
         nextSearchParams.set(key, normalizedValue);
       });
+      // Returning to the list lands on the entity shell's tasks tab directly
+      // (e.g. /admin/channel?tab=tasks) instead of the legacy standalone route
+      // that now only redirects there — avoids a redirect flash on "back".
+      const isAdminUserPage = !isSystemTaskPage && isAdminPage;
+      if (isSystemTaskPage || isAdminUserPage) {
+        nextSearchParams.set('tab', 'tasks');
+      }
       const search = nextSearchParams.toString();
       const basePath = isSystemTaskPage
-        ? '/admin/channel/tasks'
-        : isAdminPage
-          ? '/admin/task'
+        ? '/admin/channel'
+        : isAdminUserPage
+          ? '/admin/user'
           : '/workspace/task';
       return `${basePath}${search ? `?${search}` : ''}`;
     },

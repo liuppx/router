@@ -142,7 +142,7 @@ const resolveListPath = (stateFrom, currentPath = '') => {
   const normalizedCurrentPath = (currentPath || '').toString().trim();
   if (typeof stateFrom !== 'string') {
     if (normalizedCurrentPath.startsWith('/admin/entitlement/payments/')) {
-      return '/admin/entitlement/payments';
+      return '/admin/entitlement?tab=records';
     }
     return '/admin/user';
   }
@@ -158,12 +158,12 @@ const resolveListPath = (stateFrom, currentPath = '') => {
     }
   }
   if (normalized.startsWith('/admin/entitlement/payments/')) {
-    return '/admin/entitlement/payments';
+    return '/admin/entitlement?tab=records';
   }
   if (normalized.startsWith('/admin/entitlement/topup/payment/')) {
     return '/admin/user';
   }
-  if (normalized === '/admin/entitlement/payments') {
+  if (normalized === '/admin/entitlement?tab=records') {
     return normalized;
   }
   return normalized || '/admin/user';
@@ -191,7 +191,7 @@ const PaymentRecordDetail = () => {
     if (fromUserDetail) {
       return t('topup.payment_history.title');
     }
-    if (listPath.startsWith('/admin/entitlement/payments')) {
+    if (listPath.startsWith('/admin/entitlement?tab=records')) {
       return t('flow.records.purchase_title');
     }
     return t('flow.topup_reconcile.title');

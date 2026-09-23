@@ -297,8 +297,9 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
           query.set(key, normalizedValue);
         }
       });
+      query.set('tab', 'tasks');
       const search = query.toString();
-      navigate(`/admin/channel/tasks${search ? `?${search}` : ''}`, {
+      navigate(`/admin/channel${search ? `?${search}` : ''}`, {
         state: {
           from: `${location.pathname}${location.search}${location.hash}`,
           fromLabel: (inputs.name || channelId || '').toString().trim(),

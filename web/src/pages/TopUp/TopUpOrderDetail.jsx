@@ -146,7 +146,7 @@ const TopUpOrderDetailInner = () => {
     if (from.startsWith('/workspace/topup')) {
       return from;
     }
-    return '/workspace/service/pricing/history';
+    return '/workspace/service/pricing?tab=records';
   }, [location.state?.from]);
 
   const refreshOrderStatus = useCallback(async () => {

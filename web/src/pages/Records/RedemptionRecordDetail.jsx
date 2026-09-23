@@ -35,16 +35,16 @@ const formatChargeAmount = (value) => {
 
 const resolveListPath = (stateFrom) => {
   if (typeof stateFrom !== 'string') {
-    return '/admin/redemption/records';
+    return '/admin/redemption?tab=records';
   }
   const normalized = stateFrom.trim();
   if (!normalized.startsWith('/')) {
-    return '/admin/redemption/records';
+    return '/admin/redemption?tab=records';
   }
   if (normalized.startsWith('/admin/redemption/records/')) {
-    return '/admin/redemption/records';
+    return '/admin/redemption?tab=records';
   }
-  return normalized || '/admin/redemption/records';
+  return normalized || '/admin/redemption?tab=records';
 };
 
 const RedemptionRecordDetail = () => {
