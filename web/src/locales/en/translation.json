@@ -589,7 +589,11 @@
       "disable_all_success": "{{count}} channels disabled.",
       "enable_all_failed": "Failed to enable {{count}} channels.",
       "disable_all_failed": "Failed to disable {{count}} channels.",
-      "partial": "Batch done: {{success}} succeeded, {{failed}} failed."
+      "partial": "Batch done: {{success}} succeeded, {{failed}} failed.",
+      "delete_selected": "Delete Selected ({{count}})",
+      "confirm_delete": "Delete the {{count}} selected channels? This action cannot be undone.",
+      "delete_all_success": "Deleted {{count}} channels.",
+      "delete_all_failed": "{{count}} channels failed to delete."
     },
     "filter": {
       "status_all": "All statuses"

@@ -386,6 +386,57 @@ const ChannelsTable = () => {
     [activePage, batchActions, batchRunning, loadChannels, searchKeyword, statusFilter, t],
   );
 
+  // Batch delete by looping per-row DELETE. The backend has no batch delete
+  // endpoint, so we serialize N DELETEs and report a single aggregated toast.
+  const runBatchDelete = useCallback(async () => {
+    if (batchRunning) {
+      return;
+    }
+    const keys = batchActions.selectedRowKeys;
+    if (keys.length === 0) {
+      showInfo(t('channel.batch.select_required'));
+      return;
+    }
+    setBatchRunning(true);
+    let successCount = 0;
+    const failures = [];
+    for (const id of keys) {
+      try {
+        const res = await API.delete(
+          `/api/v1/admin/channel/${encodeURIComponent(id)}/`,
+        );
+        if (res?.data?.success) {
+          successCount += 1;
+        } else {
+          failures.push({ id, message: res?.data?.message || '-' });
+        }
+      } catch (error) {
+        failures.push({ id, message: error?.message || String(error) });
+      }
+    }
+    setBatchRunning(false);
+    const failedCount = failures.length;
+    if (failedCount === 0) {
+      showSuccess(
+        t('channel.batch.delete_all_success', { count: successCount }),
+      );
+    } else if (successCount === 0) {
+      showError(
+        t('channel.batch.delete_all_failed', { count: failedCount }),
+      );
+    } else {
+      showError(
+        t('channel.batch.partial', {
+          success: successCount,
+          failed: failedCount,
+        }),
+      );
+    }
+    batchActions.exit();
+    setLoading(true);
+    await loadChannels({ page: activePage, keyword: searchKeyword, status: statusFilter, pageSize });
+  }, [activePage, batchActions, batchRunning, loadChannels, searchKeyword, statusFilter, t]);
+
   const statusTooltipText = (status, t) => {
     switch (status) {
       case 1:
@@ -580,6 +631,26 @@ const ChannelsTable = () => {
                     loading={batchRunning}
                   >
                     {t('channel.batch.disable_selected', {
+                      count: batchSelectedCount,
+                    })}
+                  </AppButton>
+                </AppPopconfirm>
+                <AppPopconfirm
+                  title={t('channel.batch.confirm_delete', {
+                    count: batchSelectedCount,
+                  })}
+                  okText={t('common.confirm')}
+                  cancelText={t('common.cancel')}
+                  disabled={batchSelectedCount === 0 || batchRunning}
+                  onConfirm={runBatchDelete}
+                >
+                  <AppButton
+                    className='router-page-button'
+                    color='red'
+                    disabled={batchSelectedCount === 0 || batchRunning}
+                    loading={batchRunning}
+                  >
+                    {t('channel.batch.delete_selected', {
                       count: batchSelectedCount,
                     })}
                   </AppButton>

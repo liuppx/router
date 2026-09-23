@@ -589,7 +589,11 @@
       "disable_all_success": "已停用 {{count}} 个渠道。",
       "enable_all_failed": "{{count}} 个渠道启用失败。",
       "disable_all_failed": "{{count}} 个渠道停用失败。",
-      "partial": "批量完成：成功 {{success}}，失败 {{failed}}。"
+      "partial": "批量完成：成功 {{success}}，失败 {{failed}}。",
+      "delete_selected": "批量删除（{{count}}）",
+      "confirm_delete": "确认删除选中的 {{count}} 个渠道？此操作不可撤销。",
+      "delete_all_success": "已删除 {{count}} 个渠道。",
+      "delete_all_failed": "{{count}} 个渠道删除失败。"
     },
     "filter": {
       "status_all": "全部状态"
