@@ -867,6 +867,12 @@ const BusinessRecordsTable = ({
     loadItems(1, keyword, statusFilter).then();
   }, [keyword, statusFilter, loadItems]);
 
+  const clearFilters = useCallback(() => {
+    setKeyword('');
+    setStatusFilter('');
+    loadItems(1, '', '').then();
+  }, [loadItems]);
+
   const onRefresh = useCallback(() => {
     loadItems(activePage, keyword, statusFilter).then();
   }, [activePage, keyword, statusFilter, loadItems]);
@@ -1126,6 +1132,13 @@ const BusinessRecordsTable = ({
               onClick={onSearchSubmit}
             >
               {t('task.buttons.query')}
+            </AppButton>
+            <AppButton
+              className='router-section-button'
+              disabled={loading || (statusFilter === '' && keyword === '')}
+              onClick={clearFilters}
+            >
+              {t('common.clear_filters')}
             </AppButton>
           </div>
         }

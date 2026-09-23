@@ -952,6 +952,15 @@ const Entitlement = () => {
                 patchQuery({ keyword: value || '', page: 1 });
               }}
             />
+            <AppButton
+              className='router-section-button'
+              disabled={kind === PRODUCT_KIND_ALL && searchKeyword === ''}
+              onClick={() =>
+                patchQuery({ kind: PRODUCT_KIND_ALL, keyword: '', page: 1 })
+              }
+            >
+              {t('common.clear_filters')}
+            </AppButton>
           </div>
         }
         actions={
