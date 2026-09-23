@@ -149,6 +149,42 @@ func TestValidateUserTokenRejectsExhaustedRequestCount(t *testing.T) {
 	}
 }
 
+func TestValidateUserTokenAllowsZeroMonetaryQuotaForPersonalRouting(t *testing.T) {
+	db := newTokenRepositoryTestDB(t)
+	token := &model.Token{
+		Id:                    "token-personal-only",
+		UserId:                "user-1",
+		Key:                   "personal-zero-quota-key",
+		Name:                  "personal token",
+		Status:                model.TokenStatusExhausted,
+		ExpiredTime:           -1,
+		RemainQuota:           0,
+		UnlimitedQuota:        false,
+		RemainRequestCount:    10,
+		UnlimitedRequestCount: false,
+		CreatedTime:           100,
+		UpdatedTime:           100,
+	}
+	if err := db.Create(token).Error; err != nil {
+		t.Fatalf("create token: %v", err)
+	}
+
+	validated, err := ValidateUserToken(token.Key)
+	if err != nil {
+		t.Fatalf("ValidateUserToken() error = %v", err)
+	}
+	if validated == nil || validated.Id != token.Id {
+		t.Fatalf("validated token = %#v", validated)
+	}
+	var stored model.Token
+	if err := db.First(&stored, "id = ?", token.Id).Error; err != nil {
+		t.Fatalf("load restored token: %v", err)
+	}
+	if stored.Status != model.TokenStatusEnabled {
+		t.Fatalf("stored status = %d, want enabled", stored.Status)
+	}
+}
+
 func TestConsumeTokenRequestCountDecrementsFiniteLimit(t *testing.T) {
 	db := newTokenRepositoryTestDB(t)
 	token := &model.Token{

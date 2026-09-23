@@ -19,6 +19,8 @@ const (
 	ChannelName                 = "channel_name"
 	TokenId                     = "token_id"
 	TokenName                   = "token_name"
+	TokenRemainQuota            = "token_remain_quota"
+	TokenUnlimitedQuota         = "token_unlimited_quota"
 	EntitlementSourceType       = "entitlement_source_type"
 	EntitlementSourceId         = "entitlement_source_id"
 	EntitlementSourceName       = "entitlement_source_name"

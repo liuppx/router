@@ -135,12 +135,10 @@ func ValidateUserToken(key string) (*model.Token, error) {
 		}
 		return nil, errors.New("令牌验证失败")
 	}
-	if token.Status == model.TokenStatusExhausted {
-		return token, fmt.Errorf("令牌 %s（#%s）额度已用尽", token.Name, token.Id)
-	} else if token.Status == model.TokenStatusExpired {
+	if token.Status == model.TokenStatusExpired {
 		return token, errors.New("该令牌已过期")
 	}
-	if token.Status != model.TokenStatusEnabled {
+	if token.Status != model.TokenStatusEnabled && token.Status != model.TokenStatusExhausted {
 		return token, errors.New("该令牌状态不可用")
 	}
 	if token.ExpiredTime != -1 && token.ExpiredTime < helper.GetTimestamp() {
@@ -153,26 +151,27 @@ func ValidateUserToken(key string) (*model.Token, error) {
 		}
 		return token, errors.New("该令牌已过期")
 	}
-	if !token.UnlimitedQuota && token.RemainQuota <= 0 {
-		if !common.RedisEnabled {
-			token.Status = model.TokenStatusExhausted
-			err := SelectUpdate(token)
-			if err != nil {
-				logger.SysError("failed to update token status" + err.Error())
-			}
-		}
-		return token, errors.New("该令牌额度已用尽")
-	}
 	if !token.UnlimitedRequestCount && token.RemainRequestCount <= 0 {
-		if !common.RedisEnabled {
-			token.Status = model.TokenStatusExhausted
-			err := SelectUpdate(token)
-			if err != nil {
-				logger.SysError("failed to update token status" + err.Error())
-			}
-		}
 		return token, errors.New("该令牌请求次数已用尽")
 	}
+	if token.Status == model.TokenStatusExhausted {
+		// Older releases persisted exhausted when the monetary balance reached
+		// zero. Monetary balance is now enforced only for community settlement,
+		// so restore this token once its independent request-count limit allows
+		// use. This keeps the management UI consistent with personal routing.
+		token.Status = model.TokenStatusEnabled
+		if err := SelectUpdate(token); err != nil {
+			logger.SysError("failed to restore token status after monetary exhaustion: " + err.Error())
+		} else if err := invalidateTokenCacheFn(token.Key); err != nil {
+			logger.SysError("failed to invalidate restored token cache: " + err.Error())
+		}
+	}
+	// Monetary quota is checked when the selected upstream is settled. Personal
+	// provider requests do not spend Router monetary quota, so rejecting here
+	// would make an otherwise valid personal-only token unusable before routing.
+	// TokenStatusExhausted from older versions is therefore tolerated when its
+	// request-count limit remains available; community requests still fail in
+	// their existing pre-consumption path if monetary quota is insufficient.
 	return token, nil
 }
 

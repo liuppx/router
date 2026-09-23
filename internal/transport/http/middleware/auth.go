@@ -339,6 +339,8 @@ func TokenAuth() func(c *gin.Context) {
 			c.Set(ctxkey.Id, token.UserId)
 			c.Set(ctxkey.TokenId, token.Id)
 			c.Set(ctxkey.TokenName, token.Name)
+			c.Set(ctxkey.TokenRemainQuota, token.RemainQuota)
+			c.Set(ctxkey.TokenUnlimitedQuota, token.UnlimitedQuota)
 			c.Set(ctxkey.PersonalRoutePolicy, model.NormalizePersonalRoutePolicy(token.RoutePolicy))
 		}
 		if err != nil {

@@ -405,13 +405,6 @@ func UpdateToken(c *gin.Context) {
 			})
 			return
 		}
-		if cleanToken.Status == model.TokenStatusExhausted && cleanToken.RemainQuota <= 0 && !cleanToken.UnlimitedQuota {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": "令牌可用额度已用尽，无法启用，请先修改令牌剩余额度，或者设置为无限额度",
-			})
-			return
-		}
 		if cleanToken.Status == model.TokenStatusExhausted && cleanToken.RemainRequestCount <= 0 && !cleanToken.UnlimitedRequestCount {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,

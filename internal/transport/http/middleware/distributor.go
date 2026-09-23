@@ -521,10 +521,30 @@ func Distribute() func(c *gin.Context) {
 				c.Set(ctxkey.EntitlementSourceName, entitlementSource.SourceName)
 			}
 		}
+		if !model.IsPersonalProviderChannelID(channel.Id) && tokenMonetaryQuotaExhausted(c) {
+			c.Set(ctxkey.RelayErrorCode, "token_quota_exhausted")
+			abortWithMessage(c, http.StatusForbidden, "该令牌额度已用尽")
+			return
+		}
 		logger.Debugf(ctx, "user id %s, user group: %s, request model: %s, using channel #%s", userId, userGroup, requestModel, channel.Id)
 		SetupContextForSelectedChannel(c, channel, requestModel)
 		c.Next()
 	}
+}
+
+// TokenAuth stores this snapshot before distribution. Enforce the monetary
+// limit only after a community channel has been selected, because private
+// provider requests intentionally do not spend Router monetary quota.
+func tokenMonetaryQuotaExhausted(c *gin.Context) bool {
+	if c == nil {
+		return false
+	}
+	remaining, exists := c.Get(ctxkey.TokenRemainQuota)
+	if !exists || c.GetBool(ctxkey.TokenUnlimitedQuota) {
+		return false
+	}
+	value, ok := remaining.(int64)
+	return ok && value <= 0
 }
 
 func SetupContextForSelectedChannel(c *gin.Context, channel *model.Channel, modelName string) {
