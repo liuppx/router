@@ -234,6 +234,14 @@ const PackageDetail = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const returnPath = useMemo(() => {
+    const from = location.state?.from;
+    if (typeof from !== 'string') {
+      return '';
+    }
+    const normalized = from.trim();
+    return normalized.startsWith('/') ? normalized : '';
+  }, [location.state]);
   const { id } = useParams();
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState(null);
@@ -1113,7 +1121,7 @@ const PackageDetail = () => {
           {
             key: 'entitlement',
             label: t('header.entitlement'),
-            onClick: () => navigate('/admin/entitlement'),
+            onClick: () => navigate(returnPath || '/admin/entitlement'),
           },
           { key: 'package-current', label: product?.id || normalizedId || '-', active: true },
         ]}

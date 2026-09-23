@@ -190,6 +190,10 @@ const TopupPlanDetail = () => {
     location.state.from.startsWith('/admin/redemption/')
     ? location.state.from
     : '';
+  const returnPath = typeof location.state?.from === 'string' &&
+    location.state.from.trim().startsWith('/')
+    ? location.state.from.trim()
+    : '';
   const [activeTabKey, setActiveTabKey] = useState('basic');
   const [loading, setLoading] = useState(true);
   const [plan, setPlan] = useState(null);
@@ -896,7 +900,7 @@ const TopupPlanDetail = () => {
             {
               key: 'entitlement',
               label: t('header.entitlement'),
-              onClick: () => navigate('/admin/entitlement'),
+              onClick: () => navigate(returnPath || '/admin/entitlement'),
             },
           ]),
           {

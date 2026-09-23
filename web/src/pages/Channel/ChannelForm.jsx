@@ -168,11 +168,11 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
   }, [isDetailMode, location.search]);
   const [channelKeySet, setChannelKeySet] = useState(false);
   const handleBackToChannelList = useCallback(() => {
-    navigate('/admin/channel');
-  }, [navigate]);
+    navigate(returnPath || '/admin/channel');
+  }, [navigate, returnPath]);
   const handleCancel = () => {
     if (isDetailMode && returnPath !== '') {
-      navigate(-1);
+      navigate(returnPath);
       return;
     }
     navigate('/admin/channel');

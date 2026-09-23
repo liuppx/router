@@ -470,12 +470,16 @@ const Entitlement = () => {
         return;
       }
       if (row.kind === PRODUCT_KIND_SUBSCRIPTION) {
-        navigate(`/admin/entitlement/package/detail/${encodeURIComponent(productID)}`);
+        navigate(`/admin/entitlement/package/detail/${encodeURIComponent(productID)}`, {
+          state: { from: `${location.pathname}${location.search}` },
+        });
         return;
       }
-      navigate(`/admin/entitlement/topup/detail/${encodeURIComponent(productID)}`);
+      navigate(`/admin/entitlement/topup/detail/${encodeURIComponent(productID)}`, {
+        state: { from: `${location.pathname}${location.search}` },
+      });
     },
-    [navigate],
+    [navigate, location],
   );
 
   const columns = useMemo(
