@@ -1159,6 +1159,21 @@ function AdminChannelAlertsPanel() {
             {t('dashboard.admin.alerts.actions.view_channel')}
           </AppButton>
           <AppButton
+            type='button'
+            className='router-inline-button'
+            onClick={() => {
+              closeDetailDrawer();
+              navigate(
+                `/admin/channel/detail/${encodeURIComponent(
+                  detailAlert?.channelId || '',
+                )}?tab=tests`,
+              );
+            }}
+            disabled={!detailAlert?.channelId}
+          >
+            {t('channel.edit.detail_tabs.tests')}
+          </AppButton>
+          <AppButton
             color='blue'
             type='button'
             disabled={
