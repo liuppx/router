@@ -1,6 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { API } from '../../helpers/api';
 import { showError } from '../../helpers/utils';
+import {
+  buildPublicDisplayCurrencyIndex,
+  convertChargeAmountToDisplayAmount,
+  formatCompactDisplayAmount,
+} from '../../helpers/billing';
 import {
   formatBillingPercent,
   BILLING_PERCENT_DECIMALS,
@@ -201,6 +206,51 @@ export const toPercent = (raw) => {
 
 export const formatPercent = (raw) =>
   formatBillingPercent(toPercent(raw), BILLING_PERCENT_DECIMALS);
+
+export const formatUpdatedAt = (value) => {
+  if (!value) return '-';
+  return new Date(Number(value) * 1000).toLocaleString('zh-CN', {
+    hour12: false,
+  });
+};
+
+export const formatTimeRange = (start, end) => {
+  const startTs = Number(start || 0);
+  const endTs = Number(end || 0);
+  if (!startTs || !endTs) return '-';
+  return `${formatUpdatedAt(startTs)} - ${formatUpdatedAt(endTs)}`;
+};
+
+export const formatPeriodRange = (startTimestamp, endTimestamp) => {
+  const start = Number(startTimestamp || 0);
+  const end = Number(endTimestamp || 0);
+  if (!start || !end) return '-';
+  const formatDate = (timestamp) =>
+    new Date(timestamp * 1000).toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+  return `${formatDate(start)} - ${formatDate(end)}`;
+};
+
+export const formatSignedCount = (value) => {
+  const num = Number(value || 0);
+  if (!Number.isFinite(num) || num === 0) return '0';
+  return `${num > 0 ? '+' : '-'}${formatCount(Math.abs(num))}`;
+};
+
+export const formatSignedPercent = (value) => {
+  const num = Number(value || 0);
+  if (!Number.isFinite(num) || num === 0) return '0.00%';
+  return `${num > 0 ? '+' : '-'}${(Math.abs(num) * 100).toFixed(2)}%`;
+};
+
+export const deltaTone = (value) => {
+  const num = Number(value || 0);
+  if (!Number.isFinite(num) || num === 0) return 'neutral';
+  return num > 0 ? 'positive' : 'negative';
+};
 
 export const normalizeChannelHealthPointState = (point) => {
   const raw = typeof point === 'string' ? point : point?.state;
@@ -425,6 +475,34 @@ export const isActiveCircuitBreaker = (circuitBreaker) =>
   ACTIVE_CIRCUIT_BREAKER_STATES.has(
     normalizeCircuitBreakerState(circuitBreaker?.state),
   );
+
+// Dashboard figures are shown in USD via a fixed fallback charge rate rather
+// than the runtime currency table: passing [] makes buildPublicDisplayCurrencyIndex
+// fall back to getFallbackUSDChargeRate(), so this is intentional (no runtime
+// currency load needed for the operator's USD-only overview).
+export const useUsdFormatter = () => {
+  const displayCurrencyIndex = useMemo(
+    () => buildPublicDisplayCurrencyIndex([]),
+    [],
+  );
+  const toUsd = useCallback(
+    (chargeAmount) => {
+      const amount = convertChargeAmountToDisplayAmount(
+        chargeAmount,
+        'USD',
+        displayCurrencyIndex,
+      );
+      if (!Number.isFinite(amount)) return 0;
+      return amount;
+    },
+    [displayCurrencyIndex],
+  );
+  const formatUsd = useCallback(
+    (chargeAmount) => formatCompactDisplayAmount(toUsd(chargeAmount)),
+    [toUsd],
+  );
+  return { toUsd, formatUsd };
+};
 
 // Fetch + normalize one dashboard section. Mirrors the original loadData:
 // GET /api/v1/admin/dashboard/ with { period, section, ...extraParams }.
