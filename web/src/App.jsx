@@ -287,6 +287,36 @@ function TabRedirect({ to, tab }) {
   );
 }
 
+// The dashboard's former section switcher (`/admin/dashboard?section=…`) has
+// been split into per-entity shells. Old deep links (bookmarks, external CTAs)
+// redirect onto the matching shell tab, carrying any remaining query through;
+// spending/overview/trend and the bare dashboard still render AdminDashboard.
+const DASHBOARD_SECTION_TARGETS = {
+  channels: { to: '/admin/channel', tab: 'health' },
+  users: { to: '/admin/user', tab: 'analytics' },
+  models: { to: '/workspace/service/models', tab: 'operations' },
+};
+
+function DashboardSectionRedirect() {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const section = (params.get('section') || '').trim().toLowerCase();
+  const target = DASHBOARD_SECTION_TARGETS[section];
+  if (!target) {
+    return <AdminDashboard />;
+  }
+  params.delete('section');
+  params.set('tab', target.tab);
+  const search = params.toString();
+  return (
+    <Navigate
+      to={`${target.to}${search ? `?${search}` : ''}${location.hash}`}
+      state={location.state}
+      replace
+    />
+  );
+}
+
 function App() {
   const [, userDispatch] = useContext(UserContext);
   const [, statusDispatch] = useContext(StatusContext);
@@ -893,7 +923,7 @@ function App() {
         />
         <Route
           path='/admin/dashboard'
-          element={<AdminDashboard />}
+          element={<DashboardSectionRedirect />}
         />
         <Route
           path='/admin/alerts'
