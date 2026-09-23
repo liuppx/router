@@ -516,6 +516,18 @@
         "refresh": "立即查单",
         "fulfill": "补发放"
       },
+      "batch": {
+        "enter_selection": "批量操作",
+        "cancel_selection": "取消选择",
+        "select_required": "请先选择至少一条记录。",
+        "refresh_selected": "批量查单（{{count}}）",
+        "fulfill_selected": "批量补发放（{{count}}）",
+        "confirm_refresh": "确认对选中的 {{count}} 条记录立即查单？",
+        "confirm_fulfill": "确认对选中的 {{count}} 条记录补发放？",
+        "no_fulfillable": "所选记录中没有可补发放的记录（仅已支付可补发放）。",
+        "done": "批量操作完成：成功 {{success}}，失败 {{failed}}。",
+        "skipped": "跳过 {{skipped}} 条（状态不满足条件）。"
+      },
       "detail": {
         "sections": {
           "basic": "订单详情",

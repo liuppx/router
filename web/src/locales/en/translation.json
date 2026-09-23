@@ -516,6 +516,18 @@
         "refresh": "Sync Now",
         "fulfill": "Fulfill"
       },
+      "batch": {
+        "enter_selection": "Batch Actions",
+        "cancel_selection": "Cancel Selection",
+        "select_required": "Select at least one record first.",
+        "refresh_selected": "Sync Selected ({{count}})",
+        "fulfill_selected": "Fulfill Selected ({{count}})",
+        "confirm_refresh": "Sync the {{count}} selected records now?",
+        "confirm_fulfill": "Fulfill the {{count}} selected records?",
+        "no_fulfillable": "None of the selected records is fulfillable (only paid records can be fulfilled).",
+        "done": "Batch actions finished: {{success}} succeeded, {{failed}} failed.",
+        "skipped": "Skipped {{skipped}} (status not eligible)."
+      },
       "detail": {
         "sections": {
           "basic": "Order Detail",

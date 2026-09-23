@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { API, showError, timestamp2string, withCardLabels } from '../helpers';
+import { API, showError, showInfo, showSuccess, timestamp2string, withCardLabels } from '../helpers';
 import { ITEMS_PER_PAGE } from '../constants';
 import useUrlState, { parsePageParam, parseListPageSize } from '../hooks/useUrlState';
+import useBatchRowActions from '../hooks/useBatchRowActions';
 import {
   BUSINESS_FLOW_COLUMN_WIDTHS,
 } from '../constants/tableWidthPresets';
@@ -15,6 +16,7 @@ import {
   AppFilterHeader,
   AppInput,
   AppPagination,
+  AppPopconfirm,
   AppSelect,
   AppTable,
   AppTag,
@@ -173,6 +175,14 @@ const BusinessRecordsTable = ({
   const [statusFilter, setStatusFilter] = useState(initialListQuery.status);
   const [refreshingRowID, setRefreshingRowID] = useState('');
   const [fulfillingRowID, setFulfillingRowID] = useState('');
+  const isReconcile = kind === 'topup-reconcile';
+  const batchActions = useBatchRowActions();
+  const {
+    isSelecting: batchSelectionMode,
+    selectedRowKeys,
+    setSelectedRowKeys,
+  } = batchActions;
+  const [batchRunning, setBatchRunning] = useState(false);
   const [tableSorter, setTableSorter] = useState({
     columnKey: null,
     order: null,
@@ -922,6 +932,84 @@ const BusinessRecordsTable = ({
     }
   }
 
+  // 批量刷新/履约:后端无批量接口,串行循环单条 POST 并聚合成单条汇总提示。
+  // 履约仅对 status=paid 的记录有效,自动跳过其余记录。
+  const runBatchReconcile = useCallback(
+    async (action) => {
+      if (batchRunning) return;
+      if (action !== 'refresh' && action !== 'fulfill') return;
+      const idSet = new Set(
+        selectedRowKeys
+          .map((item) => (item || '').toString().trim())
+          .filter(Boolean),
+      );
+      if (idSet.size === 0) {
+        showInfo(t('flow.topup_reconcile.batch.select_required'));
+        return;
+      }
+      const targets = items.filter((row) =>
+        idSet.has((row?.id || '').toString()),
+      );
+      const actionable =
+        action === 'fulfill'
+          ? targets.filter(
+              (row) => (row?.status || '').toString().trim() === 'paid',
+            )
+          : targets;
+      if (actionable.length === 0) {
+        showInfo(
+          action === 'fulfill'
+            ? t('flow.topup_reconcile.batch.no_fulfillable')
+            : t('flow.topup_reconcile.batch.select_required'),
+        );
+        return;
+      }
+      setBatchRunning(true);
+      let succeeded = 0;
+      let failed = 0;
+      const failedIDs = [];
+      for (const row of actionable) {
+        const id = (row?.id || '').toString();
+        try {
+          const res = await API.post(
+            `/api/v1/admin/flow/topup-reconcile-records/${encodeURIComponent(id)}/${action}`,
+          );
+          if (res?.data?.success) succeeded += 1;
+          else {
+            failed += 1;
+            failedIDs.push(id);
+          }
+        } catch (error) {
+          failed += 1;
+          failedIDs.push(id);
+        }
+      }
+      setBatchRunning(false);
+      const skipped = targets.length - actionable.length;
+      showSuccess(
+        t('flow.topup_reconcile.batch.done', { success: succeeded, failed }),
+      );
+      if (skipped > 0) {
+        showInfo(t('flow.topup_reconcile.batch.skipped', { skipped }));
+      }
+      setSelectedRowKeys(failedIDs);
+      if (failed === 0) batchActions.exit();
+      loadItems(activePage, keyword, statusFilter).then();
+    },
+    [
+      activePage,
+      batchActions,
+      batchRunning,
+      items,
+      keyword,
+      loadItems,
+      selectedRowKeys,
+      setSelectedRowKeys,
+      statusFilter,
+      t,
+    ],
+  );
+
   return (
     <>
       <AppFilterHeader
@@ -937,6 +1025,65 @@ const BusinessRecordsTable = ({
         title={embedded ? title : (title || t(BUSINESS_FLOW_HEADER_KEY[kind] || 'common.records'))}
         actions={
           <div className='router-list-toolbar-actions'>
+            {isReconcile ? (
+              batchSelectionMode ? (
+                <>
+                  <AppPopconfirm
+                    title={t('flow.topup_reconcile.batch.confirm_refresh', {
+                      count: selectedRowKeys.length,
+                    })}
+                    okText={t('common.confirm')}
+                    cancelText={t('common.cancel')}
+                    disabled={selectedRowKeys.length === 0 || batchRunning}
+                    onConfirm={() => runBatchReconcile('refresh')}
+                  >
+                    <AppButton
+                      className='router-page-button'
+                      disabled={selectedRowKeys.length === 0 || batchRunning}
+                      loading={batchRunning}
+                    >
+                      {t('flow.topup_reconcile.batch.refresh_selected', {
+                        count: selectedRowKeys.length,
+                      })}
+                    </AppButton>
+                  </AppPopconfirm>
+                  <AppPopconfirm
+                    title={t('flow.topup_reconcile.batch.confirm_fulfill', {
+                      count: selectedRowKeys.length,
+                    })}
+                    okText={t('common.confirm')}
+                    cancelText={t('common.cancel')}
+                    disabled={selectedRowKeys.length === 0 || batchRunning}
+                    onConfirm={() => runBatchReconcile('fulfill')}
+                  >
+                    <AppButton
+                      className='router-page-button'
+                      color='blue'
+                      disabled={selectedRowKeys.length === 0 || batchRunning}
+                      loading={batchRunning}
+                    >
+                      {t('flow.topup_reconcile.batch.fulfill_selected', {
+                        count: selectedRowKeys.length,
+                      })}
+                    </AppButton>
+                  </AppPopconfirm>
+                  <AppButton
+                    className='router-page-button'
+                    disabled={batchRunning}
+                    onClick={batchActions.exit}
+                  >
+                    {t('flow.topup_reconcile.batch.cancel_selection')}
+                  </AppButton>
+                </>
+              ) : (
+                <AppButton
+                  className='router-page-button'
+                  onClick={batchActions.enter}
+                >
+                  {t('flow.topup_reconcile.batch.enter_selection')}
+                </AppButton>
+              )
+            ) : null}
             <AppButton
               className='router-page-button'
               loading={loading}
@@ -992,6 +1139,18 @@ const BusinessRecordsTable = ({
           pagination={false}
           scroll={{ x: tableMinWidth }}
           rowKey={(row) => row.id || row.transaction_id || row.package_id}
+          rowSelection={
+            isReconcile && batchSelectionMode
+              ? {
+                  ...batchActions.tableSelection,
+                  renderCell: (_, __, ___, originNode) => (
+                    <span onClick={(event) => event.stopPropagation()}>
+                      {originNode}
+                    </span>
+                  ),
+                }
+              : undefined
+          }
           onChange={(_, __, sorter) => {
             if (!sorter || Array.isArray(sorter) || !sorter.columnKey || !sorter.order) {
               setTableSorter(config.defaultSorter || { columnKey: null, order: null });
