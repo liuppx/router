@@ -39,7 +39,7 @@ import Group from './pages/Group';
 import PackageDetail from './pages/Package/Detail';
 import WorkspaceSetting from './pages/Setting/Workspace';
 import AdminSetting from './pages/Setting/Admin';
-import Redemption from './pages/Redemption';
+import RedemptionLayout from './pages/Redemption/RedemptionLayout';
 import EditRedemption from './pages/Redemption/EditRedemption';
 import RedemptionDetail from './pages/Redemption/RedemptionDetail';
 import TopupPlanDetail from './pages/AdminTopup/Detail';
@@ -50,7 +50,6 @@ import Task, {
   TASK_PAGE_KIND_WORKSPACE_USER,
 } from './pages/Task';
 import WorkspaceTaskDetailPage from './pages/Task/WorkspaceTaskDetailPage';
-import RecordListPage from './pages/Records/RecordListPage';
 import PaymentRecordDetail from './pages/Records/PaymentRecordDetail';
 import RedemptionRecordDetail from './pages/Records/RedemptionRecordDetail';
 import AdminDashboard from './pages/AdminDashboard';
@@ -875,7 +874,7 @@ function App() {
         />
         <Route
           path='/admin/redemption/records'
-          element={<RecordListPage kind='redemption' />}
+          element={<TabRedirect to='/admin/redemption' tab='records' />}
         />
         <Route
           path='/admin/redemption/records/:id'
@@ -887,7 +886,7 @@ function App() {
         />
         <Route
           path='/admin/redemption'
-          element={<Redemption />}
+          element={<RedemptionLayout />}
         />
         <Route
           path='/admin/redemption/edit/:id'

@@ -138,7 +138,7 @@ function renderStatus(status, t) {
   }
 }
 
-const RedemptionsTable = ({ sectionTabs = null }) => {
+const RedemptionsTable = ({ sectionTabs = null, embedded = false }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -438,12 +438,20 @@ const RedemptionsTable = ({ sectionTabs = null }) => {
     <>
       <AppFilterHeader
         className='router-block-gap-md'
-        breadcrumbs={[
-          { key: 'workspace', label: t('header.admin_workspace') },
-          { key: 'business', label: t('header.operation') },
-          { key: 'redemption', label: t('header.redemption'), active: true },
-        ]}
-        title={t('header.redemption')}
+        breadcrumbs={
+          embedded
+            ? undefined
+            : [
+                { key: 'workspace', label: t('header.admin_workspace') },
+                { key: 'business', label: t('header.operation') },
+                {
+                  key: 'redemption',
+                  label: t('header.redemption'),
+                  active: true,
+                },
+              ]
+        }
+        title={embedded ? undefined : t('header.redemption')}
         actions={
           <div className='router-list-toolbar-actions'>
             <AppButton

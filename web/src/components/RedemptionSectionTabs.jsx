@@ -12,12 +12,12 @@ function RedemptionSectionTabs({ active = 'list' }) {
         {
           key: 'list',
           label: t('redemption.tabs.list'),
-          to: '/admin/redemption',
+          to: '/admin/redemption?tab=list',
         },
         {
           key: 'records',
           label: t('redemption.tabs.records'),
-          to: '/admin/redemption/records',
+          to: '/admin/redemption?tab=records',
         },
       ]}
     />
