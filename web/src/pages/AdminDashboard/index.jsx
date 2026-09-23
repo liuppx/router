@@ -1519,29 +1519,32 @@ const AdminDashboard = () => {
             <div className='admin-dashboard-channel-bell-label'>{bell.label}</div>
           </div>
         ))}
-        <div className='admin-dashboard-channel-bell is-meta'>
-          <div className='admin-dashboard-channel-bell-value'>
-            {formatCount(dashboard.summary.channel_enabled)} / {formatCount(dashboard.summary.channel_total)}
-          </div>
-          <div className='admin-dashboard-channel-bell-label'>
+      </div>
+      <div className='admin-dashboard-channel-meta-strip'>
+        <div className='admin-dashboard-channel-meta-item'>
+          <span className='admin-dashboard-channel-meta-label'>
             {t('dashboard.admin.metrics.channels')}
-          </div>
+          </span>
+          <strong className='admin-dashboard-channel-meta-value'>
+            {formatCount(dashboard.summary.channel_enabled)} /{' '}
+            {formatCount(dashboard.summary.channel_total)}
+          </strong>
         </div>
-        <div className='admin-dashboard-channel-bell is-meta'>
-          <div className='admin-dashboard-channel-bell-value'>
-            {formatPercent(channelHealthSummary.avg_pass_rate)}
-          </div>
-          <div className='admin-dashboard-channel-bell-label'>
+        <div className='admin-dashboard-channel-meta-item'>
+          <span className='admin-dashboard-channel-meta-label'>
             {t('dashboard.admin.health.summary.avg_pass_rate')}
-          </div>
+          </span>
+          <strong className='admin-dashboard-channel-meta-value'>
+            {formatPercent(channelHealthSummary.avg_pass_rate)}
+          </strong>
         </div>
-        <div className='admin-dashboard-channel-bell is-meta'>
-          <div className='admin-dashboard-channel-bell-value'>
-            {`${Math.round(Number(channelHealthSummary.avg_latency_ms || 0))} ms`}
-          </div>
-          <div className='admin-dashboard-channel-bell-label'>
+        <div className='admin-dashboard-channel-meta-item'>
+          <span className='admin-dashboard-channel-meta-label'>
             {t('dashboard.admin.health.summary.avg_latency')}
-          </div>
+          </span>
+          <strong className='admin-dashboard-channel-meta-value'>
+            {`${Math.round(Number(channelHealthSummary.avg_latency_ms || 0))} ms`}
+          </strong>
         </div>
       </div>
       <div className='admin-dashboard-usage-rank'>
