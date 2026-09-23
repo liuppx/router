@@ -1834,6 +1834,18 @@
   },
   "token": {
     "title": "令牌管理",
+    "batch": {
+      "enter_selection": "批量操作",
+      "cancel_selection": "取消选择",
+      "select_required": "请先选择至少一个令牌。",
+      "enable_selected": "批量启用（{{count}}）",
+      "disable_selected": "批量停用（{{count}}）",
+      "delete_selected": "批量删除（{{count}}）",
+      "confirm_enable": "确认启用选中的 {{count}} 个令牌？",
+      "confirm_disable": "确认停用选中的 {{count}} 个令牌？",
+      "confirm_delete": "确认删除选中的 {{count}} 个令牌？此操作不可撤销。",
+      "done": "批量操作完成：成功 {{success}}，失败 {{failed}}。"
+    },
     "search": "搜索令牌的名称 ...",
     "filter": {
       "status_all": "全部状态"

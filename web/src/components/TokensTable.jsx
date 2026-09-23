@@ -6,11 +6,13 @@ import {
   API,
   copy,
   showError,
+  showInfo,
   showSuccess,
   timestamp2string,
   withCardLabels,
 } from '../helpers';
 import useList, { sorterToSort, sortOrderForColumn } from '../hooks/useList';
+import useBatchRowActions from '../hooks/useBatchRowActions';
 import { parseListPageSize } from '../hooks/useUrlState';
 
 import { LIST_PAGE_SIZE } from '../constants';
@@ -192,6 +194,13 @@ const TokensTable = () => {
     resolvePreferredDisplayCurrency(buildPublicDisplayCurrencyIndex([]), 'USD'),
   );
   const [statusMutatingTokenId, setStatusMutatingTokenId] = useState('');
+  const batchActions = useBatchRowActions();
+  const {
+    isSelecting: batchSelectionMode,
+    selectedRowKeys,
+    setSelectedRowKeys,
+  } = batchActions;
+  const [batchRunning, setBatchRunning] = useState(false);
   const chatLink = String(localStorage.getItem('chat_link') || '').trim();
 
   // Backend-paged fetcher: page-overwrite + true global sort. Frontend column
@@ -437,6 +446,84 @@ const TokensTable = () => {
     }
   };
 
+  // Batch enable/disable by looping the per-row status PUT. No batch status
+  // endpoint exists, so serialize N PUTs and report one aggregated toast.
+  const runBatchToggle = useCallback(
+    async (action) => {
+      if (batchRunning) return;
+      if (action !== 'enable' && action !== 'disable') return;
+      const keys = selectedRowKeys
+        .map((item) => (item || '').toString().trim())
+        .filter(Boolean);
+      if (keys.length === 0) {
+        showInfo(t('token.batch.select_required'));
+        return;
+      }
+      const targetStatus = action === 'enable' ? 1 : 2;
+      setBatchRunning(true);
+      let succeeded = 0;
+      let failed = 0;
+      const failedIDs = [];
+      for (const id of keys) {
+        try {
+          const res = await API.put('/api/v1/public/token/?status_only=true', {
+            id,
+            status: targetStatus,
+          });
+          if (res?.data?.success) succeeded += 1;
+          else {
+            failed += 1;
+            failedIDs.push(id);
+          }
+        } catch (error) {
+          failed += 1;
+          failedIDs.push(id);
+        }
+      }
+      setBatchRunning(false);
+      showSuccess(t('token.batch.done', { success: succeeded, failed }));
+      setSelectedRowKeys(failedIDs);
+      if (failed === 0) batchActions.exit();
+      refresh();
+    },
+    [batchActions, batchRunning, refresh, selectedRowKeys, setSelectedRowKeys, t],
+  );
+
+  const runBatchDelete = useCallback(async () => {
+    if (batchRunning) return;
+    const keys = selectedRowKeys
+      .map((item) => (item || '').toString().trim())
+      .filter(Boolean);
+    if (keys.length === 0) {
+      showInfo(t('token.batch.select_required'));
+      return;
+    }
+    setBatchRunning(true);
+    let succeeded = 0;
+    let failed = 0;
+    const failedIDs = [];
+    for (const id of keys) {
+      try {
+        const res = await API.delete(
+          `/api/v1/public/token/${encodeURIComponent(id)}/`,
+        );
+        if (res?.data?.success) succeeded += 1;
+        else {
+          failed += 1;
+          failedIDs.push(id);
+        }
+      } catch (error) {
+        failed += 1;
+        failedIDs.push(id);
+      }
+    }
+    setBatchRunning(false);
+    showSuccess(t('token.batch.done', { success: succeeded, failed }));
+    setSelectedRowKeys(failedIDs);
+    if (failed === 0) batchActions.exit();
+    refresh();
+  }, [batchActions, batchRunning, refresh, selectedRowKeys, setSelectedRowKeys, t]);
+
   const renderStatusSwitch = (token) => {
     const status = Number(token?.status || 0);
     return (
@@ -599,6 +686,82 @@ const TokensTable = () => {
             >
               {t('token.buttons.add')}
             </AppButton>
+            {batchSelectionMode ? (
+              <>
+                <AppPopconfirm
+                  title={t('token.batch.confirm_enable', {
+                    count: selectedRowKeys.length,
+                  })}
+                  okText={t('common.confirm')}
+                  cancelText={t('common.cancel')}
+                  disabled={selectedRowKeys.length === 0 || batchRunning}
+                  onConfirm={() => runBatchToggle('enable')}
+                >
+                  <AppButton
+                    className='router-page-button'
+                    disabled={selectedRowKeys.length === 0 || batchRunning}
+                    loading={batchRunning}
+                  >
+                    {t('token.batch.enable_selected', {
+                      count: selectedRowKeys.length,
+                    })}
+                  </AppButton>
+                </AppPopconfirm>
+                <AppPopconfirm
+                  title={t('token.batch.confirm_disable', {
+                    count: selectedRowKeys.length,
+                  })}
+                  okText={t('common.confirm')}
+                  cancelText={t('common.cancel')}
+                  disabled={selectedRowKeys.length === 0 || batchRunning}
+                  onConfirm={() => runBatchToggle('disable')}
+                >
+                  <AppButton
+                    className='router-page-button'
+                    disabled={selectedRowKeys.length === 0 || batchRunning}
+                    loading={batchRunning}
+                  >
+                    {t('token.batch.disable_selected', {
+                      count: selectedRowKeys.length,
+                    })}
+                  </AppButton>
+                </AppPopconfirm>
+                <AppPopconfirm
+                  title={t('token.batch.confirm_delete', {
+                    count: selectedRowKeys.length,
+                  })}
+                  okText={t('common.confirm')}
+                  cancelText={t('common.cancel')}
+                  disabled={selectedRowKeys.length === 0 || batchRunning}
+                  onConfirm={runBatchDelete}
+                >
+                  <AppButton
+                    className='router-page-button'
+                    color='red'
+                    disabled={selectedRowKeys.length === 0 || batchRunning}
+                    loading={batchRunning}
+                  >
+                    {t('token.batch.delete_selected', {
+                      count: selectedRowKeys.length,
+                    })}
+                  </AppButton>
+                </AppPopconfirm>
+                <AppButton
+                  className='router-page-button'
+                  disabled={batchRunning}
+                  onClick={batchActions.exit}
+                >
+                  {t('token.batch.cancel_selection')}
+                </AppButton>
+              </>
+            ) : (
+              <AppButton
+                className='router-page-button'
+                onClick={batchActions.enter}
+              >
+                {t('token.batch.enter_selection')}
+              </AppButton>
+            )}
             <AppButton
               className='router-page-button'
               onClick={refresh}
@@ -659,6 +822,16 @@ const TokensTable = () => {
           scroll={{ x: TOKEN_LIST_TABLE_MIN_WIDTH }}
           rowKey='id'
           onChange={handleTableChange}
+          rowSelection={
+            batchSelectionMode
+              ? {
+                  ...batchActions.tableSelection,
+                  renderCell: (_, __, ___, originNode) => (
+                    <span onClick={stopRowClick}>{originNode}</span>
+                  ),
+                }
+              : undefined
+          }
           dataSource={(isSearchMode
             ? searchResults.slice(
                 (activePage - 1) * pageSize,

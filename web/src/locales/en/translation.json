@@ -1834,6 +1834,18 @@
   },
   "token": {
     "title": "Token Management",
+    "batch": {
+      "enter_selection": "Batch Actions",
+      "cancel_selection": "Cancel Selection",
+      "select_required": "Select at least one token first.",
+      "enable_selected": "Enable Selected ({{count}})",
+      "disable_selected": "Disable Selected ({{count}})",
+      "delete_selected": "Delete Selected ({{count}})",
+      "confirm_enable": "Enable the {{count}} selected tokens?",
+      "confirm_disable": "Disable the {{count}} selected tokens?",
+      "confirm_delete": "Delete the {{count}} selected tokens? This action cannot be undone.",
+      "done": "Batch actions finished: {{success}} succeeded, {{failed}} failed."
+    },
     "search": "Search tokens by name ...",
     "filter": {
       "status_all": "All Status"
