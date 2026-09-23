@@ -2678,7 +2678,18 @@
       "topup_confirm_hint": "The selected top-up plan will be granted to {{count}} selected users. This creates top-up orders and balance ledger entries.",
       "topup_done": "Batch grant finished: {{success}} succeeded, {{failed}} failed.",
       "topup_result_summary": "{{total}} users total, {{success}} succeeded, {{failed}} failed.",
-      "failed_users": "Failed Users"
+      "failed_users": "Failed Users",
+      "enable_selected": "Enable Selected ({{count}})",
+      "disable_selected": "Disable Selected ({{count}})",
+      "delete_selected": "Delete Selected ({{count}})",
+      "manage_confirm_enable": "Enable the {{count}} selected users?",
+      "manage_confirm_disable": "Disable the {{count}} selected users?",
+      "manage_confirm_delete": "Delete the {{count}} selected users? This action cannot be undone.",
+      "manage_no_active_change": "No state change needed for the selected users.",
+      "manage_no_deletable": "None of the selected users is deletable.",
+      "manage_done": "Batch manage finished: {{success}} succeeded, {{failed}} failed.",
+      "manage_skipped": "Skipped {{skipped}} (no state change or already deleted).",
+      "enter_selection": "Batch Actions"
     },
     "search": "Search users or wallet ID...",
     "filter": {

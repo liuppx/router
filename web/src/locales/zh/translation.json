@@ -2678,7 +2678,18 @@
       "topup_confirm_hint": "将向已选 {{count}} 个用户赠送所选充值额度，执行后会生成充值订单和余额流水。",
       "topup_done": "批量赠送完成：成功 {{success}}，失败 {{failed}}。",
       "topup_result_summary": "共 {{total}} 个用户，成功 {{success}}，失败 {{failed}}。",
-      "failed_users": "失败用户"
+      "failed_users": "失败用户",
+      "enable_selected": "批量启用（{{count}}）",
+      "disable_selected": "批量停用（{{count}}）",
+      "delete_selected": "批量删除（{{count}}）",
+      "manage_confirm_enable": "确认启用选中的 {{count}} 个用户？",
+      "manage_confirm_disable": "确认停用选中的 {{count}} 个用户？",
+      "manage_confirm_delete": "确认删除选中的 {{count}} 个用户？此操作不可撤销。",
+      "manage_no_active_change": "所选用户状态均无需变更。",
+      "manage_no_deletable": "所选用户中没有可删除的用户。",
+      "manage_done": "批量管理完成：成功 {{success}}，失败 {{failed}}。",
+      "manage_skipped": "跳过 {{skipped}} 个（状态无变更或已删除）。",
+      "enter_selection": "批量操作"
     },
     "search": "搜索用户或钱包ID...",
     "filter": {

@@ -224,6 +224,7 @@ const UsersTable = () => {
   });
   const [batchTopupSubmitting, setBatchTopupSubmitting] = useState(false);
   const [batchTopupResult, setBatchTopupResult] = useState(null);
+  const [batchManageSubmitting, setBatchManageSubmitting] = useState(false);
 
   const loadUsers = useCallback(
     async (page, { status = 'all', role = 'all' } = {}) => {
@@ -509,12 +510,12 @@ const UsersTable = () => {
   }, [batchActions]);
 
   const cancelBatchSelectionMode = useCallback(() => {
-    if (batchTopupSubmitting) {
+    if (batchTopupSubmitting || batchManageSubmitting) {
       return;
     }
     batchActions.exit();
     setBatchTopupResult(null);
-  }, [batchActions, batchTopupSubmitting]);
+  }, [batchActions, batchTopupSubmitting, batchManageSubmitting]);
 
   const closeBatchTopupModal = useCallback(() => {
     if (batchTopupSubmitting) {
@@ -578,6 +579,74 @@ const UsersTable = () => {
       setBatchTopupSubmitting(false);
     }
   }, [batchTopupForm.plan_id, refresh, selectedRowKeys, t]);
+
+  const runBatchManage = useCallback(
+    async (action) => {
+      const idSet = new Set(
+        selectedRowKeys
+          .map((item) => (item || '').toString().trim())
+          .filter(Boolean),
+      );
+      if (idSet.size === 0) {
+        showInfo(t('user.batch.topup_select_required'));
+        return;
+      }
+      // selectedRowKeys 保存的是用户 id，manage 接口需要 username，先按 id 解析出实时用户对象。
+      const targets = users.filter(
+        (user) => idSet.has((user?.id || '').toString()) && !user?.deleted,
+      );
+      // 跳过状态已符合的行（启用时跳过已启用、停用时跳过已停用）。
+      const actionable = targets.filter((user) => {
+        if (action === 'enable') return user.status !== 1;
+        if (action === 'disable') return user.status === 1;
+        return true;
+      });
+      if (actionable.length === 0) {
+        showInfo(
+          action === 'delete'
+            ? t('user.batch.manage_no_deletable')
+            : t('user.batch.manage_no_active_change'),
+        );
+        return;
+      }
+      setBatchManageSubmitting(true);
+      let succeeded = 0;
+      let failed = 0;
+      const failedIDs = [];
+      for (const user of actionable) {
+        const username = (user?.username || '').toString();
+        try {
+          const res = await API.post('/api/v1/admin/user/manage', {
+            username,
+            action,
+          });
+          if (res?.data?.success) {
+            succeeded += 1;
+          } else {
+            failed += 1;
+            failedIDs.push((user?.id || '').toString());
+          }
+        } catch (error) {
+          failed += 1;
+          failedIDs.push((user?.id || '').toString());
+        }
+      }
+      const skipped = targets.length - actionable.length;
+      showSuccess(
+        t('user.batch.manage_done', { success: succeeded, failed }),
+      );
+      if (skipped > 0) {
+        showInfo(t('user.batch.manage_skipped', { skipped }));
+      }
+      setSelectedRowKeys(failedIDs);
+      if (failed === 0) {
+        batchActions.exit();
+      }
+      await refresh();
+      setBatchManageSubmitting(false);
+    },
+    [batchActions, refresh, selectedRowKeys, t, users],
+  );
 
   const searchUsers = async () => {
     setFocusLabel('');
@@ -775,27 +844,91 @@ const UsersTable = () => {
             >
               {t('user.buttons.add')}
             </AppButton>
-            <AppButton
-              className='router-page-button'
-              onClick={
-                batchSelectionMode ? openBatchTopupModal : enterBatchSelectionMode
-              }
-            >
-              {batchSelectionMode
-                ? t('user.batch.grant_topup_selected', {
-                    count: selectedUserCount,
-                  })
-                : t('user.batch.grant_topup')}
-            </AppButton>
             {batchSelectionMode ? (
+              <>
+                <AppButton
+                  className='router-page-button'
+                  onClick={openBatchTopupModal}
+                  disabled={batchManageSubmitting}
+                >
+                  {t('user.batch.grant_topup_selected', {
+                    count: selectedUserCount,
+                  })}
+                </AppButton>
+                <AppPopconfirm
+                  title={t('user.batch.manage_confirm_enable', {
+                    count: selectedUserCount,
+                  })}
+                  okText={t('common.confirm')}
+                  cancelText={t('common.cancel')}
+                  disabled={selectedUserCount === 0 || batchManageSubmitting}
+                  onConfirm={() => runBatchManage('enable')}
+                >
+                  <AppButton
+                    className='router-page-button'
+                    disabled={selectedUserCount === 0 || batchManageSubmitting}
+                    loading={batchManageSubmitting}
+                  >
+                    {t('user.batch.enable_selected', {
+                      count: selectedUserCount,
+                    })}
+                  </AppButton>
+                </AppPopconfirm>
+                <AppPopconfirm
+                  title={t('user.batch.manage_confirm_disable', {
+                    count: selectedUserCount,
+                  })}
+                  okText={t('common.confirm')}
+                  cancelText={t('common.cancel')}
+                  disabled={selectedUserCount === 0 || batchManageSubmitting}
+                  onConfirm={() => runBatchManage('disable')}
+                >
+                  <AppButton
+                    className='router-page-button'
+                    disabled={selectedUserCount === 0 || batchManageSubmitting}
+                    loading={batchManageSubmitting}
+                  >
+                    {t('user.batch.disable_selected', {
+                      count: selectedUserCount,
+                    })}
+                  </AppButton>
+                </AppPopconfirm>
+                <AppPopconfirm
+                  title={t('user.batch.manage_confirm_delete', {
+                    count: selectedUserCount,
+                  })}
+                  okText={t('common.confirm')}
+                  cancelText={t('common.cancel')}
+                  disabled={selectedUserCount === 0 || batchManageSubmitting}
+                  onConfirm={() => runBatchManage('delete')}
+                >
+                  <AppButton
+                    className='router-page-button'
+                    color='red'
+                    disabled={selectedUserCount === 0 || batchManageSubmitting}
+                    loading={batchManageSubmitting}
+                  >
+                    {t('user.batch.delete_selected', {
+                      count: selectedUserCount,
+                    })}
+                  </AppButton>
+                </AppPopconfirm>
+                <AppButton
+                  className='router-page-button'
+                  onClick={cancelBatchSelectionMode}
+                  disabled={batchTopupSubmitting || batchManageSubmitting}
+                >
+                  {t('user.batch.cancel_selection')}
+                </AppButton>
+              </>
+            ) : (
               <AppButton
                 className='router-page-button'
-                onClick={cancelBatchSelectionMode}
-                disabled={batchTopupSubmitting}
+                onClick={enterBatchSelectionMode}
               >
-                {t('user.batch.cancel_selection')}
+                {t('user.batch.enter_selection')}
               </AppButton>
-            ) : null}
+            )}
             <AppButton
               className='router-page-button'
               loading={loading}
