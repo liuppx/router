@@ -82,6 +82,7 @@ const WorkspaceModels = lazy(() => import('./pages/WorkspaceModels'));
 const HelpDoc = lazy(() => import('./pages/HelpDoc'));
 const RouterGuideDoc = lazy(() => import('./pages/HelpDoc/RouterGuideDoc'));
 const WorkspaceStart = lazy(() => import('./pages/WorkspaceStart'));
+const PersonalRouting = lazy(() => import('./pages/PersonalRouting'));
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '';
 
@@ -592,6 +593,14 @@ function App() {
           element={
             <Suspense fallback={<Loading />}>
               <Token />
+            </Suspense>
+          }
+        />
+        <Route
+          path='/workspace/personal-routing'
+          element={
+            <Suspense fallback={<Loading />}>
+              <PersonalRouting />
             </Suspense>
           }
         />

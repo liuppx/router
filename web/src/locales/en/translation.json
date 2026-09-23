@@ -1899,6 +1899,7 @@
       "models_table_sources": "Sources",
       "model_source_package": "Package",
       "model_source_balance": "Account Balance",
+	  "model_source_personal_provider": "Personal Provider",
       "models_table_empty": "No available models",
       "models_search_placeholder": "Search models",
       "models_search_empty": "No matching models",
@@ -2190,6 +2191,8 @@
       "cache_tokens": "Cache R/W",
       "quota": "Amount",
       "billing_source": "Billing Source",
+      "personal_provider": "Personal provider",
+      "community_package": "Community package",
       "detail": "Detail",
       "drag_column": "Drag to reorder columns",
       "resize_column": "Drag to resize column"
@@ -4477,6 +4480,9 @@
   },
   "oauth": {
     "bind_success": "Bound successfully!"
+  },
+  "personal_routing": {
+    "title": "My providers"
   },
   "not_found": {
     "title": "Page not found",

@@ -259,6 +259,13 @@ func validateTokenModelEntitlement(ctx context.Context, userID string, token mod
 		}
 		availableModels[normalizedModel] = struct{}{}
 	}
+	personalModels, err := model.ListPersonalProviderModels(normalizedUserID)
+	if err != nil {
+		return err
+	}
+	for _, modelName := range personalModels {
+		availableModels[modelName] = struct{}{}
+	}
 	if len(availableModels) == 0 {
 		return fmt.Errorf("当前账号暂无可用模型，请先购买套餐或充值后再创建令牌")
 	}
@@ -324,6 +331,7 @@ func AddToken(c *gin.Context) {
 		RemainRequestCount:    token.RemainRequestCount,
 		UnlimitedRequestCount: token.UnlimitedRequestCount,
 		Models:                token.Models,
+		RoutePolicy:           model.NormalizePersonalRoutePolicy(token.RoutePolicy),
 		Subnet:                token.Subnet,
 	}
 	err = tokensvc.Create(&cleanToken)
@@ -439,6 +447,7 @@ func UpdateToken(c *gin.Context) {
 		cleanToken.RemainRequestCount = token.RemainRequestCount
 		cleanToken.UnlimitedRequestCount = token.UnlimitedRequestCount
 		cleanToken.Models = token.Models
+		cleanToken.RoutePolicy = model.NormalizePersonalRoutePolicy(token.RoutePolicy)
 		cleanToken.Subnet = token.Subnet
 		cleanToken.UpdatedTime = helper.GetTimestamp()
 	}

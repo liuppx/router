@@ -6,6 +6,7 @@ export { default as AppDivider } from './primitives/AppDivider';
 export { default as AppDrawer } from './primitives/AppDrawer';
 export { default as AppIcon } from './primitives/AppIcon';
 export { default as AppInput } from './primitives/AppInput';
+export { default as AppForm } from './primitives/AppForm';
 export { default as AppInputNumber } from './primitives/AppInputNumber';
 export { default as AppMenuDropdown } from './primitives/AppMenuDropdown';
 export { default as AppNavMenu } from './primitives/AppNavMenu';

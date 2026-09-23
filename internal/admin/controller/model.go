@@ -1304,6 +1304,14 @@ func GetUserAvailableModels(c *gin.Context) {
 		})
 		return
 	}
+	payload, err = model.MergePersonalProviderModelsIntoEntitlements(id, payload)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
 
 	// optional filter by provider (channel) name, case-insensitive
 	urlValues := c.Request.URL.Query()
@@ -1325,6 +1333,10 @@ func GetUserAvailableModels(c *gin.Context) {
 	for _, item := range payload.Items {
 		modelName := strings.TrimSpace(item.Model)
 		for _, source := range item.Sources {
+			if source.SourceType == model.PersonalProviderSourceType && provider == model.PersonalProviderSourceType {
+				filtered = append(filtered, modelName)
+				break
+			}
 			ch, err := model.GetTopChannelByModel(source.GroupID, modelName)
 			if err != nil {
 				continue

@@ -97,11 +97,57 @@ func Relay(c *gin.Context) {
 	go processChannelRelayError(ctx, userId, group, channelId, channelName, originalModel, requestPath, *bizErr)
 	traceID := c.GetString(helper.TraceIDKey)
 	retryAllRemainingCandidates := shouldRetryRemainingCandidates(bizErr)
+	personalRoutePolicy := dbmodel.NormalizePersonalRoutePolicy(c.GetString(ctxkey.PersonalRoutePolicy))
+	if personalRoutePolicy == dbmodel.PersonalRoutePolicyPersonalOnly {
+		retryAllRemainingCandidates = false
+	}
 	if policy.RetryScope == routing.RetryScopeNone {
 		retryAllRemainingCandidates = false
 	}
 	retryCount := 0
 	retryable := shouldRetry(c, bizErr)
+	// A personal-first selection intentionally does not require a community
+	// entitlement up front. Once that private upstream fails, resolve the
+	// community side lazily and continue through its normal candidate set.
+	if retryable && personalRoutePolicy == dbmodel.PersonalRoutePolicyPersonalFirst &&
+		dbmodel.IsPersonalProviderChannelID(channelId) && !isPinnedResponsesRequest(c) &&
+		isPersonalProviderTextRelay(c) {
+		fallbackGroup, fallbackSource, entitlementErr := dbmodel.ResolveUserEntitlementGroupForModel(ctx, userId, originalModel)
+		if entitlementErr == nil {
+			communityChannel, selectedGroup, selectedSource, selectionErr := middleware.SelectEntitlementChannelForRequest(ctx, c, userId, fallbackGroup, fallbackSource, originalModel)
+			if selectionErr == nil && communityChannel != nil {
+				group = selectedGroup
+				c.Set(ctxkey.Group, selectedGroup)
+				if selectedSource != nil {
+					c.Set(ctxkey.EntitlementSourceType, selectedSource.SourceType)
+					c.Set(ctxkey.EntitlementSourceId, selectedSource.SourceID)
+					c.Set(ctxkey.EntitlementSourceName, selectedSource.SourceName)
+				}
+				retryCount++
+				c.Set(ctxkey.RelayRetryCount, retryCount)
+				middleware.SetupContextForSelectedChannel(c, communityChannel, originalModel)
+				requestBody, bodyErr := common.GetRequestBody(c)
+				if bodyErr == nil {
+					c.Request.Body = io.NopCloser(bytes.NewBuffer(requestBody))
+					bizErr = relayHelper(c, getEffectiveRelayMode(c))
+					if bizErr == nil {
+						clearRuntimeCapabilityFailureWindow(communityChannel.Id, originalModel, requestPath)
+						monitor.Emit(communityChannel.Id, true)
+						return
+					}
+					channelId = c.GetString(ctxkey.ChannelId)
+					lastFailedChannelId = channelId
+					channelName = c.GetString(ctxkey.ChannelName)
+					lastProvider = channelProvider(communityChannel, originalModel)
+					if trimmedChannelID := strings.TrimSpace(channelId); trimmedChannelID != "" {
+						failedChannelIDs[trimmedChannelID] = struct{}{}
+					}
+					appendFallbackFailureAttempt(c, retryCount+1, bizErr)
+					go processChannelRelayError(ctx, userId, group, channelId, channelName, originalModel, requestPath, *bizErr)
+				}
+			}
+		}
+	}
 	if !retryable {
 		skipReason := "status_not_retryable"
 		if isPinnedResponsesRequest(c) {
@@ -191,6 +237,32 @@ func Relay(c *gin.Context) {
 		appendFallbackFailureAttempt(c, retryCount+1, bizErr)
 		go processChannelRelayError(ctx, userId, group, channelId, channelName, originalModel, requestPath, *bizErr)
 	}
+	// Community-first is symmetric with the default personal-first policy:
+	// after all eligible community channels fail with a retryable upstream error,
+	// a stateless text request may use the user's own matching connection.
+	if bizErr != nil && personalRoutePolicy == dbmodel.PersonalRoutePolicyCommunityFirst &&
+		shouldRetry(c, bizErr) && !isPinnedResponsesRequest(c) &&
+		isPersonalProviderTextRelay(c) {
+		personalChannels, personalErr := dbmodel.ListPersonalProviderChannelsForModel(userId, originalModel)
+		if personalErr == nil && len(personalChannels) > 0 {
+			personalChannel := personalChannels[0]
+			if _, failed := failedChannelIDs[strings.TrimSpace(personalChannel.Id)]; !failed {
+				retryCount++
+				c.Set(ctxkey.RelayRetryCount, retryCount)
+				middleware.SetupContextForSelectedChannel(c, personalChannel, originalModel)
+				requestBody, bodyErr := common.GetRequestBody(c)
+				if bodyErr == nil {
+					c.Request.Body = io.NopCloser(bytes.NewBuffer(requestBody))
+					bizErr = relayHelper(c, getEffectiveRelayMode(c))
+					if bizErr == nil {
+						monitor.Emit(personalChannel.Id, true)
+						return
+					}
+					appendFallbackFailureAttempt(c, retryCount+1, bizErr)
+				}
+			}
+		}
+	}
 	if bizErr != nil {
 		normalizeFinalRelayError(bizErr)
 		c.Set(ctxkey.RelayError, bizErr.Error.Message)
@@ -206,6 +278,16 @@ func Relay(c *gin.Context) {
 			"error": bizErr.Error,
 		})
 	}
+}
+
+func isPersonalProviderTextRelay(c *gin.Context) bool {
+	if c == nil || c.Request == nil {
+		return false
+	}
+	path := strings.TrimSpace(c.Request.URL.Path)
+	return strings.HasSuffix(path, "/completions") || strings.HasSuffix(path, "/messages") ||
+		strings.HasSuffix(path, "/responses") || strings.HasSuffix(path, "/embeddings") ||
+		strings.HasSuffix(path, "/moderations")
 }
 
 func recordRelayFailureLog(c *gin.Context, bizErr *model.ErrorWithStatusCode, retryCount int) {
@@ -230,26 +312,29 @@ func buildRelayFailureLog(c *gin.Context, bizErr *model.ErrorWithStatusCode, ret
 	}
 	channelID := strings.TrimSpace(c.GetString(ctxkey.ChannelId))
 	return &dbmodel.Log{
-		UserId:            userID,
-		GroupId:           strings.TrimSpace(c.GetString(ctxkey.Group)),
-		ChannelId:         channelID,
-		ModelName:         requestModel,
-		TokenName:         strings.TrimSpace(c.GetString(ctxkey.TokenName)),
-		Quota:             0,
-		BillingSource:     "",
-		Content:           "relay request failed before settlement",
-		RequestModelName:  requestModel,
-		ActualModelName:   requestModel,
-		UpstreamEndpoint:  c.Request.URL.Path,
-		UpstreamProtocol:  relayProtocolName(c),
-		RouteDecision:     routeobs.FinalizedRouteDecisionJSON(c),
-		FallbackCount:     retryCount,
-		FallbackAttempts:  strings.TrimSpace(c.GetString(ctxkey.RelayFallbackAttempts)),
-		RelayErrorType:    strings.TrimSpace(bizErr.Error.Type),
-		RelayErrorCode:    errorCodeString(bizErr.Error.Code),
-		RelayErrorMessage: strings.TrimSpace(bizErr.Error.Message),
-		ElapsedTime:       0,
-		IsStream:          false,
+		UserId:               userID,
+		GroupId:              strings.TrimSpace(c.GetString(ctxkey.Group)),
+		ChannelId:            channelID,
+		ModelName:            requestModel,
+		TokenName:            strings.TrimSpace(c.GetString(ctxkey.TokenName)),
+		Quota:                0,
+		BillingSource:        "",
+		Content:              "relay request failed before settlement",
+		RequestModelName:     requestModel,
+		ActualModelName:      requestModel,
+		UpstreamEndpoint:     c.Request.URL.Path,
+		UpstreamProtocol:     relayProtocolName(c),
+		RouteDecision:        routeobs.FinalizedRouteDecisionJSON(c),
+		FallbackCount:        retryCount,
+		FallbackAttempts:     strings.TrimSpace(c.GetString(ctxkey.RelayFallbackAttempts)),
+		RelayErrorType:       strings.TrimSpace(bizErr.Error.Type),
+		RelayErrorCode:       errorCodeString(bizErr.Error.Code),
+		RelayErrorMessage:    strings.TrimSpace(bizErr.Error.Message),
+		ElapsedTime:          0,
+		IsStream:             false,
+		UpstreamSource:       map[bool]string{true: "personal_provider", false: "community_package"}[strings.TrimSpace(c.GetString(ctxkey.PersonalProviderID)) != ""],
+		PersonalProviderId:   strings.TrimSpace(c.GetString(ctxkey.PersonalProviderID)),
+		PersonalProviderName: strings.TrimSpace(c.GetString(ctxkey.PersonalProviderName)),
 	}
 }
 

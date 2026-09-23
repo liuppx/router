@@ -83,6 +83,7 @@ const EditToken = () => {
     unlimited_request_count: true,
     used_request_count: 0,
     models: [],
+    route_policy: 'personal_first',
     subnet: '',
     status: 1,
     created_time: 0,
@@ -101,6 +102,13 @@ const EditToken = () => {
   } = inputs;
   const navigate = useNavigate();
   const allModelValues = modelOptions.map((option) => option.value);
+
+  const routePolicyOptions = [
+    { value: 'personal_first', label: '个人优先，套餐兜底' },
+    { value: 'personal_only', label: '仅个人供应商' },
+    { value: 'community_only', label: '仅社区套餐' },
+    { value: 'community_first', label: '套餐优先' },
+  ];
   const hasAvailableModels = allModelValues.length > 0;
   const formatEntitlementSourceLabel = useCallback(
     (source) => {
@@ -111,6 +119,8 @@ const EditToken = () => {
         typeLabel = t('token.edit.model_source_package');
       } else if (sourceType === 'topup' || sourceType === 'redemption') {
         typeLabel = t('token.edit.model_source_balance');
+	    } else if (sourceType === 'personal_provider') {
+	      typeLabel = t('token.edit.model_source_personal_provider');
       } else {
         return '';
       }
@@ -1117,6 +1127,17 @@ const EditToken = () => {
                   {renderModelScopeControls(false)}
                 </div>
                 <AppFormRow>
+                  <AppField label='默认模型路由' hint='模型级规则优先于此设置'>
+                    <AppSelect
+                      className='router-section-dropdown'
+                      name='route_policy'
+                      options={routePolicyOptions}
+                      value={inputs.route_policy}
+                      onChange={handleInputChange}
+                    />
+                  </AppField>
+                </AppFormRow>
+                <AppFormRow>
                   <AppField label={t('token.edit.ip_limit')}>
                     <AppInput
                       className='router-section-input'
@@ -1309,6 +1330,18 @@ const EditToken = () => {
                         value={inputs.subnet}
                         autoComplete='new-password'
                         readOnly={basicReadonly}
+                      />
+                    </AppField>
+                  </AppFormRow>
+                  <AppFormRow>
+                    <AppField label='默认模型路由' hint='模型级规则优先于此设置'>
+                      <AppSelect
+                        className='router-section-dropdown'
+                        name='route_policy'
+                        options={routePolicyOptions}
+                        value={inputs.route_policy}
+                        onChange={handleInputChange}
+                        disabled={basicReadonly}
                       />
                     </AppField>
                   </AppFormRow>

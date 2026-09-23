@@ -319,11 +319,15 @@ func postConsumeQuota(ctx context.Context, usage *relaymodel.Usage, meta *meta.M
 	billingSnapshot.ApplyToLog(entry)
 	annotateTextEstimateLogFields(entry, estimateResult)
 	annotateTextPreConsumeLogFields(entry, estimateResult.PromptTokens, estimatedOutputTokens, estimatedChargeAmount)
-	billing.ApplyProcurementCostObservation(entry)
+	if strings.TrimSpace(meta.PersonalProviderID) == "" {
+		billing.ApplyProcurementCostObservation(entry)
+	}
 	model.RecordConsumeLog(ctx, entry)
-	billing.RecordProcurementConsumptionObservation(ctx, entry)
-	model.UpdateUserUsedQuotaAndRequestCount(meta.UserId, quota)
-	model.UpdateChannelUsedQuota(meta.ChannelId, quota)
+	if strings.TrimSpace(meta.PersonalProviderID) == "" {
+		billing.RecordProcurementConsumptionObservation(ctx, entry)
+		model.UpdateUserUsedQuotaAndRequestCount(meta.UserId, quota)
+		model.UpdateChannelUsedQuota(meta.ChannelId, quota)
+	}
 	consumeTokenRequestCount(ctx, meta.TokenId, 1)
 }
 

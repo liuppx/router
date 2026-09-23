@@ -34,6 +34,13 @@ func applyRouteObservabilityToLog(entry *adminmodel.Log, meta *relaymeta.Meta, a
 	}
 	entry.UpstreamEndpoint = upstreamEndpoint
 	entry.UpstreamProtocol = relaychannel.ProtocolByType(meta.ChannelProtocol)
+	if strings.TrimSpace(meta.PersonalProviderID) != "" {
+		entry.UpstreamSource = "personal_provider"
+		entry.PersonalProviderId = strings.TrimSpace(meta.PersonalProviderID)
+		entry.PersonalProviderName = strings.TrimSpace(meta.PersonalProviderName)
+	} else {
+		entry.UpstreamSource = "community_package"
+	}
 	entry.RouteDecision = strings.TrimSpace(meta.RouteDecision)
 	entry.FallbackCount = meta.FallbackCount
 	entry.FallbackAttempts = strings.TrimSpace(meta.FallbackAttempts)

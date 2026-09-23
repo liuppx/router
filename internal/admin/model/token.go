@@ -38,7 +38,10 @@ type Token struct {
 	UnlimitedRequestCount bool    `json:"unlimited_request_count"`
 	UsedRequestCount      int64   `json:"used_request_count" gorm:"bigint;default:0"`
 	Models                *string `json:"models" gorm:"type:text"`
-	Subnet                *string `json:"subnet" gorm:"default:''"`
+	// RoutePolicy is the default source policy for models allowed by this token.
+	// A per-model rule owned by the same user takes precedence at relay time.
+	RoutePolicy string  `json:"route_policy" gorm:"type:varchar(32);not null;default:'personal_first'"`
+	Subnet      *string `json:"subnet" gorm:"default:''"`
 }
 
 func (Token) TableName() string {

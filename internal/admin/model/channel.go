@@ -53,6 +53,7 @@ type Channel struct {
 	ModelsProvided        bool           `json:"-" gorm:"-"`
 	ChannelModelsProvided bool           `json:"-" gorm:"-"`
 	NameProvided          bool           `json:"-" gorm:"-"`
+	PersonalProviderName  string         `json:"-" gorm:"-"`
 }
 
 type ChannelConfig struct {

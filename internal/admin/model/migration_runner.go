@@ -61,6 +61,13 @@ type versionedMigration struct {
 func runMainVersionedMigrations(db *gorm.DB) error {
 	migrations := []versionedMigration{
 		{
+			Version:     "202609231030_personal_provider_routing",
+			Description: "add encrypted personal provider connections, model route rules, and token route policy",
+			Up: func(tx *gorm.DB) error {
+				return tx.AutoMigrate(&PersonalProviderConnection{}, &PersonalModelRoute{}, &Token{}, &Log{})
+			},
+		},
+		{
 			Version:     "202608081100_identity_passkey_login",
 			Description: "add wallet identity passkey PKCE login sessions",
 			Up: func(tx *gorm.DB) error {
@@ -3330,6 +3337,13 @@ func backfillLogRouteModelNamesWithDB(db *gorm.DB) error {
 
 func runLogVersionedMigrations(db *gorm.DB) error {
 	migrations := []versionedMigration{
+		{
+			Version:     "202609231030_log_personal_provider_routing",
+			Description: "add personal provider route source fields to request logs",
+			Up: func(tx *gorm.DB) error {
+				return tx.AutoMigrate(&Log{})
+			},
+		},
 		{
 			Version:     "202603101930_log_baseline_v6",
 			Description: "baseline: create current log schema",

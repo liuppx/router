@@ -209,7 +209,15 @@ export function renderType(type, t) {
 }
 
 export function renderBillingSource(log, t) {
-  const name = String(log?.billing_source_name || '').trim();
+	const upstreamSource = String(log?.upstream_source || '').trim();
+	const upstreamLabel =
+		upstreamSource === 'personal_provider'
+			? log?.personal_provider_name || t('log.table.personal_provider')
+			: upstreamSource === 'community_package'
+				? t('log.table.community_package')
+				: '';
+	const upstreamColor = upstreamSource === 'personal_provider' ? 'purple' : 'blue';
+	const name = String(log?.billing_source_name || '').trim();
   const source = String(log?.billing_source || '').trim();
   const fallback =
     source === 'package'
@@ -223,13 +231,12 @@ export function renderBillingSource(log, t) {
   const sourceDetail = String(log?.billing_source_detail || '').trim();
   const title = [sourceDetail, sourceID].filter(Boolean).join(' / ');
 
-  if (label === '-') {
-    return '-';
-  }
+	if (label === '-' && upstreamLabel === '') return '-';
   return (
-    <AppTag className='router-tag' color={color} title={title || label}>
-      {label}
-    </AppTag>
+    <span className='router-log-source-tags'>
+      {upstreamLabel ? <AppTag className='router-tag' color={upstreamColor}>{upstreamLabel}</AppTag> : null}
+      {label !== '-' ? <AppTag className='router-tag' color={color} title={title || label}>{label}</AppTag> : null}
+    </span>
   );
 }
 

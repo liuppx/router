@@ -1899,6 +1899,7 @@
       "models_table_sources": "来源",
       "model_source_package": "套餐",
       "model_source_balance": "账户余额",
+	  "model_source_personal_provider": "个人供应商",
       "models_table_empty": "暂无可选模型",
       "models_search_placeholder": "搜索模型名称",
       "models_search_empty": "没有匹配的模型",
@@ -2190,6 +2191,8 @@
       "cache_tokens": "缓存读/写",
       "quota": "金额",
       "billing_source": "扣费来源",
+      "personal_provider": "个人供应商",
+      "community_package": "社区套餐",
       "detail": "详情",
       "drag_column": "拖拽调整列顺序",
       "resize_column": "拖拽调整列宽"
@@ -4477,6 +4480,9 @@
   },
   "oauth": {
     "bind_success": "绑定成功！"
+  },
+  "personal_routing": {
+    "title": "我的供应商"
   },
   "not_found": {
     "title": "页面不存在",

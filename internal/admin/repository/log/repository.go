@@ -52,6 +52,9 @@ func hydrateLogsWithChannelNames(logs []*model.Log) error {
 				continue
 			}
 			log.ChannelName = channelNameByID[log.ChannelId]
+			if strings.TrimSpace(log.ChannelName) == "" && strings.TrimSpace(log.PersonalProviderName) != "" {
+				log.ChannelName = strings.TrimSpace(log.PersonalProviderName)
+			}
 		}
 	}
 	groupIDs := make([]string, 0, len(logs))

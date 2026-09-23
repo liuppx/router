@@ -24,6 +24,8 @@ type Meta struct {
 	EntitlementSourceType string
 	EntitlementSourceID   string
 	EntitlementSourceName string
+	PersonalProviderID    string
+	PersonalProviderName  string
 	ModelMapping          map[string]string
 	ChannelModelConfigs   []model.ChannelModel
 	EndpointPolicies      []model.ChannelModelEndpointPolicy
@@ -64,6 +66,8 @@ func GetByContext(c *gin.Context) *Meta {
 		EntitlementSourceType: c.GetString(ctxkey.EntitlementSourceType),
 		EntitlementSourceID:   c.GetString(ctxkey.EntitlementSourceId),
 		EntitlementSourceName: c.GetString(ctxkey.EntitlementSourceName),
+		PersonalProviderID:    c.GetString(ctxkey.PersonalProviderID),
+		PersonalProviderName:  c.GetString(ctxkey.PersonalProviderName),
 		ModelMapping:          c.GetStringMapString(ctxkey.ModelMapping),
 		OriginModelName:       c.GetString(ctxkey.RequestModel),
 		BaseURL:               c.GetString(ctxkey.BaseURL),

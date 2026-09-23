@@ -15,6 +15,7 @@ tags:
   - name: Public Auth
   - name: Public User
   - name: Public Token
+  - name: Personal Provider Routing
   - name: Public Logs
   - name: Relay
   - name: Admin Users
@@ -488,6 +489,70 @@ paths:
       summary: Delete API token
       parameters:
         - $ref: "#/components/parameters/IDPath"
+      responses:
+        "200": { $ref: "#/components/responses/APIResponse" }
+  /api/v1/public/personal-provider/connections:
+    get:
+      tags: [Personal Provider Routing]
+      summary: List current user personal provider connections without credentials
+      responses:
+        "200": { $ref: "#/components/responses/APIResponse" }
+    post:
+      tags: [Personal Provider Routing]
+      summary: Create personal provider connection with write-only credential
+      requestBody: { $ref: "#/components/requestBodies/JSONBody" }
+      responses:
+        "200": { $ref: "#/components/responses/APIResponse" }
+  /api/v1/public/personal-provider/connections/{id}:
+    get:
+      tags: [Personal Provider Routing]
+      summary: Get current user personal provider connection without credential
+      parameters:
+        - $ref: "#/components/parameters/IDPath"
+      responses:
+        "200": { $ref: "#/components/responses/APIResponse" }
+    put:
+      tags: [Personal Provider Routing]
+      summary: Update connection or rotate write-only credential
+      parameters:
+        - $ref: "#/components/parameters/IDPath"
+      requestBody: { $ref: "#/components/requestBodies/JSONBody" }
+      responses:
+        "200": { $ref: "#/components/responses/APIResponse" }
+    delete:
+      tags: [Personal Provider Routing]
+      summary: Delete current user personal provider connection
+      parameters:
+        - $ref: "#/components/parameters/IDPath"
+      responses:
+        "200": { $ref: "#/components/responses/APIResponse" }
+  /api/v1/public/personal-provider/model-routes:
+    get:
+      tags: [Personal Provider Routing]
+      summary: List current user model route overrides
+      responses:
+        "200": { $ref: "#/components/responses/APIResponse" }
+    put:
+      tags: [Personal Provider Routing]
+      summary: Upsert model route override
+      requestBody: { $ref: "#/components/requestBodies/JSONBody" }
+      responses:
+        "200": { $ref: "#/components/responses/APIResponse" }
+  /api/v1/public/personal-provider/model-routes/{model}:
+    delete:
+      tags: [Personal Provider Routing]
+      summary: Delete current user model route override
+      parameters:
+        - name: model
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { $ref: "#/components/responses/APIResponse" }
+  /api/v1/public/personal-provider/routing-quota:
+    get:
+      tags: [Personal Provider Routing]
+      summary: Get current period personal routing usage
       responses:
         "200": { $ref: "#/components/responses/APIResponse" }
   /api/v1/public/log:

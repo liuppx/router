@@ -21,6 +21,7 @@ const (
 	relayBillingSourceBalance                relayBillingSource = "balance"
 	relayBillingSourcePackage                relayBillingSource = "package"
 	relayBillingSourcePackageFallbackBalance relayBillingSource = "package_fallback_balance"
+	relayBillingSourcePersonalProvider       relayBillingSource = "personal_provider"
 )
 
 type relayBillingPlan struct {
@@ -31,7 +32,7 @@ type relayBillingPlan struct {
 }
 
 func (plan relayBillingPlan) ChargeUserBalance() bool {
-	return plan.Source != relayBillingSourcePackage
+	return plan.Source != relayBillingSourcePackage && plan.Source != relayBillingSourcePersonalProvider
 }
 
 func (plan relayBillingPlan) UsesPackage() bool {
@@ -43,7 +44,7 @@ func (plan relayBillingPlan) UsesRequestPackage() bool {
 }
 
 func (plan relayBillingPlan) ChargeTokenQuota() bool {
-	return !plan.UsesRequestPackage()
+	return !plan.UsesRequestPackage() && plan.Source != relayBillingSourcePersonalProvider
 }
 
 func (plan relayBillingPlan) LogBillingSourceSnapshot() model.LogBillingSourceSnapshot {
@@ -201,6 +202,9 @@ func reserveRelayQuota(ctx context.Context, meta *meta.Meta, quota int64) (relay
 }
 
 func reserveRelayQuotaWithRequestAmount(ctx context.Context, meta *meta.Meta, quota int64, requestAmount int64) (relayBillingPlan, *relaymodel.ErrorWithStatusCode) {
+	if meta != nil && strings.TrimSpace(meta.PersonalProviderID) != "" {
+		return relayBillingPlan{Source: relayBillingSourcePersonalProvider}, nil
+	}
 	if requestAmount <= 0 {
 		requestAmount = 1
 	}

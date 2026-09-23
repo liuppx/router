@@ -35,6 +35,11 @@ export const buildUserWorkspaceMenuItems = () => {
       icon: 'key',
     },
     {
+      name: 'personal_routing.title',
+      to: '/workspace/personal-routing',
+      icon: 'share alternate',
+    },
+    {
       name: 'topup.mine.quota',
       to: '/workspace/topup?tab=quota',
       icon: 'credit card',

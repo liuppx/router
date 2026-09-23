@@ -339,6 +339,7 @@ func TokenAuth() func(c *gin.Context) {
 			c.Set(ctxkey.Id, token.UserId)
 			c.Set(ctxkey.TokenId, token.Id)
 			c.Set(ctxkey.TokenName, token.Name)
+			c.Set(ctxkey.PersonalRoutePolicy, model.NormalizePersonalRoutePolicy(token.RoutePolicy))
 		}
 		if err != nil {
 			logger.Loginf(c.Request.Context(), "token auth failed: %v", err)

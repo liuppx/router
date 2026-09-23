@@ -208,7 +208,7 @@ func Create(token *model.Token) error {
 }
 
 func Update(token *model.Token) error {
-	if err := model.DB.Model(token).Select("name", "status", "expired_time", "remain_quota", "unlimited_quota", "remain_request_count", "unlimited_request_count", "models", "subnet", "updated_time").Updates(token).Error; err != nil {
+	if err := model.DB.Model(token).Select("name", "status", "expired_time", "remain_quota", "unlimited_quota", "remain_request_count", "unlimited_request_count", "models", "route_policy", "subnet", "updated_time").Updates(token).Error; err != nil {
 		return err
 	}
 	return invalidateTokenCacheFn(token.Key)
