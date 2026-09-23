@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { API, showError, timestamp2string } from '../../helpers';
+import CopyButton from '../../components/CopyButton';
 import { formatAmountWithUnit } from '../../helpers/render';
 import {
   AppDetailSection,
@@ -129,9 +130,14 @@ const RedemptionRecordDetail = () => {
                     <div className='router-detail-label'>
                       {t('redemption.table.id')}
                     </div>
-                    <pre className='router-detail-value router-monospace-value'>
-                      {readOnlyText(record?.id || id)}
-                    </pre>
+                    <div className='router-action-group-tight'>
+                      <pre className='router-detail-value router-monospace-value'>
+                        {readOnlyText(record?.id || id)}
+                      </pre>
+                      {record?.id || id ? (
+                        <CopyButton value={record?.id || id} size='small' basic />
+                      ) : null}
+                    </div>
                   </div>
                   <div className='router-detail-item'>
                     <div className='router-detail-label'>

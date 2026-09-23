@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { API, showError, timestamp2string } from '../../helpers';
+import CopyButton from '../../components/CopyButton';
 import { formatPaymentAmount } from '../../helpers/render';
 import {
   AppButton,
@@ -342,9 +343,14 @@ const PaymentRecordDetail = () => {
                     <div className='router-detail-label'>
                       {t('flow.topup_reconcile.detail.fields.id')}
                     </div>
-                    <pre className='router-detail-value router-monospace-value'>
-                      {readOnlyText(order?.id || id)}
-                    </pre>
+                    <div className='router-action-group-tight'>
+                      <pre className='router-detail-value router-monospace-value'>
+                        {readOnlyText(order?.id || id)}
+                      </pre>
+                      {order?.id || id ? (
+                        <CopyButton value={order?.id || id} size='small' basic />
+                      ) : null}
+                    </div>
                   </div>
                   <div className='router-detail-item'>
                     <div className='router-detail-label'>
@@ -407,11 +413,33 @@ const PaymentRecordDetail = () => {
                   </div>
                   <div className='router-detail-item'>
                     <div className='router-detail-label'>{t('flow.topup_reconcile.detail.fields.transaction_id')}</div>
-                    <pre className='router-detail-value router-monospace-value'>{readOnlyText(order?.transaction_id)}</pre>
+                    <div className='router-action-group-tight'>
+                      <pre className='router-detail-value router-monospace-value'>
+                        {readOnlyText(order?.transaction_id)}
+                      </pre>
+                      {order?.transaction_id ? (
+                        <CopyButton
+                          value={order.transaction_id}
+                          size='small'
+                          basic
+                        />
+                      ) : null}
+                    </div>
                   </div>
                   <div className='router-detail-item'>
                     <div className='router-detail-label'>{t('flow.topup_reconcile.detail.fields.provider_order_id')}</div>
-                    <pre className='router-detail-value router-monospace-value'>{readOnlyText(order?.provider_order_id)}</pre>
+                    <div className='router-action-group-tight'>
+                      <pre className='router-detail-value router-monospace-value'>
+                        {readOnlyText(order?.provider_order_id)}
+                      </pre>
+                      {order?.provider_order_id ? (
+                        <CopyButton
+                          value={order.provider_order_id}
+                          size='small'
+                          basic
+                        />
+                      ) : null}
+                    </div>
                   </div>
                   <div className='router-detail-item'>
                     <div className='router-detail-label'>
