@@ -21,7 +21,7 @@ const RECORD_CONFIG = {
   },
 };
 
-const RecordListPage = ({ kind }) => {
+const RecordListPage = ({ kind, embedded = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const config = RECORD_CONFIG[kind] || RECORD_CONFIG.purchase;
@@ -46,31 +46,46 @@ const RecordListPage = ({ kind }) => {
       <RedemptionSectionTabs active='records' />
     ) : null;
 
-  return (
-    <div className='dashboard-container'>
-      <BusinessRecordsTable
-        kind={config.tableKind || kind}
-        title={t(config.titleKey)}
-        sectionTabs={sectionTabs}
-        detailBasePath={config.detailBasePath}
-        breadcrumbs={[
-          { key: 'admin', label: t('header.admin_workspace') },
-          ...parentBreadcrumbs,
-          ...(config.hideParentBreadcrumb
-            ? []
-            : [{
-                key: `${kind}-parent`,
-                label: t(config.parentKey),
-                onClick: () => navigate(config.parentPath),
-              }]),
-          {
-            key: `${kind}-records`,
-            label: t(config.titleKey),
-            active: true,
-          },
-        ]}
-      />
-    </div>
+  // When embedded in a shell (e.g. EntitlementLayout / RedemptionLayout), the
+  // shell owns the breadcrumb + title + tab strip, so pass an empty breadcrumb
+  // array (BusinessRecordsTable falls back to a default one on null/undefined),
+  // drop the title/tabs, and skip the outer dashboard-container.
+  const table = (
+    <BusinessRecordsTable
+      kind={config.tableKind || kind}
+      embedded={embedded}
+      title={embedded ? undefined : t(config.titleKey)}
+      sectionTabs={embedded ? null : sectionTabs}
+      detailBasePath={config.detailBasePath}
+      breadcrumbs={
+        embedded
+          ? []
+          : [
+              { key: 'admin', label: t('header.admin_workspace') },
+              ...parentBreadcrumbs,
+              ...(config.hideParentBreadcrumb
+                ? []
+                : [
+                    {
+                      key: `${kind}-parent`,
+                      label: t(config.parentKey),
+                      onClick: () => navigate(config.parentPath),
+                    },
+                  ]),
+              {
+                key: `${kind}-records`,
+                label: t(config.titleKey),
+                active: true,
+              },
+            ]
+      }
+    />
+  );
+
+  return embedded ? (
+    table
+  ) : (
+    <div className='dashboard-container'>{table}</div>
   );
 };
 

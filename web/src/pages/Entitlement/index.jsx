@@ -225,7 +225,7 @@ const buildProductPayload = (form) => {
   };
 };
 
-const Entitlement = () => {
+const Entitlement = ({ embedded = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -920,14 +920,22 @@ const Entitlement = () => {
   };
 
   return (
-    <div className='dashboard-container'>
+    <div className={embedded ? undefined : 'dashboard-container'}>
       <AppFilterHeader
         className='router-block-gap-md'
-        breadcrumbs={[
-          { key: 'admin', label: t('header.admin_workspace') },
-          { key: 'model', label: t('header.model') },
-          { key: 'entitlement', label: t('header.entitlement'), active: true },
-        ]}
+        breadcrumbs={
+          embedded
+            ? undefined
+            : [
+                { key: 'admin', label: t('header.admin_workspace') },
+                { key: 'model', label: t('header.model') },
+                {
+                  key: 'entitlement',
+                  label: t('header.entitlement'),
+                  active: true,
+                },
+              ]
+        }
         query={
           <div className='router-list-toolbar-query router-list-toolbar-query-compact'>
             <AppSelect
@@ -987,7 +995,7 @@ const Entitlement = () => {
         }
       />
 
-      <EntitlementSectionTabs active='list' />
+      {embedded ? null : <EntitlementSectionTabs active='list' />}
 
       <div className='router-table-scroll-x'>
         <AppTable

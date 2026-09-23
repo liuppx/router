@@ -43,7 +43,7 @@ import Redemption from './pages/Redemption';
 import EditRedemption from './pages/Redemption/EditRedemption';
 import RedemptionDetail from './pages/Redemption/RedemptionDetail';
 import TopupPlanDetail from './pages/AdminTopup/Detail';
-import Entitlement from './pages/Entitlement';
+import EntitlementLayout from './pages/Entitlement/EntitlementLayout';
 import AdminChannelTaskDetailPage from './pages/Task/AdminChannelTaskDetailPage';
 import AdminUserTaskDetailPage from './pages/Task/AdminUserTaskDetailPage';
 import Task, {
@@ -851,7 +851,7 @@ function App() {
         />
         <Route
           path='/admin/entitlement'
-          element={<Entitlement />}
+          element={<EntitlementLayout />}
         />
         <Route
           path='/admin/entitlement/package/detail/:id'
@@ -859,7 +859,7 @@ function App() {
         />
         <Route
           path='/admin/entitlement/payments'
-          element={<RecordListPage kind='purchase' />}
+          element={<TabRedirect to='/admin/entitlement' tab='records' />}
         />
         <Route
           path='/admin/entitlement/topup/detail/:id'

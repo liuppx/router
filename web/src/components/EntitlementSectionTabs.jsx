@@ -12,12 +12,12 @@ function EntitlementSectionTabs({ active = 'list' }) {
         {
           key: 'list',
           label: t('entitlement.tabs.list'),
-          to: '/admin/entitlement',
+          to: '/admin/entitlement?tab=list',
         },
         {
           key: 'records',
           label: t('entitlement.tabs.records'),
-          to: '/admin/entitlement/payments',
+          to: '/admin/entitlement?tab=records',
         },
       ]}
     />
