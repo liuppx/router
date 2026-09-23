@@ -1639,6 +1639,7 @@ const AdminDashboard = () => {
                               `/admin/channel/detail/${encodeURIComponent(
                                 item.channel_id,
                               )}${needsTest ? '?tab=tests' : ''}`,
+                              { state: { from: `${location.pathname}${location.search}` } },
                             );
                           }}
                         >

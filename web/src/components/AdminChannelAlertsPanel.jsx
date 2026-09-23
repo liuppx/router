@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Bar,
   BarChart,
@@ -92,6 +92,8 @@ const formatActorTimestampLabel = (timestamp) =>
 function AdminChannelAlertsPanel() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentPagePath = `${location.pathname}${location.search}${location.hash}`;
   const [alertItems, setAlertItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [alertSummary, setAlertSummary] = useState(null);
@@ -529,7 +531,9 @@ function AdminChannelAlertsPanel() {
               title={record.channelName || record.channelId || '-'}
               onClick={(event) => {
                 event.stopPropagation();
-                navigate(`/admin/channel/detail/${encodeURIComponent(record.channelId)}`);
+                navigate(`/admin/channel/detail/${encodeURIComponent(record.channelId)}`, {
+                state: { from: currentPagePath },
+              });
               }}
             >
               {record.channelName || record.channelId || '-'}
@@ -1152,7 +1156,9 @@ function AdminChannelAlertsPanel() {
             className='router-inline-button'
             onClick={() => {
               closeDetailDrawer();
-              navigate(`/admin/channel/detail/${encodeURIComponent(detailAlert?.channelId || '')}`);
+              navigate(`/admin/channel/detail/${encodeURIComponent(detailAlert?.channelId || '')}`, {
+                state: { from: currentPagePath },
+              });
             }}
             disabled={!detailAlert?.channelId}
           >
@@ -1167,6 +1173,7 @@ function AdminChannelAlertsPanel() {
                 `/admin/channel/detail/${encodeURIComponent(
                   detailAlert?.channelId || '',
                 )}?tab=tests`,
+                { state: { from: currentPagePath } },
               );
             }}
             disabled={!detailAlert?.channelId}
