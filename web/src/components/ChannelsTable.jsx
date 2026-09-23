@@ -504,6 +504,22 @@ const ChannelsTable = () => {
     });
   };
 
+  // Deep-link straight to the channel detail "tests" tab (URL-driven via
+  // ?tab=tests). Testing a channel is the single highest-frequency ops action
+  // yet otherwise only lives inside the detail page — this surfaces it in the
+  // list so operators don't have to open the detail then hunt for the tab.
+  const openChannelTest = (channel) => {
+    if (!channel || !channel.id) {
+      return;
+    }
+    navigate(`/admin/channel/detail/${channel.id}?tab=tests`, {
+      state: {
+        from: currentPagePath,
+        channelLabel: getChannelDisplayName(channel),
+      },
+    });
+  };
+
   const stopRowClick = (event) => {
     event.stopPropagation();
   };
@@ -767,7 +783,7 @@ const ChannelsTable = () => {
             title: t('channel.table.actions'),
             key: 'actions',
             className: 'router-table-col-actions-icon',
-            width: 104,
+            width: 132,
             render: (_, channel) => (
               <div
                 className='router-action-group-tight router-table-actions-icon-compact'
@@ -780,6 +796,13 @@ const ChannelsTable = () => {
                     navigate(
                       buildLogDrilldownPath('admin', { channel: channel.id }),
                     );
+                  }}
+                />
+                <AppTableActionButton
+                  icon='heartbeat'
+                  title={t('channel.edit.detail_tabs.tests')}
+                  onClick={() => {
+                    openChannelTest(channel);
                   }}
                 />
                 {(channel.protocol || '').toString().trim().toLowerCase() !==
