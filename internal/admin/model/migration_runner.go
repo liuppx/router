@@ -3338,6 +3338,13 @@ func backfillLogRouteModelNamesWithDB(db *gorm.DB) error {
 func runLogVersionedMigrations(db *gorm.DB) error {
 	migrations := []versionedMigration{
 		{
+			Version:     "202609231700_reconcile_log_event_log_schema",
+			Description: "reconcile event log table columns required by current request logging",
+			Up: func(tx *gorm.DB) error {
+				return reconcileEventLogSchemaWithDB(tx)
+			},
+		},
+		{
 			Version:     "202609231030_log_personal_provider_routing",
 			Description: "add personal provider route source fields to request logs",
 			Up: func(tx *gorm.DB) error {
@@ -3510,6 +3517,16 @@ func runLogVersionedMigrations(db *gorm.DB) error {
 		},
 	}
 	return runVersionedMigrations(db, migrationScopeLog, migrations)
+}
+
+// reconcileEventLogSchemaWithDB is a standalone repair migration. It is kept
+// separate from feature migrations so a database that incorrectly recorded an
+// earlier log migration still receives the current event-log columns.
+func reconcileEventLogSchemaWithDB(db *gorm.DB) error {
+	if db == nil {
+		return fmt.Errorf("database handle is nil")
+	}
+	return db.AutoMigrate(&Log{})
 }
 
 func runVersionedMigrations(db *gorm.DB, scope string, migrations []versionedMigration) error {
