@@ -2193,6 +2193,8 @@
       "billing_source": "扣费来源",
       "personal_provider": "个人供应商",
       "community_package": "社区套餐",
+      "no_community_charge": "未扣社区套餐",
+      "fallback_used": "已回退",
       "detail": "详情",
       "drag_column": "拖拽调整列顺序",
       "resize_column": "拖拽调整列宽"

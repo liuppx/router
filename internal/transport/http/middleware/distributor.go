@@ -195,26 +195,21 @@ func recordRouteDecision(c *gin.Context, source string, groupID string, requestM
 }
 
 func selectPinnedResponsesChannel(c *gin.Context, userID string, userGroup string, requestModel string, requestPath string) (*model.Channel, bool) {
-	previousResponseID := strings.TrimSpace(c.GetString(ctxkey.ResponsesPreviousResponseID))
-	itemIDs := responseItemIDsFromContext(c)
-	if previousResponseID == "" && len(itemIDs) == 0 {
-		return nil, false
-	}
-	lookupIDs := append([]string{}, itemIDs...)
-	if previousResponseID != "" {
-		lookupIDs = append(lookupIDs, previousResponseID)
-	}
-	channelID, ok, conflict := responsestate.LookupRoutes(lookupIDs)
+	channelID, ok, conflict := lookupPinnedResponsesChannelID(c)
 	if conflict {
+		previousResponseID := strings.TrimSpace(c.GetString(ctxkey.ResponsesPreviousResponseID))
+		itemIDs := responseItemIDsFromContext(c)
 		logger.RelayWarnf(c.Request.Context(), "DISTRIBUTE decision=state_conflict reason=responses_route_multiple_channels user_id=%s group=%s response_id=%s item_ids=%s endpoint=%s", c.GetString(ctxkey.Id), userGroup, previousResponseID, strings.Join(itemIDs, ","), requestPath)
 		// The pinned state is no longer trustworthy. Let automatic routing pick
 		// a currently healthy channel and replay the request without old IDs.
 		return nil, false
 	}
 	if !ok {
+		previousResponseID := strings.TrimSpace(c.GetString(ctxkey.ResponsesPreviousResponseID))
 		logger.RelayInfof(c.Request.Context(), "DISTRIBUTE decision=miss reason=responses_route_missing user_id=%s group=%s response_id=%s endpoint=%s", c.GetString(ctxkey.Id), userGroup, previousResponseID, requestPath)
 		return nil, false
 	}
+	previousResponseID := strings.TrimSpace(c.GetString(ctxkey.ResponsesPreviousResponseID))
 	var channel *model.Channel
 	var err error
 	if model.IsPersonalProviderChannelID(channelID) {
@@ -244,6 +239,22 @@ func selectPinnedResponsesChannel(c *gin.Context, userID string, userGroup strin
 	logger.RelayInfof(c.Request.Context(), "DISTRIBUTE decision=pin reason=responses_route_match user_id=%s group=%s response_id=%s channel_id=%s model=%s endpoint=%s", c.GetString(ctxkey.Id), userGroup, previousResponseID, channelID, requestModel, requestPath)
 	recordRouteDecision(c, "responses_pin", userGroup, requestModel, requestPath, []*model.Channel{channel}, nil, channel, "pinned")
 	return channel, true
+}
+
+func lookupPinnedResponsesChannelID(c *gin.Context) (string, bool, bool) {
+	if c == nil {
+		return "", false, false
+	}
+	previousResponseID := strings.TrimSpace(c.GetString(ctxkey.ResponsesPreviousResponseID))
+	itemIDs := responseItemIDsFromContext(c)
+	if previousResponseID == "" && len(itemIDs) == 0 {
+		return "", false, false
+	}
+	lookupIDs := append([]string{}, itemIDs...)
+	if previousResponseID != "" {
+		lookupIDs = append(lookupIDs, previousResponseID)
+	}
+	return responsestate.LookupRoutes(lookupIDs)
 }
 
 func responseItemIDsFromContext(c *gin.Context) []string {
@@ -464,6 +475,28 @@ func Distribute() func(c *gin.Context) {
 			personalPolicy := model.ResolvePersonalRoutePolicy(userId, &model.Token{RoutePolicy: c.GetString(ctxkey.PersonalRoutePolicy)}, requestModel)
 			c.Set(ctxkey.PersonalRoutePolicy, personalPolicy)
 			personalSupported := supportsPersonalProviderRoute(c.Request.URL.Path)
+			// A stateful Responses request must retain the exact upstream account
+			// that issued its response or tool item. It takes precedence over every
+			// source policy, including personal_first and personal_only.
+			if responseStateConflict(c) {
+				if resetErr := resetConflictingResponsesState(c); resetErr != nil {
+					abortWithMessage(c, http.StatusBadRequest, "Responses 会话状态恢复失败")
+					return
+				}
+			}
+			if pinnedChannelID, pinned, _ := lookupPinnedResponsesChannelID(c); pinned {
+				if !model.IsPersonalProviderChannelID(pinnedChannelID) {
+					if groupErr := resolveEntitlement(); groupErr != nil {
+						abortEntitlementResolution(groupErr)
+						return
+					}
+				}
+				channel, _ = selectPinnedResponsesChannel(c, userId, userGroup, requestModel, c.Request.URL.Path)
+				if channel == nil {
+					abortWithMessage(c, http.StatusConflict, "已绑定的 Responses 会话上游不可用，请重新开始会话")
+					return
+				}
+			}
 			selectPersonalChannel := func(decision string, reason string) (*model.Channel, error) {
 				personalChannels, personalErr := model.ListPersonalProviderChannelsForModel(userId, requestModel)
 				if personalErr != nil {
@@ -476,7 +509,7 @@ func Distribute() func(c *gin.Context) {
 				}
 				return selected, nil
 			}
-			if personalSupported && (personalPolicy == model.PersonalRoutePolicyPersonalFirst || personalPolicy == model.PersonalRoutePolicyPersonalOnly) {
+			if channel == nil && personalSupported && (personalPolicy == model.PersonalRoutePolicyPersonalFirst || personalPolicy == model.PersonalRoutePolicyPersonalOnly) {
 				channel, err = selectPersonalChannel("personal_provider", "personal_priority")
 				if err != nil && personalPolicy == model.PersonalRoutePolicyPersonalOnly {
 					abortWithMessage(c, http.StatusServiceUnavailable, "个人供应商凭据不可用，请在我的供应商中轮换凭据")

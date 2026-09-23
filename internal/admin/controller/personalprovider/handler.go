@@ -126,6 +126,19 @@ func UpsertModelRoute(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "请求格式无效"})
 		return
 	}
+	if !model.IsPersonalRoutePolicy(input.RoutePolicy) {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "路由策略无效"})
+		return
+	}
+	available, err := listUserRoutableModels(c)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+	if _, exists := available[strings.TrimSpace(input.Model)]; !exists {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "模型不在当前账号可用范围内"})
+		return
+	}
 	if err := model.UpsertPersonalModelRoute(c.GetString(ctxkey.Id), input.Model, input.RoutePolicy); err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
 		return
@@ -133,8 +146,36 @@ func UpsertModelRoute(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
 }
 
+func listUserRoutableModels(c *gin.Context) (map[string]struct{}, error) {
+	userID := c.GetString(ctxkey.Id)
+	payload, err := model.BuildUserEntitlementModels(c.Request.Context(), userID)
+	if err != nil {
+		return nil, err
+	}
+	personalModels, err := model.ListPersonalProviderModels(userID)
+	if err != nil {
+		return nil, err
+	}
+	available := make(map[string]struct{}, len(payload.Models)+len(personalModels))
+	for _, modelName := range payload.Models {
+		if normalized := strings.TrimSpace(modelName); normalized != "" {
+			available[normalized] = struct{}{}
+		}
+	}
+	for _, modelName := range personalModels {
+		if normalized := strings.TrimSpace(modelName); normalized != "" {
+			available[normalized] = struct{}{}
+		}
+	}
+	return available, nil
+}
+
 func DeleteModelRoute(c *gin.Context) {
 	if err := model.DeletePersonalModelRoute(c.GetString(ctxkey.Id), c.Param("model")); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": "模型路由规则不存在或无权访问", "code": "personal_model_route_not_found"})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
 		return
 	}

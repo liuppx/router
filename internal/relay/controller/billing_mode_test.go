@@ -50,6 +50,16 @@ func TestRelayBillingPlanWithRequestPackageDoesNotChargeTokenQuota(t *testing.T)
 	}
 }
 
+func TestRelayBillingPlanWithPersonalProviderDoesNotUseCommunityBilling(t *testing.T) {
+	plan := relayBillingPlan{Source: relayBillingSourcePersonalProvider}
+	if !plan.IsPersonalProvider() {
+		t.Fatal("IsPersonalProvider() = false, want true")
+	}
+	if plan.ChargeUserBalance() || plan.ChargeTokenQuota() || plan.UsesPackage() {
+		t.Fatalf("personal provider billing plan must not use community billing: %+v", plan)
+	}
+}
+
 func TestTryBuildRequestPackageBillingPlanMatchesGroupBeforePricing(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open("file:"+t.Name()+"?mode=memory&cache=private"), &gorm.Config{})
 	if err != nil {

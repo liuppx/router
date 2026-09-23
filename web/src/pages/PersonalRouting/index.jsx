@@ -46,6 +46,7 @@ function parseModels(value) {
 function PersonalRouting() {
   const [connections, setConnections] = useState([]);
   const [routes, setRoutes] = useState([]);
+  const [routeModelOptions, setRouteModelOptions] = useState([]);
   const [quota, setQuota] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -57,17 +58,23 @@ function PersonalRouting() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [connectionResponse, routeResponse, quotaResponse] = await Promise.all([
+      const [connectionResponse, routeResponse, quotaResponse, modelsResponse] = await Promise.all([
         API.get('/api/v1/public/personal-provider/connections'),
         API.get('/api/v1/public/personal-provider/model-routes'),
         API.get('/api/v1/public/personal-provider/routing-quota'),
+        API.get('/api/v1/public/user/models/available'),
       ]);
       if (!connectionResponse.data?.success) throw new Error(connectionResponse.data?.message);
       if (!routeResponse.data?.success) throw new Error(routeResponse.data?.message);
       if (!quotaResponse.data?.success) throw new Error(quotaResponse.data?.message);
+      if (!modelsResponse.data?.success) throw new Error(modelsResponse.data?.message);
       setConnections(Array.isArray(connectionResponse.data?.data) ? connectionResponse.data.data : []);
       setRoutes(Array.isArray(routeResponse.data?.data) ? routeResponse.data.data : []);
       setQuota(quotaResponse.data?.data || null);
+      setRouteModelOptions((Array.isArray(modelsResponse.data?.data) ? modelsResponse.data.data : [])
+        .map((model) => String(model || '').trim())
+        .filter(Boolean)
+        .map((model) => ({ value: model, label: model })));
     } catch (error) {
       showError(error?.message || '加载个人路由失败');
     } finally {
@@ -188,7 +195,7 @@ function PersonalRouting() {
     </AppSection>
     <AppSection title='模型路由规则'>
       <AppForm form={routeForm} layout='vertical' className='personal-routing-rule-form'>
-        <AppField label='模型' required><AppForm.Item name='model' rules={[{ required: true, message: '请输入模型名称' }]} noStyle><AppInput placeholder='例如 gpt-5.1' /></AppForm.Item></AppField>
+        <AppField label='模型' required><AppForm.Item name='model' rules={[{ required: true, message: '请选择模型' }]} noStyle><AppSelect options={routeModelOptions} search placeholder='选择当前账号可用模型' /></AppForm.Item></AppField>
         <AppField label='策略' required><AppForm.Item name='route_policy' initialValue='personal_first' noStyle><AppSelect options={POLICY_OPTIONS} /></AppForm.Item></AppField>
         <AppFormActions><AppButton color='blue' onClick={saveRoute}>保存规则</AppButton></AppFormActions>
       </AppForm>
@@ -202,7 +209,7 @@ function PersonalRouting() {
       <AppForm form={form} layout='vertical' initialValues={emptyConnection}>
         <AppField label='连接名称' required><AppForm.Item name='name' rules={[{ required: true, message: '请输入连接名称' }]} noStyle><AppInput placeholder='例如 我的 OpenAI' /></AppForm.Item></AppField>
         <AppField label='上游协议' required><AppForm.Item name='protocol' noStyle><AppSelect options={PROTOCOL_OPTIONS} /></AppForm.Item></AppField>
-        <AppField label='Base URL' hint='留空时使用该协议的官方地址'><AppForm.Item name='base_url' noStyle><AppInput placeholder='https://api.example.com/v1' /></AppForm.Item></AppField>
+        <AppField label='Base URL' hint='留空时使用该协议的官方地址；自定义地址仅支持 HTTPS 公网地址'><AppForm.Item name='base_url' noStyle><AppInput placeholder='https://api.example.com/v1' /></AppForm.Item></AppField>
         <AppField label={editing ? '轮换 API Key' : 'API Key'} required={!editing} hint={editing ? '留空则保留当前凭据' : '凭据将加密保存，之后不会再显示'}><AppForm.Item name='api_key' rules={editing ? [] : [{ required: true, message: '请输入 API Key' }]} noStyle><AppInput type='password' autoComplete='new-password' /></AppForm.Item></AppField>
         <AppField label='模型范围' required hint='每行一个模型，也支持逗号分隔'><AppForm.Item name='models_text' rules={[{ required: true, message: '至少填写一个模型' }]} noStyle><AppTextarea rows={4} placeholder={'gpt-5.1\ngpt-5.1-mini'} /></AppForm.Item></AppField>
         <AppField label='优先级'><AppForm.Item name='priority' noStyle><AppInput type='number' /></AppForm.Item></AppField>

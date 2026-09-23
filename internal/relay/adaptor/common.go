@@ -176,7 +176,15 @@ func isRequestContextCanceled(err error) bool {
 }
 
 func DoRequest(c *gin.Context, req *http.Request) (*http.Response, error) {
-	resp, err := client.HTTPClient.Do(req)
+	var (
+		resp *http.Response
+		err  error
+	)
+	if strings.TrimSpace(c.GetString(ctxkey.PersonalProviderID)) != "" {
+		resp, err = client.DoPersonalProviderRequest(req)
+	} else {
+		resp, err = client.HTTPClient.Do(req)
+	}
 	if err != nil {
 		return nil, err
 	}

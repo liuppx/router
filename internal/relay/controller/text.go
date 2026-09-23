@@ -169,23 +169,28 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 		return openai.ErrorWrapper(responsesImageToolsErr, "parse_responses_image_tools_failed", http.StatusBadRequest)
 	}
 	maxOutputTokens := resolveTextMaxOutputTokens(textRequest)
-	preConsumedPricing := adminmodel.ResolveTextUsagePricing(pricing, upstreamPath, promptTokens, maxOutputTokens)
-	reservedTokens := policyResolution.Policy.ReserveTokens(promptTokens, maxOutputTokens)
-	preConsumedSnapshot, err := billing.ComputeTextPreConsumedBillingSnapshotWithReservedTokens(promptTokens, maxOutputTokens, reservedTokens, preConsumedPricing, groupRatio)
-	if err != nil {
-		logger.Errorf(ctx, "ComputeTextPreConsumedQuota failed: %s", err.Error())
-		return openai.ErrorWrapper(err, "calculate_text_quota_failed", http.StatusInternalServerError)
+	personalProviderRequest := strings.TrimSpace(meta.PersonalProviderID) != ""
+	preConsumedSnapshot := billing.BillingSnapshot{}
+	groupReservedQuota := int64(0)
+	if !personalProviderRequest {
+		preConsumedPricing := adminmodel.ResolveTextUsagePricing(pricing, upstreamPath, promptTokens, maxOutputTokens)
+		reservedTokens := policyResolution.Policy.ReserveTokens(promptTokens, maxOutputTokens)
+		preConsumedSnapshot, err = billing.ComputeTextPreConsumedBillingSnapshotWithReservedTokens(promptTokens, maxOutputTokens, reservedTokens, preConsumedPricing, groupRatio)
+		if err != nil {
+			logger.Errorf(ctx, "ComputeTextPreConsumedQuota failed: %s", err.Error())
+			return openai.ErrorWrapper(err, "calculate_text_quota_failed", http.StatusInternalServerError)
+		}
+		preConsumedSnapshot.SetBillingRatioBreakdown(billingRatio)
+		preConsumedSnapshot.PrechargePolicy = policyResolution.Policy.Type
+		preConsumedSnapshot.PrechargePolicySource = policyResolution.Source
+		preConsumedSnapshot.PrechargePolicyVersion = policyResolution.Version
+		preConsumedSnapshot.PrechargeReservedTokens = reservedTokens
+		if err := billing.ApplyEstimatedProcurementCostFloor(&preConsumedSnapshot, meta.ChannelId, meta.ActualModelName); err != nil {
+			logger.Errorf(ctx, "estimate procurement cost for text pre-consume failed: %s", err.Error())
+			return openai.ErrorWrapper(err, "calculate_text_quota_failed", http.StatusInternalServerError)
+		}
+		groupReservedQuota = preConsumedSnapshot.ChargeAmount
 	}
-	preConsumedSnapshot.SetBillingRatioBreakdown(billingRatio)
-	preConsumedSnapshot.PrechargePolicy = policyResolution.Policy.Type
-	preConsumedSnapshot.PrechargePolicySource = policyResolution.Source
-	preConsumedSnapshot.PrechargePolicyVersion = policyResolution.Version
-	preConsumedSnapshot.PrechargeReservedTokens = reservedTokens
-	if err := billing.ApplyEstimatedProcurementCostFloor(&preConsumedSnapshot, meta.ChannelId, meta.ActualModelName); err != nil {
-		logger.Errorf(ctx, "estimate procurement cost for text pre-consume failed: %s", err.Error())
-		return openai.ErrorWrapper(err, "calculate_text_quota_failed", http.StatusInternalServerError)
-	}
-	groupReservedQuota := preConsumedSnapshot.ChargeAmount
 	billingPlan, quotaErr := reserveRelayQuota(ctx, meta, groupReservedQuota)
 	if quotaErr != nil {
 		return quotaErr

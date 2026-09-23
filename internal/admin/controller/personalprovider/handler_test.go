@@ -72,7 +72,7 @@ func connectionPayload(name string, key string) map[string]any {
 	return map[string]any{
 		"name":     name,
 		"protocol": "openai",
-		"base_url": "https://api.example.test/v1",
+		"base_url": "",
 		"api_key":  key,
 		"models":   []string{"gpt-5.1"},
 		"priority": 10,
@@ -109,7 +109,7 @@ func TestCreateConnectionNeverReturnsCredential(t *testing.T) {
 func TestUpdateConnectionWithoutAPIKeyKeepsCredential(t *testing.T) {
 	db := newPersonalProviderControllerTestDB(t)
 	row := &model.PersonalProviderConnection{
-		UserId: "user-a", Name: "old name", Protocol: "openai", BaseURL: "https://api.example.test/v1",
+		UserId: "user-a", Name: "old name", Protocol: "openai", BaseURL: "",
 		Models: []string{"gpt-5.1"}, Priority: 1,
 	}
 	if err := model.CreatePersonalProviderConnection(row, "sk-original"); err != nil {
@@ -141,7 +141,7 @@ func TestUpdateConnectionWithoutAPIKeyKeepsCredential(t *testing.T) {
 func TestOtherUserCannotReadOrDeleteConnection(t *testing.T) {
 	db := newPersonalProviderControllerTestDB(t)
 	row := &model.PersonalProviderConnection{
-		UserId: "user-a", Name: "private connection", Protocol: "openai", BaseURL: "https://api.example.test/v1",
+		UserId: "user-a", Name: "private connection", Protocol: "openai", BaseURL: "",
 		Models: []string{"gpt-5.1"}, Priority: 1,
 	}
 	if err := model.CreatePersonalProviderConnection(row, "sk-owner-only"); err != nil {
@@ -169,5 +169,19 @@ func TestOtherUserCannotReadOrDeleteConnection(t *testing.T) {
 	}
 	if count != 1 {
 		t.Fatalf("cross-user delete removed owner connection, count=%d", count)
+	}
+}
+
+func TestCreateConnectionRejectsUnsupportedProtocol(t *testing.T) {
+	newPersonalProviderControllerTestDB(t)
+	payload := connectionPayload("unsupported", "sk-secret")
+	payload["protocol"] = "unsupported"
+	c, recorder := newPersonalProviderContext(t, http.MethodPost, "/connections", "user-a", payload)
+
+	CreateConnection(c)
+
+	response := decodePersonalProviderResponse(t, recorder)
+	if success, _ := response["success"].(bool); success {
+		t.Fatalf("unsupported protocol unexpectedly succeeded: %#v", response)
 	}
 }

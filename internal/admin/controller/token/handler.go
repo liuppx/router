@@ -231,6 +231,9 @@ func validateToken(c *gin.Context, token model.Token) error {
 	if token.RemainRequestCount < 0 {
 		return fmt.Errorf("请求次数不能为负数")
 	}
+	if policy := strings.TrimSpace(token.RoutePolicy); policy != "" && !model.IsPersonalRoutePolicy(policy) {
+		return fmt.Errorf("路由策略无效")
+	}
 	if token.Subnet != nil && *token.Subnet != "" {
 		err := network.IsValidSubnets(*token.Subnet)
 		if err != nil {

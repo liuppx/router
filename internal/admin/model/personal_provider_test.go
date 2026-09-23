@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/yeying-community/router/common/config"
@@ -139,5 +140,48 @@ func TestNormalizePersonalRoutePolicy(t *testing.T) {
 		if got := NormalizePersonalRoutePolicy(input); got != want {
 			t.Errorf("NormalizePersonalRoutePolicy(%q) = %q, want %q", input, got, want)
 		}
+	}
+}
+
+func TestPersonalProviderProtocolAndRoutePolicyValidation(t *testing.T) {
+	for _, protocol := range []string{"openai", "anthropic", "gemini", "ali", "deepseek"} {
+		if !IsPersonalProviderProtocol(protocol) {
+			t.Fatalf("protocol %q should be supported", protocol)
+		}
+	}
+	if IsPersonalProviderProtocol("unknown-provider") {
+		t.Fatal("unknown provider protocol must not be supported")
+	}
+	if !IsPersonalRoutePolicy(PersonalRoutePolicyPersonalFirst) {
+		t.Fatal("personal_first should be a valid route policy")
+	}
+	if IsPersonalRoutePolicy("unexpected") {
+		t.Fatal("unexpected route policy must not be valid")
+	}
+}
+
+func TestDeletePersonalModelRouteRequiresOwnership(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open("file:"+t.Name()+"?mode=memory&cache=private"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	if err := db.AutoMigrate(&PersonalModelRoute{}); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	previousDB := DB
+	DB = db
+	t.Cleanup(func() { DB = previousDB })
+	if err := db.Create(&PersonalModelRoute{UserId: "owner", Model: "gpt-5.1", RoutePolicy: PersonalRoutePolicyPersonalOnly}).Error; err != nil {
+		t.Fatalf("seed route: %v", err)
+	}
+	if err := DeletePersonalModelRoute("other-user", "gpt-5.1"); !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Fatalf("cross-user delete error = %v, want record not found", err)
+	}
+	var count int64
+	if err := db.Model(&PersonalModelRoute{}).Where("user_id = ? AND model = ?", "owner", "gpt-5.1").Count(&count).Error; err != nil {
+		t.Fatalf("count route: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("cross-user delete removed route, count = %d", count)
 	}
 }

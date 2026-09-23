@@ -2193,6 +2193,8 @@
       "billing_source": "Billing Source",
       "personal_provider": "Personal provider",
       "community_package": "Community package",
+      "no_community_charge": "No community charge",
+      "fallback_used": "Fallback used",
       "detail": "Detail",
       "drag_column": "Drag to reorder columns",
       "resize_column": "Drag to resize column"

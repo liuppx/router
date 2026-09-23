@@ -115,8 +115,9 @@ const (
 )
 
 const (
-	LogBillingSourceBalance = "balance"
-	LogBillingSourcePackage = "package"
+	LogBillingSourceBalance          = "balance"
+	LogBillingSourcePackage          = "package"
+	LogBillingSourcePersonalProvider = "personal_provider"
 )
 
 func ResolveConsumeLogBillingSource(chargeUserBalance bool) string {
@@ -138,6 +139,16 @@ func ApplyConsumeLogBillingSource(log *Log, chargeUserBalance bool, packageSourc
 	log.BillingSourceID = source.ID
 	log.BillingSourceName = source.Name
 	log.BillingSourceDetail = source.Detail
+}
+
+func ApplyPersonalProviderLogBillingSource(log *Log) {
+	if log == nil {
+		return
+	}
+	log.BillingSource = LogBillingSourcePersonalProvider
+	log.BillingSourceID = ""
+	log.BillingSourceName = "未扣社区套餐"
+	log.BillingSourceDetail = ""
 }
 
 type LogBillingSourceSnapshot struct {

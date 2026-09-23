@@ -58,4 +58,6 @@ func Init() {
 		Timeout:   5 * time.Second,
 		Transport: transport,
 	}
+	personalProviderTimeout := time.Duration(config.RelayTimeout) * time.Second
+	InitPersonalProviderHTTPClient(personalProviderTimeout)
 }

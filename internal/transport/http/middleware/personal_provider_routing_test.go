@@ -11,6 +11,7 @@ import (
 	"github.com/yeying-community/router/common/config"
 	"github.com/yeying-community/router/common/ctxkey"
 	"github.com/yeying-community/router/internal/admin/model"
+	"github.com/yeying-community/router/internal/relay/responsestate"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -56,7 +57,7 @@ func newPersonalProviderRelayContext(t *testing.T, modelName string, policy stri
 func TestDistributePersonalOnlyUsesPrivateConnectionWithoutCommunityEntitlement(t *testing.T) {
 	newPersonalProviderRoutingTestDB(t)
 	connection := &model.PersonalProviderConnection{
-		UserId: "user-a", Name: "private OpenAI", Protocol: "openai", BaseURL: "https://api.example.test/v1",
+		UserId: "user-a", Name: "private OpenAI", Protocol: "openai", BaseURL: "",
 		Models: []string{"private-model"}, Priority: 20,
 	}
 	if err := model.CreatePersonalProviderConnection(connection, "sk-personal"); err != nil {
@@ -95,6 +96,70 @@ func TestTokenMonetaryQuotaExhaustedUsesTokenAuthSnapshot(t *testing.T) {
 	c.Set(ctxkey.TokenUnlimitedQuota, true)
 	if tokenMonetaryQuotaExhausted(c) {
 		t.Fatal("unlimited monetary quota must not block request")
+	}
+}
+
+func TestDistributeResponsesKeepsPinnedPersonalConnectionAcrossPolicies(t *testing.T) {
+	newPersonalProviderRoutingTestDB(t)
+	responsestate.ResetForTest()
+	t.Cleanup(responsestate.ResetForTest)
+	pinned := &model.PersonalProviderConnection{
+		UserId: "user-a", Name: "pinned connection", Protocol: "openai", BaseURL: "",
+		Models: []string{"private-model"}, Priority: 1,
+	}
+	preferred := &model.PersonalProviderConnection{
+		UserId: "user-a", Name: "new preferred connection", Protocol: "openai", BaseURL: "",
+		Models: []string{"private-model"}, Priority: 100,
+	}
+	if err := model.CreatePersonalProviderConnection(pinned, "sk-pinned"); err != nil {
+		t.Fatalf("create pinned connection: %v", err)
+	}
+	if err := model.CreatePersonalProviderConnection(preferred, "sk-preferred"); err != nil {
+		t.Fatalf("create preferred connection: %v", err)
+	}
+	responsestate.StoreRoute("resp_pinned", model.PersonalProviderChannelPrefix+pinned.Id)
+	c, recorder := newPersonalProviderRelayContext(t, "private-model", model.PersonalRoutePolicyPersonalFirst)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/public/responses", bytes.NewBufferString(`{"model":"private-model","previous_response_id":"resp_pinned"}`))
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Set(ctxkey.ResponsesPreviousResponseID, "resp_pinned")
+
+	Distribute()(c)
+
+	if recorder.Code >= http.StatusBadRequest {
+		t.Fatalf("distribute status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if got := c.GetString(ctxkey.ChannelId); got != model.PersonalProviderChannelPrefix+pinned.Id {
+		t.Fatalf("channel ID = %q, want pinned %q", got, pinned.Id)
+	}
+}
+
+func TestDistributeResponsesRejectsDeletedPinnedPersonalConnection(t *testing.T) {
+	db := newPersonalProviderRoutingTestDB(t)
+	responsestate.ResetForTest()
+	t.Cleanup(responsestate.ResetForTest)
+	connection := &model.PersonalProviderConnection{
+		UserId: "user-a", Name: "deleted connection", Protocol: "openai", BaseURL: "",
+		Models: []string{"private-model"}, Priority: 1,
+	}
+	if err := model.CreatePersonalProviderConnection(connection, "sk-deleted"); err != nil {
+		t.Fatalf("create connection: %v", err)
+	}
+	responsestate.StoreRoute("resp_deleted", model.PersonalProviderChannelPrefix+connection.Id)
+	if err := db.Delete(&model.PersonalProviderConnection{}, "id = ?", connection.Id).Error; err != nil {
+		t.Fatalf("delete connection: %v", err)
+	}
+	c, recorder := newPersonalProviderRelayContext(t, "private-model", model.PersonalRoutePolicyPersonalFirst)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/public/responses", bytes.NewBufferString(`{"model":"private-model","previous_response_id":"resp_deleted"}`))
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Set(ctxkey.ResponsesPreviousResponseID, "resp_deleted")
+
+	Distribute()(c)
+
+	if recorder.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusConflict, recorder.Body.String())
+	}
+	if !strings.Contains(recorder.Body.String(), "已绑定的 Responses 会话上游不可用") {
+		t.Fatalf("response = %s", recorder.Body.String())
 	}
 }
 

@@ -229,6 +229,7 @@ func postConsumeQuota(ctx context.Context, usage *relaymodel.Usage, meta *meta.M
 	groupRatio := billingRatio.EffectiveRatio
 	chargeUserBalance := billingPlan.ChargeUserBalance()
 	chargeTokenQuota := billingPlan.ChargeTokenQuota()
+	personalProviderRequest := billingPlan.IsPersonalProvider()
 	promptTokens := usage.PromptTokens
 	completionTokens := usage.CompletionTokens
 	quota := preConsumedQuota
@@ -255,6 +256,12 @@ func postConsumeQuota(ctx context.Context, usage *relaymodel.Usage, meta *meta.M
 		// in this case, must be some error happened
 		// we cannot just return, because we may have to return the pre-consumed quota
 		quota = 0
+	}
+	if personalProviderRequest {
+		// A personal key has no trustworthy Router-side purchase price. Do not
+		// expose the community catalog estimate as a charge or a cost reference.
+		quota = 0
+		billingSnapshot = billing.BillingSnapshot{}
 	}
 	var err error
 	quotaDelta := quota - preConsumedQuota
@@ -297,8 +304,10 @@ func postConsumeQuota(ctx context.Context, usage *relaymodel.Usage, meta *meta.M
 		userDailyQuota = int(dailyConsumed)
 		userEmergencyQuota = int(emergencyConsumed)
 	}
-	billingSnapshot.ChargeAmount = quota
-	billingSnapshot.SetBillingRatioBreakdown(billingRatio)
+	if !personalProviderRequest {
+		billingSnapshot.ChargeAmount = quota
+		billingSnapshot.SetBillingRatioBreakdown(billingRatio)
+	}
 	entry := &model.Log{
 		UserId:             meta.UserId,
 		GroupId:            meta.Group,
@@ -314,11 +323,18 @@ func postConsumeQuota(ctx context.Context, usage *relaymodel.Usage, meta *meta.M
 		IsStream:           meta.IsStream,
 		ElapsedTime:        helper.CalcElapsedTime(meta.StartTime),
 	}
-	model.ApplyConsumeLogBillingSource(entry, chargeUserBalance, billingPlan.LogBillingSourceSnapshot(), balanceSource)
+	if personalProviderRequest {
+		model.ApplyPersonalProviderLogBillingSource(entry)
+		entry.Content = "个人供应商调用，未扣社区套餐或账户余额"
+	} else {
+		model.ApplyConsumeLogBillingSource(entry, chargeUserBalance, billingPlan.LogBillingSourceSnapshot(), balanceSource)
+	}
 	applyRouteObservabilityToLog(entry, meta, textRequest.Model)
 	billingSnapshot.ApplyToLog(entry)
-	annotateTextEstimateLogFields(entry, estimateResult)
-	annotateTextPreConsumeLogFields(entry, estimateResult.PromptTokens, estimatedOutputTokens, estimatedChargeAmount)
+	if !personalProviderRequest {
+		annotateTextEstimateLogFields(entry, estimateResult)
+		annotateTextPreConsumeLogFields(entry, estimateResult.PromptTokens, estimatedOutputTokens, estimatedChargeAmount)
+	}
 	if strings.TrimSpace(meta.PersonalProviderID) == "" {
 		billing.ApplyProcurementCostObservation(entry)
 	}

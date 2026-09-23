@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/yeying-community/router/common/client"
 	"github.com/yeying-community/router/common/config"
 	"github.com/yeying-community/router/common/helper"
 	"github.com/yeying-community/router/common/random"
@@ -78,6 +79,27 @@ func NormalizePersonalRoutePolicy(value string) string {
 	}
 }
 
+func IsPersonalRoutePolicy(value string) bool {
+	switch strings.TrimSpace(strings.ToLower(value)) {
+	case PersonalRoutePolicyPersonalFirst, PersonalRoutePolicyPersonalOnly, PersonalRoutePolicyCommunityOnly, PersonalRoutePolicyCommunityFirst:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsPersonalProviderProtocol is intentionally narrower than Router's
+// administrator-owned channel protocol set. Personal connections support the
+// text protocols exposed by the user workspace, not every internal adapter.
+func IsPersonalProviderProtocol(value string) bool {
+	switch strings.TrimSpace(strings.ToLower(value)) {
+	case "openai", "anthropic", "gemini", "ali", "deepseek":
+		return true
+	default:
+		return false
+	}
+}
+
 func IsPersonalProviderChannelID(channelID string) bool {
 	return strings.HasPrefix(strings.TrimSpace(channelID), PersonalProviderChannelPrefix)
 }
@@ -115,7 +137,13 @@ func (connection *PersonalProviderConnection) normalize() error {
 	if connection.Protocol == "" {
 		connection.Protocol = "openai"
 	}
+	if !IsPersonalProviderProtocol(connection.Protocol) {
+		return errors.New("个人供应商协议不受支持")
+	}
 	connection.BaseURL = strings.TrimRight(strings.TrimSpace(connection.BaseURL), "/")
+	if err := client.ValidatePersonalProviderBaseURL(connection.BaseURL); err != nil {
+		return err
+	}
 	connection.Models = normalizePersonalProviderModels(connection.Models)
 	if connection.UserId == "" {
 		return errors.New("用户 ID 不能为空")
@@ -393,13 +421,23 @@ func UpsertPersonalModelRoute(userID string, modelName string, policy string) er
 	if userID == "" || modelName == "" {
 		return errors.New("用户和模型不能为空")
 	}
+	if !IsPersonalRoutePolicy(policy) {
+		return errors.New("路由策略无效")
+	}
 	now := helper.GetTimestamp()
 	row := PersonalModelRoute{UserId: userID, Model: modelName, RoutePolicy: NormalizePersonalRoutePolicy(policy), CreatedAt: now, UpdatedAt: now}
 	return DB.Where(PersonalModelRoute{UserId: userID, Model: modelName}).Assign(map[string]any{"route_policy": row.RoutePolicy, "updated_at": now}).FirstOrCreate(&row).Error
 }
 
 func DeletePersonalModelRoute(userID string, modelName string) error {
-	return DB.Where("user_id = ? AND model = ?", strings.TrimSpace(userID), strings.TrimSpace(modelName)).Delete(&PersonalModelRoute{}).Error
+	result := DB.Where("user_id = ? AND model = ?", strings.TrimSpace(userID), strings.TrimSpace(modelName)).Delete(&PersonalModelRoute{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
 func ResolvePersonalRoutePolicy(userID string, token *Token, modelName string) string {
