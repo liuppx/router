@@ -112,7 +112,7 @@ function renderChannelName(channel, t) {
 }
 
 const channelStatusCreating = 4;
-const ChannelsTable = () => {
+const ChannelsTable = ({ embedded = false }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -578,12 +578,16 @@ const ChannelsTable = () => {
   return (
     <>
       <AppFilterHeader
-        breadcrumbs={[
-          { key: 'admin', label: t('header.admin_workspace') },
-          { key: 'resource', label: t('header.model') },
-          { key: 'channel', label: t('header.channel'), active: true },
-        ]}
-        title={t('header.channel')}
+        breadcrumbs={
+          embedded
+            ? undefined
+            : [
+                { key: 'admin', label: t('header.admin_workspace') },
+                { key: 'resource', label: t('header.model') },
+                { key: 'channel', label: t('header.channel'), active: true },
+              ]
+        }
+        title={embedded ? undefined : t('header.channel')}
         actions={
           <div className='router-list-toolbar-actions'>
             <AppButton
@@ -716,7 +720,7 @@ const ChannelsTable = () => {
           </div>
         }
       />
-      <ChannelSectionTabs active='list' />
+      {embedded ? null : <ChannelSectionTabs active='list' />}
       <div className='router-table-scroll-x'>
         <AppSpin spinning={loading}>
           <AppTable

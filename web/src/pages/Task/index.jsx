@@ -187,7 +187,7 @@ const renderTaskFilterSummary = (filterKey, filters, t, optionResolvers = {}) =>
   return value;
 };
 
-const Task = ({ pageKind: pageKindOverride = '' }) => {
+const Task = ({ pageKind: pageKindOverride = '', embedded = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -883,7 +883,7 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
         ];
 
   return (
-    <div className='dashboard-container'>
+    <div className={embedded ? '' : 'dashboard-container'}>
       {returnPath !== '' ? (
         <AppFilterHeader
           breadcrumbs={
@@ -933,8 +933,8 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
         />
       ) : null}
       <AppFilterHeader
-            breadcrumbs={returnPath === '' ? rootBreadcrumbs : undefined}
-            title={returnPath === '' ? pageTitle : undefined}
+            breadcrumbs={returnPath === '' && !embedded ? rootBreadcrumbs : undefined}
+            title={returnPath === '' && !embedded ? pageTitle : undefined}
             titleClassName='router-ui-section-title'
             query={
               <ListFilterBar
@@ -967,10 +967,10 @@ const Task = ({ pageKind: pageKindOverride = '' }) => {
             endClassName='router-log-query-wrap'
       />
 
-      {isSystemTaskPage && returnPath === '' ? (
+      {isSystemTaskPage && returnPath === '' && !embedded ? (
         <ChannelSectionTabs active='tasks' />
       ) : null}
-      {isAdminUserTaskPage && returnPath === '' ? (
+      {isAdminUserTaskPage && returnPath === '' && !embedded ? (
         <UserSectionTabs active='tasks' />
       ) : null}
 

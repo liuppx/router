@@ -27,7 +27,7 @@ import { useCanManageUsers, useIsAdmin } from './hooks/useAuth';
 import AdminLayout from './layouts/AdminLayout';
 import UserLayout from './layouts/UserLayout';
 import UserWorkspaceLayout from './layouts/UserWorkspaceLayout';
-import Channel from './pages/Channel';
+import ChannelLayout from './pages/Channel/ChannelLayout';
 import EditChannel from './pages/Channel/EditChannel';
 import AddChannel from './pages/Channel/AddChannel';
 import User from './pages/User';
@@ -47,7 +47,6 @@ import Entitlement from './pages/Entitlement';
 import AdminChannelTaskDetailPage from './pages/Task/AdminChannelTaskDetailPage';
 import AdminUserTaskDetailPage from './pages/Task/AdminUserTaskDetailPage';
 import Task, {
-  TASK_PAGE_KIND_ADMIN_SYSTEM,
   TASK_PAGE_KIND_ADMIN_USER,
   TASK_PAGE_KIND_WORKSPACE_USER,
 } from './pages/Task';
@@ -56,7 +55,6 @@ import RecordListPage from './pages/Records/RecordListPage';
 import PaymentRecordDetail from './pages/Records/PaymentRecordDetail';
 import RedemptionRecordDetail from './pages/Records/RedemptionRecordDetail';
 import AdminDashboard from './pages/AdminDashboard';
-import AdminAlerts from './pages/AdminAlerts';
 import Providers from './pages/Providers';
 import BillingFinance from './pages/BillingFinance';
 
@@ -265,6 +263,25 @@ function TopUpTabRedirect() {
   return (
     <Navigate
       to={`/workspace/topup${search ? `?${search}` : ''}${location.hash}`}
+      state={location.state}
+      replace
+    />
+  );
+}
+
+// Redirect a legacy standalone route onto a shell tab, merging the incoming
+// query (e.g. /admin/alerts?type=circuit -> /admin/channel?tab=alerts&type=circuit)
+// so deep-link params survive the move to `?tab=`.
+function TabRedirect({ to, tab }) {
+  const location = useLocation();
+  const nextSearchParams = new URLSearchParams(location.search);
+  if (tab) {
+    nextSearchParams.set('tab', tab);
+  }
+  const search = nextSearchParams.toString();
+  return (
+    <Navigate
+      to={`${to}${search ? `?${search}` : ''}${location.hash}`}
       state={location.state}
       replace
     />
@@ -769,11 +786,11 @@ function App() {
       >
         <Route
           path='/admin/channel'
-          element={<Channel />}
+          element={<ChannelLayout />}
         />
         <Route
           path='/admin/channel/tasks'
-          element={<Task pageKind={TASK_PAGE_KIND_ADMIN_SYSTEM} />}
+          element={<TabRedirect to='/admin/channel' tab='tasks' />}
         />
         <Route
           path='/admin/channel/tasks/:id'
@@ -881,7 +898,7 @@ function App() {
         />
         <Route
           path='/admin/alerts'
-          element={<AdminAlerts />}
+          element={<TabRedirect to='/admin/channel' tab='alerts' />}
         />
         <Route path='/admin/finance/*' element={<BillingFinance />} />
         <Route
