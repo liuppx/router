@@ -5,6 +5,7 @@ import {
   API,
   copy,
   showError,
+  showInfo,
   showSuccess,
   showWarning,
   hasLoadedPagedRows,
@@ -27,6 +28,7 @@ import {
 } from '../helpers/render';
 import UnitDropdown from './UnitDropdown';
 import useUrlState from '../hooks/useUrlState';
+import useBatchRowActions from '../hooks/useBatchRowActions';
 import {
   AppButton,
   AppEmpty,
@@ -169,6 +171,13 @@ const RedemptionsTable = ({ sectionTabs = null }) => {
   const [currencyIndex, setCurrencyIndex] = useState(
     buildBillingCurrencyIndex([], { placeholderCodes: ['USD', 'CNY'] })
   );
+  const batchActions = useBatchRowActions();
+  const {
+    isSelecting: batchSelectionMode,
+    selectedRowKeys,
+    setSelectedRowKeys,
+  } = batchActions;
+  const [batchRunning, setBatchRunning] = useState(false);
 
   const displayUnitOptions = useMemo(
     () => buildDisplayUnitOptions(currencyIndex, { order: 'charge-first' }),
@@ -374,6 +383,54 @@ const RedemptionsTable = ({ sectionTabs = null }) => {
     setActivePage(1);
   };
 
+  // Batch enable/disable/delete by looping the per-row endpoints. No batch
+  // endpoint exists, so serialize N calls and report one aggregated toast.
+  const runBatchManage = useCallback(
+    async (action) => {
+      if (batchRunning) return;
+      const keys = selectedRowKeys
+        .map((item) => (item || '').toString().trim())
+        .filter(Boolean);
+      if (keys.length === 0) {
+        showInfo(t('redemption.batch.select_required'));
+        return;
+      }
+      setBatchRunning(true);
+      let succeeded = 0;
+      let failed = 0;
+      const failedIDs = [];
+      for (const id of keys) {
+        try {
+          let res;
+          if (action === 'delete') {
+            res = await API.delete(
+              `/api/v1/admin/redemption/${encodeURIComponent(id)}/`,
+            );
+          } else {
+            res = await API.put('/api/v1/admin/redemption/?status_only=true', {
+              id,
+              status: action === 'enable' ? 1 : 2,
+            });
+          }
+          if (res?.data?.success) succeeded += 1;
+          else {
+            failed += 1;
+            failedIDs.push(id);
+          }
+        } catch (error) {
+          failed += 1;
+          failedIDs.push(id);
+        }
+      }
+      setBatchRunning(false);
+      showSuccess(t('redemption.batch.done', { success: succeeded, failed }));
+      setSelectedRowKeys(failedIDs);
+      if (failed === 0) batchActions.exit();
+      await refresh();
+    },
+    [batchActions, batchRunning, selectedRowKeys, setSelectedRowKeys, t],
+  );
+
   const visibleRedemptionCount = redemptions.filter((row) => !row?.deleted).length;
   const paginationTotal = isSearchMode ? visibleRedemptionCount : totalCount;
 
@@ -396,6 +453,82 @@ const RedemptionsTable = ({ sectionTabs = null }) => {
             >
               {t('redemption.buttons.add')}
             </AppButton>
+            {batchSelectionMode ? (
+              <>
+                <AppPopconfirm
+                  title={t('redemption.batch.confirm_enable', {
+                    count: selectedRowKeys.length,
+                  })}
+                  okText={t('common.confirm')}
+                  cancelText={t('common.cancel')}
+                  disabled={selectedRowKeys.length === 0 || batchRunning}
+                  onConfirm={() => runBatchManage('enable')}
+                >
+                  <AppButton
+                    className='router-page-button'
+                    disabled={selectedRowKeys.length === 0 || batchRunning}
+                    loading={batchRunning}
+                  >
+                    {t('redemption.batch.enable_selected', {
+                      count: selectedRowKeys.length,
+                    })}
+                  </AppButton>
+                </AppPopconfirm>
+                <AppPopconfirm
+                  title={t('redemption.batch.confirm_disable', {
+                    count: selectedRowKeys.length,
+                  })}
+                  okText={t('common.confirm')}
+                  cancelText={t('common.cancel')}
+                  disabled={selectedRowKeys.length === 0 || batchRunning}
+                  onConfirm={() => runBatchManage('disable')}
+                >
+                  <AppButton
+                    className='router-page-button'
+                    disabled={selectedRowKeys.length === 0 || batchRunning}
+                    loading={batchRunning}
+                  >
+                    {t('redemption.batch.disable_selected', {
+                      count: selectedRowKeys.length,
+                    })}
+                  </AppButton>
+                </AppPopconfirm>
+                <AppPopconfirm
+                  title={t('redemption.batch.confirm_delete', {
+                    count: selectedRowKeys.length,
+                  })}
+                  okText={t('common.confirm')}
+                  cancelText={t('common.cancel')}
+                  disabled={selectedRowKeys.length === 0 || batchRunning}
+                  onConfirm={() => runBatchManage('delete')}
+                >
+                  <AppButton
+                    className='router-page-button'
+                    color='red'
+                    disabled={selectedRowKeys.length === 0 || batchRunning}
+                    loading={batchRunning}
+                  >
+                    {t('redemption.batch.delete_selected', {
+                      count: selectedRowKeys.length,
+                    })}
+                  </AppButton>
+                </AppPopconfirm>
+                <AppButton
+                  className='router-page-button'
+                  disabled={batchRunning}
+                  onClick={batchActions.exit}
+                >
+                  {t('redemption.batch.cancel_selection')}
+                </AppButton>
+              </>
+            ) : (
+              <AppButton
+                className='router-page-button'
+                onClick={batchActions.enter}
+              >
+                {t('redemption.batch.enter_selection')}
+              </AppButton>
+            )}
             <AppButton className='router-page-button' onClick={refresh} loading={loading}>
               {t('redemption.buttons.refresh')}
             </AppButton>
@@ -456,6 +589,18 @@ const RedemptionsTable = ({ sectionTabs = null }) => {
           scroll={{ x: REDEMPTION_LIST_TABLE_MIN_WIDTH }}
           rowKey={(redemption) => redemption.id}
           onChange={handleTableChange}
+          rowSelection={
+            batchSelectionMode
+              ? {
+                  ...batchActions.tableSelection,
+                  renderCell: (_, __, ___, originNode) => (
+                    <span onClick={(event) => event.stopPropagation()}>
+                      {originNode}
+                    </span>
+                  ),
+                }
+              : undefined
+          }
           dataSource={redemptions
             .slice(
               (activePage - 1) * pageSize,

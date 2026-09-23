@@ -2035,6 +2035,18 @@
   },
   "redemption": {
     "title": "兑换管理",
+    "batch": {
+      "enter_selection": "批量操作",
+      "cancel_selection": "取消选择",
+      "select_required": "请先选择至少一个兑换码。",
+      "enable_selected": "批量启用（{{count}}）",
+      "disable_selected": "批量停用（{{count}}）",
+      "delete_selected": "批量删除（{{count}}）",
+      "confirm_enable": "确认启用选中的 {{count}} 个兑换码？",
+      "confirm_disable": "确认停用选中的 {{count}} 个兑换码？",
+      "confirm_delete": "确认删除选中的 {{count}} 个兑换码？此操作不可撤销。",
+      "done": "批量操作完成：成功 {{success}}，失败 {{failed}}。"
+    },
     "tabs": {
       "list": "兑换码",
       "records": "兑换记录"

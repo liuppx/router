@@ -2035,6 +2035,18 @@
   },
   "redemption": {
     "title": "Redemption Management",
+    "batch": {
+      "enter_selection": "Batch Actions",
+      "cancel_selection": "Cancel Selection",
+      "select_required": "Select at least one code first.",
+      "enable_selected": "Enable Selected ({{count}})",
+      "disable_selected": "Disable Selected ({{count}})",
+      "delete_selected": "Delete Selected ({{count}})",
+      "confirm_enable": "Enable the {{count}} selected codes?",
+      "confirm_disable": "Disable the {{count}} selected codes?",
+      "confirm_delete": "Delete the {{count}} selected codes? This action cannot be undone.",
+      "done": "Batch actions finished: {{success}} succeeded, {{failed}} failed."
+    },
     "tabs": {
       "list": "Codes",
       "records": "Redemption records"
