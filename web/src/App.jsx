@@ -30,7 +30,7 @@ import UserWorkspaceLayout from './layouts/UserWorkspaceLayout';
 import ChannelLayout from './pages/Channel/ChannelLayout';
 import EditChannel from './pages/Channel/EditChannel';
 import AddChannel from './pages/Channel/AddChannel';
-import User from './pages/User';
+import UserPageLayout from './pages/User/UserLayout';
 import UserDetail from './pages/User/EditUser';
 import AddUser from './pages/User/AddUser';
 import Log from './pages/Log';
@@ -47,7 +47,6 @@ import Entitlement from './pages/Entitlement';
 import AdminChannelTaskDetailPage from './pages/Task/AdminChannelTaskDetailPage';
 import AdminUserTaskDetailPage from './pages/Task/AdminUserTaskDetailPage';
 import Task, {
-  TASK_PAGE_KIND_ADMIN_USER,
   TASK_PAGE_KIND_WORKSPACE_USER,
 } from './pages/Task';
 import WorkspaceTaskDetailPage from './pages/Task/WorkspaceTaskDetailPage';
@@ -874,7 +873,7 @@ function App() {
         />
         <Route
           path='/admin/user'
-          element={<User />}
+          element={<UserPageLayout />}
         />
         <Route
           path='/admin/user/detail/:id'
@@ -911,7 +910,7 @@ function App() {
         />
         <Route
           path='/admin/task'
-          element={<Task pageKind={TASK_PAGE_KIND_ADMIN_USER} />}
+          element={<TabRedirect to='/admin/user' tab='tasks' />}
         />
         <Route
           path='/admin/task/:id'

@@ -169,7 +169,7 @@ const compareTextValue = (left, right) =>
 const compareNumberValue = (left, right) =>
   Number(left || 0) - Number(right || 0);
 
-const UsersTable = () => {
+const UsersTable = ({ embedded = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -824,17 +824,21 @@ const UsersTable = () => {
   return (
     <>
       <AppFilterHeader
-        breadcrumbs={[
-          {
-            key: 'workspace',
-            label: isAdminScope
-              ? t('header.admin_workspace')
-              : t('header.user_workspace'),
-          },
-          { key: 'business', label: t('header.operation') },
-          { key: 'user', label: t('header.user'), active: true },
-        ]}
-        title={t('header.user')}
+        breadcrumbs={
+          embedded
+            ? undefined
+            : [
+                {
+                  key: 'workspace',
+                  label: isAdminScope
+                    ? t('header.admin_workspace')
+                    : t('header.user_workspace'),
+                },
+                { key: 'business', label: t('header.operation') },
+                { key: 'user', label: t('header.user'), active: true },
+              ]
+        }
+        title={embedded ? undefined : t('header.user')}
         actions={
           <div className='router-list-toolbar-actions'>
             <AppButton
@@ -1000,7 +1004,7 @@ const UsersTable = () => {
         }
       />
 
-      {isAdminScope ? <UserSectionTabs active='list' /> : null}
+      {isAdminScope && !embedded ? <UserSectionTabs active='list' /> : null}
 
       {isFocusMode ? (
         <div className='router-user-focus-summary'>
