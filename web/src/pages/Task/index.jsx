@@ -272,6 +272,9 @@ const Task = ({ pageKind: pageKindOverride = '', embedded = false }) => {
     model: (initialQuery.get('model') || '').trim(),
     user_keyword: (initialQuery.get('user_keyword') || '').trim(),
   }));
+  const [batchRunning, setBatchRunning] = useState(false);
+  const batchActions = useBatchRowActions();
+  const { isSelecting: isBatchSelecting, selectedCount: batchSelectedCount } = batchActions;
   const [activeFilterKeys, setActiveFilterKeys] = useState(() => {
     const keys = [];
     if ((initialQuery.get('type') || '').trim() !== '') {
@@ -741,10 +744,6 @@ const Task = ({ pageKind: pageKindOverride = '', embedded = false }) => {
       showError(error?.message || t('task.messages.cancel_failed'));
     }
   };
-
-  const [batchRunning, setBatchRunning] = useState(false);
-  const batchActions = useBatchRowActions();
-  const { isSelecting: isBatchSelecting, selectedCount: batchSelectedCount } = batchActions;
 
   // 批量重试/取消:后端无批量接口,沿用 ChannelsTable/告警面板的「串行循环+聚合
   // toast」模式;仅系统任务页启用,用户任务不可触发(per-row 已被隐藏)。
