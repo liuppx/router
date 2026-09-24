@@ -855,6 +855,7 @@
       "identifier": "渠道标识",
       "identifier_placeholder": "例如：openai-main",
       "type": "协议类型",
+      "model_vendors": "模型厂家",
       "protocol_hint": "按上游接口规范选择协议，不要按模型名选择。Bearer + /v1/responses 或 /v1/chat/completions 通常选 OpenAI；x-api-key + /v1/messages 通常选 Anthropic。",
       "name": "渠道标识",
       "name_placeholder": "例如：openai-main",

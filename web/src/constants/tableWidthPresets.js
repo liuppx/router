@@ -85,7 +85,7 @@ export const PACKAGE_LIST_TABLE_MIN_WIDTH =
 export const CHANNEL_LIST_COLUMN_WIDTHS = {
   selection: 48,
   name: 180,
-  type: 88,
+  type: 104,
   status: 92,
   createdAt: 148,
   updatedAt: 148,

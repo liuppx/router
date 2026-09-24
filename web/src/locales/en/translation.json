@@ -855,6 +855,7 @@
       "identifier": "Channel Identifier",
       "identifier_placeholder": "e.g. openai-main",
       "type": "Protocol Type",
+      "model_vendors": "Model Vendors",
       "protocol_hint": "Choose the protocol by the upstream API spec, not by model name. Bearer + /v1/responses or /v1/chat/completions usually means OpenAI; x-api-key + /v1/messages usually means Anthropic.",
       "name": "Channel Identifier",
       "name_placeholder": "e.g. openai-main",

@@ -3189,6 +3189,67 @@ html[data-theme='dark'] .router-skeleton .ant-skeleton-input {
     object-fit: contain;
 }
 
+.router-channel-vendor-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+}
+
+.router-channel-vendor-cell .router-provider-brand-mark {
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+}
+
+.router-channel-vendor-cell .router-provider-brand-mark img {
+    width: 15px;
+    height: 15px;
+}
+
+.router-channel-vendor-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 5px;
+    font-size: 12px;
+    line-height: 1;
+    color: var(--router-text-secondary, #5b6572);
+    background: rgba(34, 36, 38, 0.06);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.router-channel-vendor-popover {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.router-channel-vendor-popover-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.router-channel-vendor-popover-row .router-provider-brand-mark {
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+}
+
+.router-channel-vendor-popover-row .router-provider-brand-mark img {
+    width: 16px;
+    height: 16px;
+}
+
 .router-provider-brand-mark-clay {
     background: #f6f3ee;
 }

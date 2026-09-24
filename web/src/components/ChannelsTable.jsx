@@ -18,9 +18,10 @@ import {
   CHANNEL_LIST_TABLE_MIN_WIDTH,
 } from '../constants/tableWidthPresets';
 import {
-  getChannelProtocolOptions,
-  loadChannelProtocolOptions,
-} from '../helpers/helper';
+  ProviderBrandMark,
+  formatProviderDisplayName,
+} from './ProvidersManager.helpers.jsx';
+import { normalizeProviderIdentifier } from '../pages/Channel/ChannelForm.helpers';
 import useBatchRowActions from '../hooks/useBatchRowActions';
 import useUrlState, { parseListPageSize } from '../hooks/useUrlState';
 import {
@@ -34,6 +35,7 @@ import {
   AppModal,
   AppPagination,
   AppPopconfirm,
+  AppPopover,
   AppSelect,
   AppSpin,
   AppSwitch,
@@ -58,43 +60,63 @@ function renderTimestamp(timestamp) {
   return <>{timestamp2string(timestamp)}</>;
 }
 
-function buildProtocolMap(options, t) {
-  const protocolMap = {};
-  if (Array.isArray(options)) {
-    options.forEach((option) => {
-      if (
-        option &&
-        typeof option.value === 'string' &&
-        option.value.trim() !== ''
-      ) {
-        protocolMap[option.value] = option;
-      }
-    });
-  }
-  protocolMap.unknown = {
-    value: 'unknown',
-    text: t('channel.table.status_unknown'),
-    color: 'grey',
-  };
-  return protocolMap;
-}
+const MAX_VENDOR_ICONS = 3;
 
-function renderProtocol(protocol, protocolMap) {
-  const normalized = (protocol || '').toString().trim().toLowerCase();
-  const option = protocolMap[normalized] || protocolMap.unknown;
-  const colorClassMap = {
-    grey: 'router-text-muted',
-    green: 'router-text-success',
-    red: 'router-text-danger',
-    yellow: 'router-text-warning',
-    olive: 'router-text-olive',
-    blue: 'router-text-info',
-    orange: 'router-text-warning',
-  };
+// Render the distinct model vendors a channel serves as brand icons. Beyond a
+// small cap the overflow folds into a "+N" chip that reveals the full list on
+// hover. Falls back to the channel's upstream protocol (mapped to a vendor id)
+// when no model-level providers are resolved yet.
+function renderModelVendors(vendors, protocol, t) {
+  let list = Array.isArray(vendors)
+    ? vendors.map((item) => (item || '').toString().trim()).filter(Boolean)
+    : [];
+  if (list.length === 0) {
+    const fromProtocol = normalizeProviderIdentifier(
+      (protocol || '').toString().trim(),
+    );
+    if (fromProtocol) {
+      list = [fromProtocol];
+    }
+  }
+  const seen = new Set();
+  const unique = [];
+  list.forEach((vendor) => {
+    if (seen.has(vendor)) {
+      return;
+    }
+    seen.add(vendor);
+    unique.push(vendor);
+  });
+  if (unique.length === 0) {
+    return <span className='router-text-muted'>-</span>;
+  }
+  const shouldFold = unique.length > MAX_VENDOR_ICONS;
+  const shown = shouldFold ? unique.slice(0, MAX_VENDOR_ICONS - 1) : unique;
+  const hidden = shouldFold ? unique.slice(MAX_VENDOR_ICONS - 1) : [];
   return (
-    <span className={colorClassMap[option?.color] || undefined}>
-      {option ? option.text : normalized || 'unknown'}
-    </span>
+    <div className='router-channel-vendor-cell'>
+      {shown.map((vendor) => (
+        <ProviderBrandMark key={vendor} provider={vendor} />
+      ))}
+      {hidden.length > 0 ? (
+        <AppPopover
+          trigger='hover'
+          title={t('channel.table.model_vendors')}
+          content={
+            <div className='router-channel-vendor-popover'>
+              {unique.map((vendor) => (
+                <div className='router-channel-vendor-popover-row' key={vendor}>
+                  <ProviderBrandMark provider={vendor} />
+                  <span>{formatProviderDisplayName(vendor)}</span>
+                </div>
+              ))}
+            </div>
+          }
+        >
+          <span className='router-channel-vendor-more'>+{hidden.length}</span>
+        </AppPopover>
+      ) : null}
+    </div>
   );
 }
 
@@ -151,9 +173,6 @@ const ChannelsTable = ({ embedded = false }) => {
     columnKey: 'created_time',
     order: 'descend',
   });
-  const [protocolMap, setProtocolMap] = useState(() =>
-    buildProtocolMap(getChannelProtocolOptions(), t)
-  );
 
   const processChannelData = useCallback((channel) => {
     const next = { ...channel };
@@ -243,20 +262,6 @@ const ChannelsTable = ({ embedded = false }) => {
     setLoading(true);
     await loadChannels({ page: activePage, keyword: searchKeyword, status: statusFilter, pageSize });
   };
-
-  useEffect(() => {
-    let disposed = false;
-    setProtocolMap(buildProtocolMap(getChannelProtocolOptions(), t));
-    loadChannelProtocolOptions().then((options) => {
-      if (disposed) {
-        return;
-      }
-      setProtocolMap(buildProtocolMap(options, t));
-    });
-    return () => {
-      disposed = true;
-    };
-  }, [t]);
 
   const manageChannel = async (id, action, value) => {
     const normalizedID = (id || '').toString().trim();
@@ -798,16 +803,23 @@ const ChannelsTable = ({ embedded = false }) => {
             render: (_, channel) => renderChannelName(channel, t),
           },
           {
-            title: t('channel.table.type'),
-            dataIndex: 'protocol',
-            key: 'protocol',
+            title: t('channel.table.model_vendors'),
+            dataIndex: 'model_vendors',
+            key: 'model_vendors',
             className: 'router-table-col-type-narrow',
             width: CHANNEL_LIST_COLUMN_WIDTHS.type,
-            sorter: (a, b) => compareTextValue(a.protocol, b.protocol),
+            sorter: (a, b) =>
+              compareNumberValue(
+                Array.isArray(a.model_vendors) ? a.model_vendors.length : 0,
+                Array.isArray(b.model_vendors) ? b.model_vendors.length : 0,
+              ) || compareArrayValue(a.model_vendors, b.model_vendors),
             sortDirections: ['ascend', 'descend'],
             sortOrder:
-              tableSorter.columnKey === 'protocol' ? tableSorter.order : null,
-            render: (value) => renderProtocol(value, protocolMap),
+              tableSorter.columnKey === 'model_vendors'
+                ? tableSorter.order
+                : null,
+            render: (_, channel) =>
+              renderModelVendors(channel.model_vendors, channel.protocol, t),
           },
           {
             title: t('channel.table.status'),
