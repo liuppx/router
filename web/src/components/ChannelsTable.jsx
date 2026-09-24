@@ -119,7 +119,6 @@ const ChannelsTable = ({ embedded = false }) => {
   const [channels, setChannels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [activePage, setActivePage] = useState(1);
   const [totalChannels, setTotalChannels] = useState(0);
   const [searching, setSearching] = useState(false);
   const [disableBlockedImpact, setDisableBlockedImpact] = useState(null);
@@ -128,7 +127,7 @@ const ChannelsTable = ({ embedded = false }) => {
   const batchActions = useBatchRowActions();
   const { isSelecting: isBatchSelecting, selectedCount: batchSelectedCount } = batchActions;
   const [
-    { status: statusFilter, keyword: searchKeyword, pageSize },
+    { status: statusFilter, keyword: searchKeyword, pageSize, page: activePage },
     patchQuery,
   ] = useUrlState({
     status: { param: 'status', default: 'all' },
@@ -137,6 +136,14 @@ const ChannelsTable = ({ embedded = false }) => {
       param: 'page_size',
       default: ITEMS_PER_PAGE,
       parse: parseListPageSize,
+    },
+    // 分页位置入 URL:列表↔详情往返(from=pathname+search)后能回到原页,
+    // 而非退回第 1 页。page 刻意不进拉取 effect 依赖(翻页由 onPaginationChange
+    // 自己 fetch),仅作展示与恢复的单一真源。
+    page: {
+      param: 'page',
+      default: 1,
+      parse: (raw) => (Number(raw) > 0 ? Number(raw) : 1),
     },
   });
   const currentPagePath = `${location.pathname}${location.search}${location.hash}`;
@@ -198,17 +205,19 @@ const ChannelsTable = ({ embedded = false }) => {
 
   useEffect(() => {
     setLoading(true);
-    // Refetch from page 1 on mount and whenever the status filter or page size
-    // changes, honoring the keyword already in the URL (so a refresh / shared
-    // link with ?q= restores a filtered list). Keyword typing updates the URL
-    // but must not retrigger a fetch here — that stays on Enter — so
-    // searchKeyword is read but deliberately not a dependency.
-    loadChannels({ page: 1, keyword: searchKeyword, status: statusFilter, pageSize })
+    // Refetch on mount and whenever the status filter or page size changes,
+    // honoring the keyword and page already in the URL (so a refresh / shared
+    // link / return-from-detail restores the filtered list at its page).
+    // Keyword typing updates the URL but must not retrigger a fetch here — that
+    // stays on Enter — so searchKeyword is read but deliberately not a
+    // dependency. activePage is likewise read (not a dep): status/pageSize
+    // changes always reset page to 1 via their handlers, and plain page nav
+    // fetches in onPaginationChange, so it must not refire here.
+    loadChannels({ page: activePage, keyword: searchKeyword, status: statusFilter, pageSize })
       .then()
       .catch((reason) => {
         showError(reason);
       });
-    setActivePage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, pageSize, loadChannels]);
 
@@ -217,14 +226,16 @@ const ChannelsTable = ({ embedded = false }) => {
     if (size !== pageSize) {
       // Page-size change: writing the URL retriggers the effect above, which
       // reloads page 1 at the new size — so don't also fetch here.
-      patchQuery({ pageSize: size });
+      patchQuery({ pageSize: size, page: 1 });
       return;
     }
     (async () => {
       const nextPage = Number(activePage) > 0 ? Number(activePage) : 1;
       setLoading(true);
       await loadChannels({ page: nextPage, keyword: searchKeyword, status: statusFilter, pageSize });
-      setActivePage(nextPage);
+      // Mirror the page to the URL for display + restore; page isn't an effect
+      // dep, so this doesn't re-fetch on top of the load above.
+      patchQuery({ page: nextPage });
     })();
   };
 
@@ -499,7 +510,7 @@ const ChannelsTable = ({ embedded = false }) => {
     setLoading(true);
     try {
       await loadChannels({ page: 1, keyword: searchKeyword, status: statusFilter, pageSize });
-      setActivePage(1);
+      patchQuery({ page: 1 });
     } catch (error) {
       showError(error?.message || String(error));
       setLoading(false);
@@ -691,7 +702,7 @@ const ChannelsTable = ({ embedded = false }) => {
             <AppSelect
               className='router-section-select'
               value={statusFilter}
-              onChange={(_, { value }) => patchQuery({ status: value })}
+              onChange={(_, { value }) => patchQuery({ status: value, page: 1 })}
               options={[
                 { value: 'all', label: t('channel.filter.status_all') },
                 { value: 'enabled', label: t('channel.table.status_enabled') },
@@ -713,7 +724,7 @@ const ChannelsTable = ({ embedded = false }) => {
             <AppButton
               className='router-section-button'
               disabled={statusFilter === 'all' && searchKeyword === ''}
-              onClick={() => patchQuery({ status: 'all', keyword: '' })}
+              onClick={() => patchQuery({ status: 'all', keyword: '', page: 1 })}
             >
               {t('common.clear_filters')}
             </AppButton>
