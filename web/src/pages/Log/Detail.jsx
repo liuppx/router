@@ -1131,9 +1131,20 @@ const LogDetail = () => {
                         <div className='router-detail-label'>
                           {t('log.detail.fields.username')}
                         </div>
-                        <pre className='router-detail-value'>
-                          {renderText(log?.username)}
-                        </pre>
+                        <div className='router-detail-value'>
+                          {log?.username ? (
+                            <AppTag
+                              className='router-tag'
+                              as={Link}
+                              to={`/admin/user?q=${encodeURIComponent(log.username)}`}
+                              state={{ from: currentPagePath }}
+                            >
+                              {log.username}
+                            </AppTag>
+                          ) : (
+                            '-'
+                          )}
+                        </div>
                       </div>
                     ) : null}
                     <div className='router-detail-item'>
