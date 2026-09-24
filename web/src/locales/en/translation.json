@@ -629,6 +629,7 @@
       "name": "Channel",
       "group": "Group",
       "type": "Protocol Type",
+      "model_vendors": "Model Vendors",
       "status": "Status",
       "created_time": "Created Time",
       "updated_at": "Updated At",
@@ -855,7 +856,6 @@
       "identifier": "Channel Identifier",
       "identifier_placeholder": "e.g. openai-main",
       "type": "Protocol Type",
-      "model_vendors": "Model Vendors",
       "protocol_hint": "Choose the protocol by the upstream API spec, not by model name. Bearer + /v1/responses or /v1/chat/completions usually means OpenAI; x-api-key + /v1/messages usually means Anthropic.",
       "name": "Channel Identifier",
       "name_placeholder": "e.g. openai-main",
@@ -2463,7 +2463,8 @@
       "video": "Video Task",
       "channel_model_test": "Model Test",
       "channel_refresh_models": "Refresh Models",
-      "channel_refresh_billing": "Refresh Billing"
+      "channel_refresh_billing": "Refresh Billing",
+      "channel_sync_provider_usage": "Sync Provider Usage"
     },
     "status": {
       "pending": "Pending",

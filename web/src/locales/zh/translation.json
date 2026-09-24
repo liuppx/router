@@ -629,6 +629,7 @@
       "name": "渠道",
       "group": "分组",
       "type": "协议类型",
+      "model_vendors": "模型厂家",
       "status": "状态",
       "created_time": "创建时间",
       "updated_at": "更新时间",
@@ -855,7 +856,6 @@
       "identifier": "渠道标识",
       "identifier_placeholder": "例如：openai-main",
       "type": "协议类型",
-      "model_vendors": "模型厂家",
       "protocol_hint": "按上游接口规范选择协议，不要按模型名选择。Bearer + /v1/responses 或 /v1/chat/completions 通常选 OpenAI；x-api-key + /v1/messages 通常选 Anthropic。",
       "name": "渠道标识",
       "name_placeholder": "例如：openai-main",
@@ -2463,7 +2463,8 @@
       "video": "视频任务",
       "channel_model_test": "模型测试",
       "channel_refresh_models": "刷新模型",
-      "channel_refresh_billing": "刷新账务"
+      "channel_refresh_billing": "刷新账务",
+      "channel_sync_provider_usage": "同步供应商用量"
     },
     "status": {
       "pending": "排队中",
