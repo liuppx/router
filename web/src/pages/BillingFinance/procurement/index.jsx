@@ -167,6 +167,7 @@ function BillingProcurementReport({ embedded = false }) {
   const [model, setModel] = useState(initialContext.model);
   const [groupOptions, setGroupOptions] = useState([]);
   const [providerOptions, setProviderOptions] = useState([]);
+  const [modelOptions, setModelOptions] = useState([]);
   const [startAt, setStartAt] = useState(initialContext.startAt);
   const [endAt, setEndAt] = useState(initialContext.endAt);
   const [loading, setLoading] = useState(false);
@@ -539,6 +540,26 @@ function BillingProcurementReport({ embedded = false }) {
       .then((response) => {
         const items = response.data?.success && Array.isArray(response.data?.data?.items) ? response.data.data.items : [];
         setChannelOptions(items.map((item) => ({ key: item.id, value: String(item.id), text: item.name || String(item.id) })));
+      })
+      .catch((error) => showError(error?.message || t('common.load_failed')));
+
+    // Populate the model dropdown from the logs options endpoint so the model
+    // filter becomes a searchable picker instead of free text. Empty/failed
+    // fetch is non-fatal: the URL-bound value still drives the request and
+    // AppSelect renders unknown values as raw strings.
+    API.get('/api/v1/admin/log/options', { params: { field: 'model_name' } })
+      .then((response) => {
+        if (!response.data?.success) return;
+        const names = Array.isArray(response.data?.data?.model_names)
+          ? response.data.data.model_names
+          : [];
+        setModelOptions(
+          names.filter((name) => typeof name === 'string' && name !== '').map((name) => ({
+            key: name,
+            value: name,
+            text: name,
+          })),
+        );
       })
       .catch((error) => showError(error?.message || t('common.load_failed')));
   }, []);
@@ -1077,8 +1098,11 @@ function BillingProcurementReport({ embedded = false }) {
               placeholder={t('billing.procurement_report.filters.provider')}
               onChange={(e, { value }) => setProvider((value || '').toString())}
             />
-            <AppInput
+            <AppSelect
               className='router-section-input billing-procurement-report-group-select'
+              clearable
+              search
+              options={modelOptions}
               value={model}
               placeholder={t('billing.procurement_report.filters.model')}
               onChange={(e, { value }) => setModel((value || '').toString())}

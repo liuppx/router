@@ -130,6 +130,7 @@ function BillingPricingAnalysis({ embedded = false }) {
   const [endAt, setEndAt] = useState(initialContext.endAt);
   const [groupOptions, setGroupOptions] = useState([]);
   const [channelOptions, setChannelOptions] = useState([]);
+  const [modelOptions, setModelOptions] = useState([]);
 
   const queryContext = useMemo(() => ({
     start_at: startAt,
@@ -170,6 +171,27 @@ function BillingPricingAnalysis({ embedded = false }) {
             key: item.id,
             value: String(item.id),
             text: item.name || String(item.id),
+          })),
+        );
+      })
+      .catch((error) => showError(error?.message || t('common.load_failed')));
+
+    // Populate the model dropdown from the same options endpoint the logs page
+    // uses, so the previously free-text model filter becomes a searchable
+    // picker. Empty result (or failure) is non-fatal: the URL-bound value
+    // still drives the request, and AppSelect renders unknown values as raw
+    // strings — no functionality is lost.
+    API.get('/api/v1/admin/log/options', { params: { field: 'model_name' } })
+      .then((response) => {
+        if (!response.data?.success) return;
+        const names = Array.isArray(response.data?.data?.model_names)
+          ? response.data.data.model_names
+          : [];
+        setModelOptions(
+          names.filter((name) => typeof name === 'string' && name !== '').map((name) => ({
+            key: name,
+            value: name,
+            text: name,
           })),
         );
       })
@@ -472,8 +494,11 @@ function BillingPricingAnalysis({ embedded = false }) {
               placeholder={t('billing.pricing_analysis.channel_placeholder')}
               onChange={(e, { value }) => setChannelID((value || '').toString())}
             />
-            <AppInput
+            <AppSelect
               className='router-section-input billing-pricing-analysis-group-select'
+              clearable
+              search
+              options={modelOptions}
               value={model}
               placeholder={t('billing.pricing_analysis.model_placeholder')}
               onChange={(e, { value }) => setModel((value || '').toString())}
