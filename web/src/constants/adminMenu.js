@@ -12,7 +12,7 @@ export const ADMIN_MENU_GROUPS = [
     items: [
       {
         name: 'dashboard.admin.nav.spending',
-        to: '/admin/dashboard?section=spending',
+        to: '/admin/dashboard',
         icon: 'chart line',
       },
     ],
@@ -191,16 +191,6 @@ export const isAdminRouteActive = (location, to) => {
     }
     return true;
   }
-  const targetSection = (targetParams.get('section') || '').trim().toLowerCase();
-  if (path === '/admin/dashboard' && targetSection !== '') {
-    const currentSection = (currentParams.get('section') || 'spending')
-      .trim()
-      .toLowerCase();
-    if (currentSection !== targetSection) {
-      return false;
-    }
-    return true;
-  }
   const entries = Array.from(targetParams.entries());
   if (entries.length === 0) {
     return true;
@@ -226,7 +216,3 @@ export const isAdminItemActive = (location, item, routeMatcher) => {
   }
   return (item.matchPaths || []).some((path) => match(location, path));
 };
-
-export const isAdminGroupActive = (location, group) =>
-  Array.isArray(group?.items) &&
-  group.items.some((item) => isAdminRouteActive(location, item.to));
