@@ -34,6 +34,7 @@ import {
   useUsdFormatter,
 } from '../dashboardShared';
 import { DashboardSectionControls } from '../DashboardSectionControls';
+import { buildLogDrilldownPath } from '../../../components/LogsTable.helpers';
 
 // Model operations analytics, extracted from AdminDashboard's models section so
 // the model shell (/workspace/service/models?tab=operations) can host it inline.
@@ -353,12 +354,20 @@ const ModelOperationsSection = () => {
                   >
                     <div className='admin-dashboard-model-card-header'>
                       <div className='admin-dashboard-model-card-main'>
-                        <div
-                          className='admin-dashboard-model-card-title'
+                        <button
+                          type='button'
+                          className='admin-dashboard-model-card-title admin-dashboard-model-card-title-button'
                           title={item.model || '-'}
+                          onClick={() =>
+                            navigate(
+                              `/workspace/service/models?q=${encodeURIComponent(
+                                item.model || '',
+                              )}`,
+                            )
+                          }
                         >
                           {item.model || '-'}
-                        </div>
+                        </button>
                         <div className='admin-dashboard-model-card-subtitle'>
                           <span>{item.provider || '-'}</span>
                           {Array.isArray(item.tags) && item.tags.length > 0 ? (
@@ -444,6 +453,21 @@ const ModelOperationsSection = () => {
                           {formatUpdatedAt(item.last_tested_at)}
                         </div>
                       </div>
+                    </div>
+                    <div className='admin-dashboard-model-card-actions'>
+                      <button
+                        type='button'
+                        className='admin-dashboard-model-card-action'
+                        onClick={() =>
+                          navigate(
+                            buildLogDrilldownPath('admin', {
+                              model_name: item.model,
+                            }),
+                          )
+                        }
+                      >
+                        {t('log.drilldown.view')}
+                      </button>
                     </div>
                   </div>
                 ))}

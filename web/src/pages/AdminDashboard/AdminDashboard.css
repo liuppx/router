@@ -1378,6 +1378,44 @@
   word-break: break-word;
 }
 
+.admin-dashboard-model-card-title-button {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--router-text-primary, var(--router-text-primary, #0f172a));
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-dashboard-model-card-title-button:hover {
+  color: var(--router-link, var(--router-link, #2563eb));
+}
+
+.admin-dashboard-model-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.admin-dashboard-model-card-action {
+  border: 0;
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--router-link, var(--router-link, #2563eb));
+  cursor: pointer;
+  font-size: 13px;
+  border-radius: 4px;
+}
+
+.admin-dashboard-model-card-action:hover {
+  background: var(--router-surface-muted, rgba(37, 99, 235, 0.08));
+}
+
 .admin-dashboard-model-card-subtitle {
   display: flex;
   flex-wrap: wrap;
