@@ -140,6 +140,7 @@ function BillingOverview({ embedded = false }) {
       endAt: positiveTimestamp(params.get('end_at'), defaults.end_at),
       channelID: params.get('channel_id') || '',
       modelName: params.get('model') || '',
+      dimension: params.get('dimension') === 'model' ? 'model' : 'channel',
     };
   }, []);
   const [loading, setLoading] = useState(false);
@@ -155,7 +156,7 @@ function BillingOverview({ embedded = false }) {
   const [modelName, setModelName] = useState(initialContext.modelName);
   const [channelOptions, setChannelOptions] = useState([]);
   const [modelOptions, setModelOptions] = useState([]);
-  const [dimension, setDimension] = useState('channel');
+  const [dimension, setDimension] = useState(initialContext.dimension);
 
   const financeContext = useMemo(() => ({
     start_at: startAt,
@@ -187,13 +188,16 @@ function BillingOverview({ embedded = false }) {
     Object.entries(financeContext).forEach(([key, value]) => {
       if (value !== '') params.set(key, String(value));
     });
+    // Persist the active dimension (channel/model) so the view is bookmarkable;
+    // the default (channel) is stripped to keep URLs clean.
+    if (dimension === 'model') params.set('dimension', dimension);
     // Preserve the shell tab so the finance layout doesn't fall back to overview
     // when this page rewrites its own filter params.
     const currentTab = new URLSearchParams(location.search).get('tab');
     if (currentTab) params.set('tab', currentTab);
     navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [financeContext, location.pathname, navigate]);
+  }, [financeContext, dimension, location.pathname, navigate]);
 
   const load = useCallback(async () => {
     if (!startAt || !endAt || endAt < startAt) {

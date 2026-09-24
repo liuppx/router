@@ -93,6 +93,8 @@ const pricingState = (row) => {
   return 'healthy';
 };
 
+const PRICING_STATES = new Set(['unknown', 'loss', 'low_margin', 'healthy']);
+
 function BillingPricingAnalysis({ embedded = false }) {
   const { t } = useTranslation();
   const location = useLocation();
@@ -113,12 +115,13 @@ function BillingPricingAnalysis({ embedded = false }) {
       model: params.get('model') || '',
       groupID: params.get('group_id') || '',
       returnTo: params.get('return_to') || '',
+      stateFilter: PRICING_STATES.has(params.get('state')) ? params.get('state') : 'all',
     };
   }, [defaults]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [rows, setRows] = useState([]);
-  const [stateFilter, setStateFilter] = useState('all');
+  const [stateFilter, setStateFilter] = useState(initialContext.stateFilter);
   const [groupID, setGroupID] = useState(initialContext.groupID);
   const [channelID, setChannelID] = useState(initialContext.channelID);
   const [model, setModel] = useState(initialContext.model);
@@ -180,6 +183,7 @@ function BillingPricingAnalysis({ embedded = false }) {
     if (channelID) params.set('channel_id', channelID);
     if (model) params.set('model', model);
     if (groupID) params.set('group_id', groupID);
+    if (stateFilter !== 'all') params.set('state', stateFilter);
     if (initialContext.returnTo) params.set('return_to', initialContext.returnTo);
     // Preserve the shell tab so the finance layout keeps this page active when it
     // rewrites its own filter params.
@@ -201,6 +205,7 @@ function BillingPricingAnalysis({ embedded = false }) {
     model,
     navigate,
     startAt,
+    stateFilter,
   ]);
 
   const load = useCallback(async () => {
