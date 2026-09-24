@@ -25,6 +25,7 @@ import {
 } from '../constants/tableWidthPresets';
 import {
   formatCompactNumber,
+  formatIdentifierPreview,
   renderText,
 } from '../helpers/render';
 import {
@@ -1136,7 +1137,9 @@ const UsersTable = ({ embedded = false }) => {
             render: (value) =>
               value ? (
                 <AppTooltip title={value}>
-                  <span>{renderText(value, 28)}</span>
+                  <span className='router-monospace-value'>
+                    {formatIdentifierPreview(value, 18, 8)}
+                  </span>
                 </AppTooltip>
               ) : (
                 '-'

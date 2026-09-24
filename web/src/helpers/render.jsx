@@ -11,6 +11,15 @@ export function renderText(text, limit) {
   return text;
 }
 
+export function formatIdentifierPreview(value, prefixLength = 10, suffixLength = 8) {
+  const normalized = (value || '').toString().trim();
+  if (!normalized) return '';
+  if (normalized.length <= prefixLength + suffixLength + 3) {
+    return normalized;
+  }
+  return `${normalized.slice(0, prefixLength)}...${normalized.slice(-suffixLength)}`;
+}
+
 export function renderGroup(group) {
   if (group === '') {
     return '-';

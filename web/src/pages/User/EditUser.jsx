@@ -39,6 +39,7 @@ import {
 } from '../../router-ui';
 import {
   formatAmountWithUnit,
+  formatIdentifierPreview,
 } from '../../helpers/render';
 import {
   formatRequestCount,
@@ -1134,10 +1135,12 @@ const UserDetail = () => {
   );
 
   const renderReadonlyMetaField = useCallback(
-    ({ label, value, action = null }) => (
+    ({ label, value, title = '', action = null }) => (
       <AppField className='router-section-input' label={label} readOnly>
         <div className='router-inline-meta-card'>
-          <div className='router-inline-meta-value'>{value}</div>
+          <div className='router-inline-meta-value' title={title || undefined}>
+            {value}
+          </div>
           {action ? <div className='router-inline-meta-action'>{action}</div> : null}
         </div>
       </AppField>
@@ -1377,23 +1380,23 @@ const UserDetail = () => {
                   })}
                   {renderReadonlyMetaField({
                     label: t('user.table.wallet_identity'),
-                    value: readOnlyValue(inputs.wallet_identity_did),
+                    value: formatIdentifierPreview(inputs.wallet_identity_did, 18, 8) || '-',
+                    title: inputs.wallet_identity_did,
                     action: inputs.wallet_identity_did ? (
                       <CopyButton
                         value={inputs.wallet_identity_did}
-                        size='small'
-                        basic
+                        iconOnly
                       />
                     ) : null,
                   })}
                   {renderReadonlyMetaField({
                     label: t('user.table.wallet_address'),
-                    value: readOnlyValue(inputs.wallet_address),
+                    value: formatIdentifierPreview(inputs.wallet_address, 10, 8) || '-',
+                    title: inputs.wallet_address,
                     action: inputs.wallet_address ? (
                       <CopyButton
                         value={inputs.wallet_address}
-                        size='small'
-                        basic
+                        iconOnly
                       />
                     ) : null,
                   })}

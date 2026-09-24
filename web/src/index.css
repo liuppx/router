@@ -1890,6 +1890,25 @@ html[data-theme='dark'] .router-topup-return-next-hint {
     color: #0958d9;
 }
 
+.router-ui-button.router-copy-icon-button {
+    width: 28px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 4px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #1677ff !important;
+}
+
+.router-ui-button.router-copy-icon-button:hover,
+.router-ui-button.router-copy-icon-button:focus-visible {
+    background: rgba(22, 119, 255, 0.08) !important;
+    color: #0958d9 !important;
+}
+
 .router-inline-number-input {
     width: 72px;
 }
