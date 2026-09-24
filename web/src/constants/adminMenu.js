@@ -76,17 +76,16 @@ export const ADMIN_MENU_GROUPS = [
     ],
   },
   {
-    // 财务:总览/毛利/采购已是同一页的 SectionTabs,侧边栏收成单项(扁平叶子),
-    // 进入后用 tab 切,与渠道详情 tab 心智一致。
+    // 财务:总览/利润/采购收敛为单壳 `/admin/finance?tab=`,侧边栏用无 query 的
+    // 裸 `to` 前缀匹配全部 tab(同渠道),无需 matchPaths。
     key: 'finance',
     name: 'header.finance',
     icon: 'money bill alternate outline',
     items: [
       {
         name: 'header.finance',
-        to: '/admin/finance/overview',
+        to: '/admin/finance',
         icon: 'money bill alternate outline',
-        matchPaths: ['/admin/finance/profit', '/admin/finance/procurement'],
       },
     ],
   },

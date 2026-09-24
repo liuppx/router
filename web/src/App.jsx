@@ -54,7 +54,7 @@ import PaymentRecordDetail from './pages/Records/PaymentRecordDetail';
 import RedemptionRecordDetail from './pages/Records/RedemptionRecordDetail';
 import AdminDashboard from './pages/AdminDashboard';
 import Providers from './pages/Providers';
-import BillingFinance from './pages/BillingFinance';
+import FinanceLayout from './pages/BillingFinance/FinanceLayout';
 
 const RegisterForm = lazy(() => import('./components/RegisterForm'));
 const LoginForm = lazy(() => import('./components/LoginForm'));
@@ -277,6 +277,27 @@ function TabRedirect({ to, tab }) {
   return (
     <Navigate
       to={`${to}${search ? `?${search}` : ''}${location.hash}`}
+      state={location.state}
+      replace
+    />
+  );
+}
+
+// Map the legacy cross-route finance URLs (`/admin/finance/overview|profit|
+// procurement?…`) onto the single finance shell tab, merging any remaining
+// query so drill-down params and `return_to` survive the redirect.
+function FinanceTabRedirect() {
+  const location = useLocation();
+  const suffix = location.pathname.startsWith('/admin/finance/')
+    ? location.pathname.slice('/admin/finance/'.length)
+    : '';
+  const tab = suffix.split('/')[0] || 'overview';
+  const nextSearchParams = new URLSearchParams(location.search);
+  nextSearchParams.set('tab', tab);
+  const search = nextSearchParams.toString();
+  return (
+    <Navigate
+      to={`/admin/finance${search ? `?${search}` : ''}${location.hash}`}
       state={location.state}
       replace
     />
@@ -923,7 +944,8 @@ function App() {
           path='/admin/alerts'
           element={<TabRedirect to='/admin/channel' tab='alerts' />}
         />
-        <Route path='/admin/finance/*' element={<BillingFinance />} />
+        <Route path='/admin/finance' element={<FinanceLayout />} />
+        <Route path='/admin/finance/*' element={<FinanceTabRedirect />} />
         <Route
           path='/admin/log'
           element={<Log />}
