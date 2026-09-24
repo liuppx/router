@@ -183,6 +183,18 @@ function AdminChannelAlertsPanel() {
     loadAlertItems();
   }, [loadAlertItems]);
 
+  // 每 30s 静默刷新一次告警列表,免手动 F5 漏掉新事故;
+  // 正在批注(备注弹窗开着)或有单条确认/解决在途时暂停,避免刷新把正在操作的行抽走。
+  useEffect(() => {
+    if (noteModal.open || acknowledgingAlertID || resolvingAlertID) {
+      return undefined;
+    }
+    const timer = window.setInterval(() => {
+      loadAlertItems();
+    }, 30000);
+    return () => window.clearInterval(timer);
+  }, [loadAlertItems, noteModal.open, acknowledgingAlertID, resolvingAlertID]);
+
   useEffect(() => {
     patchQuery({ page: 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
