@@ -27,7 +27,7 @@ import {
   formatDecimalNumber,
 } from '../helpers/render';
 import UnitDropdown from './UnitDropdown';
-import useUrlState from '../hooks/useUrlState';
+import useUrlState, { parsePageParam, parseListPageSize } from '../hooks/useUrlState';
 import useBatchRowActions from '../hooks/useBatchRowActions';
 import {
   AppButton,
@@ -146,9 +146,20 @@ const RedemptionsTable = ({ sectionTabs = null, embedded = false }) => {
   const [redemptions, setRedemptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [activePage, setActivePage] = useState(1);
-  const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
-  const pageSizeRef = useRef(ITEMS_PER_PAGE);
+  // page/pageSize 也入 URL:列表↔详情往返后回到原页原尺寸(仅挂载时读一次播种,
+  // 之后以组件内 state 为准,URL 由翻页/改尺寸/换筛选主动镜像回写)。
+  const initialListQuery = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      page: parsePageParam(params.get('page')),
+      pageSize: parseListPageSize(params.get('page_size')),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const didInitListRef = useRef(false);
+  const [activePage, setActivePage] = useState(initialListQuery.page);
+  const [pageSize, setPageSize] = useState(initialListQuery.pageSize);
+  const pageSizeRef = useRef(initialListQuery.pageSize);
   pageSizeRef.current = pageSize;
   const [totalCount, setTotalCount] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
@@ -156,6 +167,12 @@ const RedemptionsTable = ({ sectionTabs = null, embedded = false }) => {
     useUrlState({
       status: { param: 'status', default: 'all' },
       keyword: { param: 'q', default: '' },
+      page: { param: 'page', default: 1, parse: parsePageParam },
+      pageSize: {
+        param: 'page_size',
+        default: ITEMS_PER_PAGE,
+        parse: parseListPageSize,
+      },
     });
   const setSearchKeyword = useCallback(
     (value) => patchQuery({ keyword: (value || '').toString() }),
@@ -254,6 +271,7 @@ const RedemptionsTable = ({ sectionTabs = null, embedded = false }) => {
         pageSizeRef.current = size;
         setPageSize(size);
         setActivePage(1);
+        patchQuery({ pageSize: size, page: 1 });
         if (!isSearchMode) {
           // 每页条数变了,按旧尺寸建立的行缓存已失效,重建
           setRedemptions([]);
@@ -267,18 +285,23 @@ const RedemptionsTable = ({ sectionTabs = null, embedded = false }) => {
         await loadRedemptions(nextPage, { status: statusFilter });
       }
       setActivePage(nextPage);
+      patchQuery({ page: nextPage });
     })();
   };
 
   useEffect(() => {
     setLoading(true);
-    setActivePage(1);
-    loadRedemptions(1, { status: statusFilter })
+    // 首次挂载按 URL 复原页码;后续筛选变化才回到第 1 页。
+    const firstRun = !didInitListRef.current;
+    didInitListRef.current = true;
+    const startPage = firstRun ? initialListQuery.page : 1;
+    setActivePage(startPage);
+    loadRedemptions(startPage, { status: statusFilter })
       .then()
       .catch((reason) => {
         showError(reason);
       });
-  }, [loadRedemptions, statusFilter]);
+  }, [loadRedemptions, statusFilter, initialListQuery]);
 
   useEffect(() => {
     loadDisplayUnits().then();
@@ -325,6 +348,7 @@ const RedemptionsTable = ({ sectionTabs = null, embedded = false }) => {
       // if keyword is blank, load files instead.
       await loadRedemptions(1, { status: statusFilter });
       setActivePage(1);
+      patchQuery({ page: 1 });
       return;
     }
     setSearching(true);
@@ -337,6 +361,7 @@ const RedemptionsTable = ({ sectionTabs = null, embedded = false }) => {
       setTotalCount(Array.isArray(data) ? data.length : 0);
       setRedemptions((Array.isArray(data) ? data : []).map(normalizeRedemptionRow));
       setActivePage(1);
+      patchQuery({ page: 1 });
     } else {
       showError(message);
     }
@@ -381,6 +406,7 @@ const RedemptionsTable = ({ sectionTabs = null, embedded = false }) => {
     setLoading(true);
     await loadRedemptions(1, { status: statusFilter });
     setActivePage(1);
+    patchQuery({ page: 1 });
   };
 
   // Batch enable/disable/delete by looping the per-row endpoints. No batch
@@ -547,7 +573,7 @@ const RedemptionsTable = ({ sectionTabs = null, embedded = false }) => {
             <AppSelect
               className='router-section-select'
               value={statusFilter}
-              onChange={(_, { value }) => patchQuery({ status: value })}
+              onChange={(_, { value }) => patchQuery({ status: value, page: 1 })}
               options={[
                 { value: 'all', label: t('redemption.filter.status_all') },
                 { value: '1', label: t('redemption.status.unused') },
@@ -568,7 +594,7 @@ const RedemptionsTable = ({ sectionTabs = null, embedded = false }) => {
             <AppButton
               className='router-section-button'
               disabled={statusFilter === 'all' && searchKeyword === ''}
-              onClick={() => patchQuery({ status: 'all', keyword: '' })}
+              onClick={() => patchQuery({ status: 'all', keyword: '', page: 1 })}
             >
               {t('common.clear_filters')}
             </AppButton>
