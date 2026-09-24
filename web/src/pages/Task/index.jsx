@@ -27,6 +27,17 @@ import ChannelSectionTabs from '../../components/ChannelSectionTabs';
 import UserSectionTabs from '../../components/UserSectionTabs';
 
 const PAGE_SIZE = 20;
+const TASK_QUERY_KEYS = [
+  'page',
+  'page_size',
+  'order_by',
+  'order',
+  'type',
+  'status',
+  'channel_id',
+  'model',
+  'user_keyword',
+];
 export const TASK_PAGE_KIND_WORKSPACE_USER = 'workspace_user';
 export const TASK_PAGE_KIND_ADMIN_USER = 'admin_user';
 export const TASK_PAGE_KIND_ADMIN_SYSTEM = 'admin_system';
@@ -564,7 +575,12 @@ const Task = ({ pageKind: pageKindOverride = '', embedded = false }) => {
   }, [loadFilterOptions]);
 
   useEffect(() => {
-    const query = new URLSearchParams();
+    // Task can be embedded in a domain shell such as
+    // /admin/user?tab=tasks. Only replace task-owned query keys; rebuilding
+    // the entire query would erase the host tab and immediately return users
+    // to the shell default view.
+    const query = new URLSearchParams(location.search);
+    TASK_QUERY_KEYS.forEach((key) => query.delete(key));
     if (page > 1) {
       query.set('page', String(page));
     }
