@@ -3171,6 +3171,19 @@
           "acknowledged": "Acknowledged",
           "resolve": "Resolve"
         },
+        "batch": {
+          "enter_selection": "Batch Actions",
+          "cancel_selection": "Cancel",
+          "acknowledge_selected": "Acknowledge Selected ({{count}})",
+          "resolve_selected": "Resolve Selected ({{count}})",
+          "select_required": "Select at least one alert first.",
+          "no_ack_target": "The selected alerts are already acknowledged or resolved.",
+          "no_resolve_target": "The selected alerts must be acknowledged before they can be resolved.",
+          "note_hint": "The same note will be applied to {{count}} alerts.",
+          "all_success": "Batch done: {{count}} succeeded.",
+          "all_failed": "Batch failed: {{count}} not processed.",
+          "partial": "Batch done: {{success}} succeeded, {{failed}} failed."
+        },
         "detail": {
           "title": "Alert Details",
           "type": "Type",

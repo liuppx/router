@@ -3171,6 +3171,19 @@
           "acknowledged": "已确认",
           "resolve": "标记已恢复"
         },
+        "batch": {
+          "enter_selection": "批量操作",
+          "cancel_selection": "取消选择",
+          "acknowledge_selected": "确认所选 ({{count}})",
+          "resolve_selected": "解决所选 ({{count}})",
+          "select_required": "请先选择至少一条告警。",
+          "no_ack_target": "所选告警均已确认或已恢复，无需确认。",
+          "no_resolve_target": "所选告警需先确认才能恢复。",
+          "note_hint": "将对 {{count}} 条告警应用同一处理说明。",
+          "all_success": "批量完成：成功 {{count}} 条。",
+          "all_failed": "批量失败：{{count}} 条未处理。",
+          "partial": "批量完成：成功 {{success}}，失败 {{failed}}。"
+        },
         "detail": {
           "title": "告警详情",
           "type": "类型",

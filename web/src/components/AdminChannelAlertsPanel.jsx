@@ -13,7 +13,8 @@ import {
   YAxis,
 } from 'recharts';
 import { API } from '../helpers/api';
-import { showError, withCardLabels } from '../helpers';
+import { showError, showInfo, showSuccess, withCardLabels } from '../helpers';
+import useBatchRowActions from '../hooks/useBatchRowActions';
 import useUrlState, { parseListPageSize, parsePageParam } from '../hooks/useUrlState';
 import {
   AppButton,
@@ -101,10 +102,14 @@ function AdminChannelAlertsPanel() {
   const [loadError, setLoadError] = useState(false);
   const [acknowledgingAlertID, setAcknowledgingAlertID] = useState('');
   const [resolvingAlertID, setResolvingAlertID] = useState('');
+  const [batchRunning, setBatchRunning] = useState(false);
+  const batchActions = useBatchRowActions();
+  const { isSelecting: isBatchSelecting, selectedCount: batchSelectedCount } = batchActions;
   const [noteModal, setNoteModal] = useState({
     open: false,
     action: '',
     alert: null,
+    alerts: null,
     note: '',
   });
   const [detailAlert, setDetailAlert] = useState(null);
@@ -184,16 +189,29 @@ function AdminChannelAlertsPanel() {
   }, [loadAlertItems]);
 
   // 每 30s 静默刷新一次告警列表,免手动 F5 漏掉新事故;
-  // 正在批注(备注弹窗开着)或有单条确认/解决在途时暂停,避免刷新把正在操作的行抽走。
+  // 正在批注/批量操作/勾选,或有单条确认解决在途时暂停,避免刷新把正在操作的行抽走。
   useEffect(() => {
-    if (noteModal.open || acknowledgingAlertID || resolvingAlertID) {
+    if (
+      noteModal.open ||
+      acknowledgingAlertID ||
+      resolvingAlertID ||
+      batchRunning ||
+      isBatchSelecting
+    ) {
       return undefined;
     }
     const timer = window.setInterval(() => {
       loadAlertItems();
     }, 30000);
     return () => window.clearInterval(timer);
-  }, [loadAlertItems, noteModal.open, acknowledgingAlertID, resolvingAlertID]);
+  }, [
+    loadAlertItems,
+    noteModal.open,
+    acknowledgingAlertID,
+    resolvingAlertID,
+    batchRunning,
+    isBatchSelecting,
+  ]);
 
   useEffect(() => {
     patchQuery({ page: 1 });
@@ -205,21 +223,65 @@ function AdminChannelAlertsPanel() {
       open: true,
       action,
       alert,
+      alerts: null,
       note: '',
     });
   }, []);
 
   const closeNoteModal = useCallback(() => {
-    if (acknowledgingAlertID || resolvingAlertID) {
+    if (acknowledgingAlertID || resolvingAlertID || batchRunning) {
       return;
     }
     setNoteModal({
       open: false,
       action: '',
       alert: null,
+      alerts: null,
       note: '',
     });
-  }, [acknowledgingAlertID, resolvingAlertID]);
+  }, [acknowledgingAlertID, resolvingAlertID, batchRunning]);
+
+  // 批量确认/解决:从当前勾选中筛出符合状态的告警(确认需未确认/未恢复,
+  // 解决需已确认),再打开同一备注弹窗——一条备注套用到全部选中项。
+  const openBatchNoteModal = useCallback(
+    (action) => {
+      if (action !== 'acknowledge' && action !== 'resolve') {
+        return;
+      }
+      const selected = new Set(batchActions.selectedRowKeys);
+      if (selected.size === 0) {
+        showInfo(t('dashboard.admin.alerts.batch.select_required'));
+        return;
+      }
+      const targets = alertItems.filter((item) => {
+        if (!selected.has(String(item?.id || ''))) {
+          return false;
+        }
+        const status = String(item?.status || '').trim();
+        return action === 'acknowledge'
+          ? status !== 'acknowledged' && status !== 'resolved'
+          : status === 'acknowledged';
+      });
+      if (targets.length === 0) {
+        showInfo(
+          t(
+            action === 'acknowledge'
+              ? 'dashboard.admin.alerts.batch.no_ack_target'
+              : 'dashboard.admin.alerts.batch.no_resolve_target',
+          ),
+        );
+        return;
+      }
+      setNoteModal({
+        open: true,
+        action,
+        alert: null,
+        alerts: targets,
+        note: '',
+      });
+    },
+    [alertItems, batchActions.selectedRowKeys, t],
+  );
 
   const openDetailDrawer = useCallback((alert) => {
     setDetailAlert(alert || null);
@@ -231,9 +293,72 @@ function AdminChannelAlertsPanel() {
 
   const submitNoteAction = useCallback(async () => {
     const action = String(noteModal?.action || '').trim();
-    const alert = noteModal?.alert;
     const note = String(noteModal?.note || '').trim();
-    if (!alert || (action !== 'acknowledge' && action !== 'resolve')) {
+    if (action !== 'acknowledge' && action !== 'resolve') {
+      return;
+    }
+    // 批量分支:后端无批量接口,串行循环单条 POST,末尾汇总成一条 toast。
+    if (Array.isArray(noteModal?.alerts) && noteModal.alerts.length > 0) {
+      if (batchRunning) {
+        return;
+      }
+      const endpoint =
+        action === 'acknowledge'
+          ? '/api/v1/admin/channel/alerts/acknowledge'
+          : '/api/v1/admin/channel/alerts/resolve';
+      setBatchRunning(true);
+      let successCount = 0;
+      const failures = [];
+      for (const target of noteModal.alerts) {
+        const alertID = String(target?.id || '').trim();
+        const alertType = String(target?.type || '').trim();
+        const channelID = String(target?.channel_id || target?.channelId || '').trim();
+        if (alertID === '' || alertType === '' || channelID === '') {
+          failures.push(alertID);
+          continue;
+        }
+        try {
+          const response = await API.post(endpoint, {
+            alert_type: alertType,
+            alert_key: alertID,
+            channel_id: channelID,
+            note,
+          });
+          if (response?.data?.success === true) {
+            successCount += 1;
+          } else {
+            failures.push(alertID);
+          }
+        } catch (error) {
+          console.error('Failed to batch process channel alert:', error);
+          failures.push(alertID);
+        }
+      }
+      setBatchRunning(false);
+      const failedCount = failures.length;
+      if (failedCount === 0) {
+        showSuccess(
+          t('dashboard.admin.alerts.batch.all_success', { count: successCount }),
+        );
+      } else if (successCount === 0) {
+        showError(
+          t('dashboard.admin.alerts.batch.all_failed', { count: failedCount }),
+        );
+      } else {
+        showError(
+          t('dashboard.admin.alerts.batch.partial', {
+            success: successCount,
+            failed: failedCount,
+          }),
+        );
+      }
+      setNoteModal({ open: false, action: '', alert: null, alerts: null, note: '' });
+      batchActions.exit();
+      await loadAlertItems();
+      return;
+    }
+    const alert = noteModal?.alert;
+    if (!alert) {
       return;
     }
     if (action === 'acknowledge') {
@@ -256,7 +381,7 @@ function AdminChannelAlertsPanel() {
           // update combined with a fire-and-forget reload hid backend write
           // failures (interface returned 200 with success=false), since the
           // reload would happily re-overwrite the error state with stale data.
-          setNoteModal({ open: false, action: '', alert: null, note: '' });
+          setNoteModal({ open: false, action: '', alert: null, alerts: null, note: '' });
           await loadAlertItems();
         } else {
           showError(
@@ -288,7 +413,7 @@ function AdminChannelAlertsPanel() {
       if (response?.data?.success === true) {
         // Same reasoning as acknowledge: skip the optimistic filter, only
         // refetch on confirmed success so backend write failures surface.
-        setNoteModal({ open: false, action: '', alert: null, note: '' });
+        setNoteModal({ open: false, action: '', alert: null, alerts: null, note: '' });
         await loadAlertItems();
       } else {
         showError(
@@ -301,7 +426,7 @@ function AdminChannelAlertsPanel() {
     } finally {
       setResolvingAlertID('');
     }
-  }, [loadAlertItems, noteModal]);
+  }, [batchActions, batchRunning, loadAlertItems, noteModal]);
 
   const formatUpdatedAt = useCallback((value) => {
     if (!value) return '-';
@@ -728,6 +853,49 @@ function AdminChannelAlertsPanel() {
           {t('common.clear_filters')}
         </AppButton>
       ) : null}
+      {isBatchSelecting ? (
+        <>
+          <AppButton
+            color='blue'
+            type='button'
+            className='router-page-button'
+            disabled={batchSelectedCount === 0 || batchRunning}
+            loading={batchRunning}
+            onClick={() => openBatchNoteModal('acknowledge')}
+          >
+            {t('dashboard.admin.alerts.batch.acknowledge_selected', {
+              count: batchSelectedCount,
+            })}
+          </AppButton>
+          <AppButton
+            type='button'
+            className='router-page-button'
+            disabled={batchSelectedCount === 0 || batchRunning}
+            loading={batchRunning}
+            onClick={() => openBatchNoteModal('resolve')}
+          >
+            {t('dashboard.admin.alerts.batch.resolve_selected', {
+              count: batchSelectedCount,
+            })}
+          </AppButton>
+          <AppButton
+            type='button'
+            className='router-page-button'
+            disabled={batchRunning}
+            onClick={batchActions.exit}
+          >
+            {t('dashboard.admin.alerts.batch.cancel_selection')}
+          </AppButton>
+        </>
+      ) : (
+        <AppButton
+          type='button'
+          className='router-page-button'
+          onClick={batchActions.enter}
+        >
+          {t('dashboard.admin.alerts.batch.enter_selection')}
+        </AppButton>
+      )}
     </div>
   );
 
@@ -1020,9 +1188,25 @@ function AdminChannelAlertsPanel() {
               pagination={false}
               rowKey='id'
               onChange={handleTableChange}
+              rowSelection={
+                isBatchSelecting
+                  ? {
+                      ...batchActions.tableSelection,
+                      renderCell: (_, __, ___, originNode) => (
+                        <span onClick={(event) => event.stopPropagation()}>
+                          {originNode}
+                        </span>
+                      ),
+                    }
+                  : undefined
+              }
               onRow={(record) => ({
-                className: 'router-row-clickable',
-                onClick: () => openDetailDrawer(record),
+                className: isBatchSelecting
+                  ? undefined
+                  : 'router-row-clickable',
+                onClick: isBatchSelecting
+                  ? undefined
+                  : () => openDetailDrawer(record),
               })}
               scroll={{ x: 1040 }}
             />
@@ -1250,7 +1434,11 @@ function AdminChannelAlertsPanel() {
       >
         <div className='router-page-stack'>
           <div className='admin-dashboard-alert-dialog-hint'>
-            {noteModal?.alert?.title || '-'}
+            {Array.isArray(noteModal?.alerts) && noteModal.alerts.length > 0
+              ? t('dashboard.admin.alerts.batch.note_hint', {
+                  count: noteModal.alerts.length,
+                })
+              : (noteModal?.alert?.title || '-')}
           </div>
           <AppTextarea
             className='router-section-input'
@@ -1272,6 +1460,7 @@ function AdminChannelAlertsPanel() {
               color='blue'
               type='button'
               loading={
+                batchRunning ||
                 (noteModal.action === 'acknowledge' && acknowledgingAlertID !== '') ||
                 (noteModal.action === 'resolve' && resolvingAlertID !== '')
               }
