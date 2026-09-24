@@ -1359,7 +1359,7 @@ const ChannelDetailBillingTab = ({
           titleTag='span'
           headerEnd={
             <div className='router-billing-quota-status-actions'>
-              <Link to={`/admin/finance/procurement${channelID ? `?channel_id=${encodeURIComponent(channelID)}` : ''}`}>
+              <Link to={`/admin/finance?tab=procurement${channelID ? `&channel_id=${encodeURIComponent(channelID)}` : ''}`}>
                 {t('channel.edit.billing.view_procurement')}
               </Link>
               <span className='router-billing-snapshot-time'>

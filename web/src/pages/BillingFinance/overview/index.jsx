@@ -164,18 +164,23 @@ function BillingOverview({ embedded = false }) {
     model: modelName,
   }), [channelID, endAt, modelName, startAt]);
 
-  const buildTarget = useCallback((pathname, overrides = {}) => {
+  const buildTarget = useCallback((tab, overrides = {}) => {
     const params = new URLSearchParams();
+    params.set('tab', tab);
     Object.entries({ ...financeContext, ...overrides }).forEach(([key, value]) => {
       if (value !== '' && value !== null && value !== undefined) params.set(key, String(value));
     });
+    // Drill-downs return to the overview tab with its filters intact; the source
+    // tab must be encoded explicitly since every finance page now shares the
+    // `/admin/finance` pathname.
     const currentParams = new URLSearchParams();
+    currentParams.set('tab', 'overview');
     Object.entries(financeContext).forEach(([key, value]) => {
       if (value !== '') currentParams.set(key, String(value));
     });
-    params.set('return_to', `${location.pathname}?${currentParams.toString()}`);
-    return `${pathname}?${params.toString()}`;
-  }, [financeContext, location.pathname]);
+    params.set('return_to', `/admin/finance?${currentParams.toString()}`);
+    return `/admin/finance?${params.toString()}`;
+  }, [financeContext]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -241,7 +246,7 @@ function BillingOverview({ embedded = false }) {
     source: 'configuration',
     level: issue.level || 'warning',
     count: Number(issue.count || 0),
-    target: buildTarget('/admin/finance/procurement'),
+    target: buildTarget('procurement'),
   }));
   const configurationRiskCount = Number(health.critical_count || 0) + Number(health.warning_count || 0);
   const operatingCriticalCount = operatingRiskItems.filter((item) => item.level === 'critical').length;
@@ -253,7 +258,7 @@ function BillingOverview({ embedded = false }) {
     ...operatingRiskItems.map((issue) => ({
       ...issue,
       source: 'operating',
-      target: buildTarget(issue.target === 'profit' ? '/admin/finance/profit' : '/admin/finance/procurement', {
+      target: buildTarget(issue.target === 'profit' ? 'profit' : 'procurement', {
         model: issue.model,
         cost_scope: issue.target === 'procurement' && issue.type === 'unconfigured' ? 'unconfigured' : undefined,
       }),
@@ -269,7 +274,7 @@ function BillingOverview({ embedded = false }) {
       primary: t('billing.overview.dimensions.profitability.primary', { revenue: formatCNY(report.sell_base_amount), profit: formatCNY(report.gross_profit_base_amount) }),
       secondary: t('billing.overview.dimensions.profitability.secondary', { margin: formatPercent(report.gross_margin), requests: formatCount(report.request_count) }),
       level: !hasRequests ? 'empty' : report.gross_profit_base_amount < 0 ? 'critical' : report.gross_margin < 0.1 ? 'warning' : 'ok',
-      target: buildTarget('/admin/finance/profit'),
+      target: buildTarget('profit'),
     },
     {
       key: 'cost_coverage',
@@ -277,7 +282,7 @@ function BillingOverview({ embedded = false }) {
       primary: t('billing.overview.dimensions.cost_coverage.primary', { coverage: formatPercent(knownRatio) }),
       secondary: t('billing.overview.dimensions.cost_coverage.secondary', { configured: formatCount(report.configured_cost_request_count), unconfigured: formatCount(report.unconfigured_cost_request_count), pending: formatCount(report.pending_cost_request_count) }),
       level: !hasRequests ? 'empty' : report.unconfigured_cost_request_count > 0 || report.retry_cost_request_count > 0 ? 'critical' : knownRatio < 1 ? 'warning' : 'ok',
-      target: buildTarget('/admin/finance/procurement', { cost_scope: report.unconfigured_cost_request_count > 0 ? 'unconfigured' : undefined }),
+      target: buildTarget('procurement', { cost_scope: report.unconfigured_cost_request_count > 0 ? 'unconfigured' : undefined }),
     },
     {
       key: 'channel',
@@ -285,7 +290,7 @@ function BillingOverview({ embedded = false }) {
       primary: t('billing.overview.dimensions.channel.primary', { count: formatCount(report.items.length), loss: formatCount(negativeChannelCount) }),
       secondary: t('billing.overview.dimensions.channel.secondary'),
       level: !hasRequests ? 'empty' : negativeChannelCount > 0 ? 'critical' : 'ok',
-      target: buildTarget('/admin/finance/procurement'),
+      target: buildTarget('procurement'),
     },
     {
       key: 'model',
@@ -293,7 +298,7 @@ function BillingOverview({ embedded = false }) {
       primary: t('billing.overview.dimensions.model.primary', { count: formatCount(modelReport.items.length), low: formatCount(lowMarginModelCount) }),
       secondary: t('billing.overview.dimensions.model.secondary'),
       level: !hasRequests ? 'empty' : lowMarginModelCount > 0 ? 'warning' : 'ok',
-      target: buildTarget('/admin/finance/profit'),
+      target: buildTarget('profit'),
     },
     {
       key: 'operating',
@@ -301,7 +306,7 @@ function BillingOverview({ embedded = false }) {
       primary: t('billing.overview.dimensions.operating.primary', { count: formatCount(currentScopeRiskCount) }),
       secondary: t('billing.overview.dimensions.operating.secondary', { critical: formatCount(operatingCriticalCount), warning: formatCount(operatingWarningCount) }),
       level: riskLevel(operatingCriticalCount, operatingWarningCount),
-      target: operatingRiskItems[0]?.target === 'procurement' ? buildTarget('/admin/finance/procurement', { model: operatingRiskItems[0]?.model, cost_scope: 'unconfigured' }) : buildTarget('/admin/finance/profit', { model: operatingRiskItems[0]?.model }),
+      target: operatingRiskItems[0]?.target === 'procurement' ? buildTarget('procurement', { model: operatingRiskItems[0]?.model, cost_scope: 'unconfigured' }) : buildTarget('profit', { model: operatingRiskItems[0]?.model }),
     },
     {
       key: 'configuration',
@@ -309,7 +314,7 @@ function BillingOverview({ embedded = false }) {
       primary: t('billing.overview.dimensions.configuration.primary', { count: formatCount(configurationRiskCount) }),
       secondary: t('billing.overview.dimensions.configuration.secondary', { critical: formatCount(health.critical_count || 0), warning: formatCount(health.warning_count || 0) }),
       level: riskLevel(health.critical_count, health.warning_count),
-      target: buildTarget('/admin/finance/procurement'),
+      target: buildTarget('procurement'),
     },
   ];
 
@@ -361,7 +366,7 @@ function BillingOverview({ embedded = false }) {
     { title: t('billing.overview.channels.columns.profit'), dataIndex: 'gross_profit_base_amount', width: 130, align: 'right', render: formatCNY },
     { title: t('billing.overview.channels.columns.margin'), dataIndex: 'gross_margin', width: 110, align: 'right', render: formatPercent },
     { title: t('billing.overview.channels.columns.coverage'), key: 'coverage', width: 130, align: 'right', render: (_, row) => formatPercent(Number(row.configured_cost_request_count || 0) / Math.max(Number(row.request_count || 0), 1)) },
-    { title: t('billing.overview.channels.columns.actions'), key: 'actions', width: 170, render: (_, row) => <div className='billing-overview-actions'><Link to={buildTarget('/admin/finance/profit', { channel_id: row.dimension_key })}>{t('billing.overview.actions.profit')}</Link><Link to={buildTarget('/admin/finance/procurement', { channel_id: row.dimension_key })}>{t('billing.overview.actions.procurement')}</Link></div> },
+    { title: t('billing.overview.channels.columns.actions'), key: 'actions', width: 170, render: (_, row) => <div className='billing-overview-actions'><Link to={buildTarget('profit', { channel_id: row.dimension_key })}>{t('billing.overview.actions.profit')}</Link><Link to={buildTarget('procurement', { channel_id: row.dimension_key })}>{t('billing.overview.actions.procurement')}</Link></div> },
   ];
 
   const modelColumns = [
@@ -370,7 +375,7 @@ function BillingOverview({ embedded = false }) {
     { title: t('billing.overview.models.columns.profit'), dataIndex: 'gross_profit_base_amount', width: 130, align: 'right', render: formatCNY },
     { title: t('billing.overview.models.columns.margin'), dataIndex: 'gross_margin', width: 110, align: 'right', render: formatPercent },
     { title: t('billing.overview.models.columns.coverage'), key: 'coverage', width: 130, align: 'right', render: (_, row) => formatPercent(Number(row.configured_cost_request_count || 0) / Math.max(Number(row.request_count || 0), 1)) },
-    { title: t('billing.overview.models.columns.actions'), key: 'actions', width: 170, render: (_, row) => <div className='billing-overview-actions'><Link to={buildTarget('/admin/finance/profit', { model: row.dimension_key })}>{t('billing.overview.actions.profit')}</Link><Link to={buildTarget('/admin/finance/procurement', { model: row.dimension_key })}>{t('billing.overview.actions.procurement')}</Link></div> },
+    { title: t('billing.overview.models.columns.actions'), key: 'actions', width: 170, render: (_, row) => <div className='billing-overview-actions'><Link to={buildTarget('profit', { model: row.dimension_key })}>{t('billing.overview.actions.profit')}</Link><Link to={buildTarget('procurement', { model: row.dimension_key })}>{t('billing.overview.actions.procurement')}</Link></div> },
   ];
 
   const activeDimensionRows = dimension === 'channel' ? report.items.slice(0, 10) : modelReport.items.slice(0, 10);
@@ -492,7 +497,7 @@ function BillingOverview({ embedded = false }) {
           )}
         </section>
         <section className='billing-overview-section'>
-          <div className='billing-overview-section-heading'><h2>{t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.title`)}</h2><div className='billing-overview-section-controls'><AppSegmented options={[{ value: 'channel', label: t('billing.overview.channels.title') }, { value: 'model', label: t('billing.overview.models.title') }]} value={dimension} onChange={(e, { value }) => setDimension(value)} /><Link to={buildTarget(dimension === 'channel' ? '/admin/finance/procurement' : '/admin/finance/profit')}>{t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.view_details`)}</Link></div></div>
+          <div className='billing-overview-section-heading'><h2>{t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.title`)}</h2><div className='billing-overview-section-controls'><AppSegmented options={[{ value: 'channel', label: t('billing.overview.channels.title') }, { value: 'model', label: t('billing.overview.models.title') }]} value={dimension} onChange={(e, { value }) => setDimension(value)} /><Link to={buildTarget(dimension === 'channel' ? 'procurement' : 'profit')}>{t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.view_details`)}</Link></div></div>
           <div className='billing-overview-table-note'>{t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.sorted_note`)}</div>
           <AppTable className='router-detail-table router-table-cardify' size='small' pagination={false} rowKey={(row) => row.dimension_key} dataSource={activeDimensionRows} columns={withCardLabels(activeDimensionColumns)} scroll={{ x: dimension === 'channel' ? 1000 : 840 }} locale={{ emptyText: t(`billing.overview.${dimension === 'channel' ? 'channels' : 'models'}.empty`) }} />
         </section>

@@ -942,8 +942,14 @@ function BillingProcurementReport({ embedded = false }) {
 
   const healthStatusClass = `is-${health.status || 'ok'}`;
   const healthIssues = health.issues.slice(0, 4);
-  const fromOverview = initialContext.returnTo.startsWith('/admin/finance/overview');
-  const fromProfit = initialContext.returnTo.startsWith('/admin/finance/profit');
+  // Detect the drill-down source from `return_to`, tolerant of both the new
+  // `?tab=` form and the legacy `/admin/finance/<seg>` pathname form.
+  const returnTo = initialContext.returnTo || '';
+  const returnToTabKey = returnTo.includes('?')
+    ? new URLSearchParams(returnTo.slice(returnTo.indexOf('?') + 1)).get('tab')
+    : null;
+  const fromOverview = returnToTabKey === 'overview' || returnTo.startsWith('/admin/finance/overview');
+  const fromProfit = returnToTabKey === 'profit' || returnTo.startsWith('/admin/finance/profit');
   const baseBreadcrumbs = [
     { key: 'finance', label: t('header.finance') },
     ...(fromOverview ? [{ key: 'overview', label: t('billing.overview.title'), onClick: () => navigate(initialContext.returnTo) }] : []),
@@ -1340,6 +1346,16 @@ function BillingProcurementReport({ embedded = false }) {
         ) : null}
         {managedChannelID ? (
           <div className='billing-procurement-report-detail'>
+          {embedded ? (
+            <div className='billing-procurement-report-managed-back'>
+              <AppButton
+                size='small'
+                onClick={() => selectManagedChannel('', true)}
+              >
+                {`← ${t('common.back')}`}
+              </AppButton>
+            </div>
+          ) : null}
           <ChannelDetailBillingTab
             t={t}
             billingSummary={null}

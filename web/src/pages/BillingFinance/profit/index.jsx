@@ -137,12 +137,16 @@ function BillingPricingAnalysis({ embedded = false }) {
 
   const buildProcurementTarget = useCallback((model) => {
     const params = new URLSearchParams();
+    params.set('tab', 'procurement');
     Object.entries({ ...queryContext, model }).forEach(([key, value]) => {
       if (value !== '') params.set(key, String(value));
     });
-    params.set('return_to', `${location.pathname}?${new URLSearchParams(queryContext).toString()}`);
-    return `/admin/finance/procurement?${params.toString()}`;
-  }, [location.pathname, queryContext]);
+    // Return to the profit tab with filters intact; encode the source tab
+    // explicitly since finance pages now share the `/admin/finance` pathname.
+    const returnParams = new URLSearchParams({ tab: 'profit', ...queryContext });
+    params.set('return_to', `/admin/finance?${returnParams.toString()}`);
+    return `/admin/finance?${params.toString()}`;
+  }, [queryContext]);
 
   useEffect(() => {
     API.get('/api/v1/admin/groups', { params: { page: 1, page_size: 200 } })
@@ -347,7 +351,13 @@ function BillingPricingAnalysis({ embedded = false }) {
     },
   ];
 
-  const fromOverview = initialContext.returnTo.startsWith('/admin/finance/overview');
+  // Detect the drill-down source from `return_to`, tolerant of both the new
+  // `?tab=` form and the legacy `/admin/finance/overview` pathname form.
+  const returnTo = initialContext.returnTo || '';
+  const returnToTabKey = returnTo.includes('?')
+    ? new URLSearchParams(returnTo.slice(returnTo.indexOf('?') + 1)).get('tab')
+    : null;
+  const fromOverview = returnToTabKey === 'overview' || returnTo.startsWith('/admin/finance/overview');
   const breadcrumbs = [
     { key: 'finance', label: t('header.finance') },
     ...(fromOverview ? [{ key: 'overview', label: t('billing.overview.title'), onClick: () => navigate(initialContext.returnTo) }] : []),

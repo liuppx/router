@@ -124,7 +124,7 @@ const ChannelDetailPublishTab = ({
     const status = (readiness.status || 'missing').toString();
     const channelID = (row?.channel_id || '').toString().trim();
     const modelName = (row?.model || row?.upstream_model || '').toString().trim();
-    const procurementPath = `/admin/finance/procurement?channel_id=${encodeURIComponent(channelID)}&model=${encodeURIComponent(modelName)}`;
+    const procurementPath = `/admin/finance?tab=procurement&channel_id=${encodeURIComponent(channelID)}&model=${encodeURIComponent(modelName)}`;
     return (
       <div className='router-inline-actions'>
         <AppTag
