@@ -12,6 +12,7 @@ import { logoutWallet } from '../services/web3Auth';
 import {
   ADMIN_MENU_GROUPS,
   buildUnifiedWorkspaceMenuGroups,
+  isAdminItemActive,
   isAdminRouteActive,
 } from '../constants/adminMenu';
 import {
@@ -89,6 +90,12 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
     return isUserWorkspaceRouteActive(location, to);
   };
 
+  // 一个导航项可代表一个「多面」实体(如用户 = 列表 + 分析 + 任务),其详情面
+  // 落在 matchPaths 的其它路由上。走 isAdminItemActive 让顶栏与侧边栏高亮一致,
+  // 否则详情/任务路由下顶栏不高亮对应项。
+  const isItemActive = (item) =>
+    isAdminItemActive(location, item, (_loc, path) => isRouteActive(path));
+
   async function logout() {
     setShowSidebar(false);
     await API.get('/api/v1/public/user/logout');
@@ -165,10 +172,10 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
     return navigationButtons.flatMap((button) => {
       if (button.type === 'group' && Array.isArray(button.items)) {
         return button.items
-          .filter((item) => isRouteActive(item.to))
+          .filter((item) => isItemActive(item))
           .map((item) => item.to);
       }
-      return button.to && isRouteActive(button.to)
+      return button.to && isItemActive(button)
         ? [button.to]
         : [];
     });
@@ -191,7 +198,7 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
                   navigate(item.to);
                   setShowSidebar(false);
                 }}
-                className={`router-header-item-mobile router-header-item-mobile-child ${isRouteActive(item.to) ? 'router-header-group-active' : ''}`}
+                className={`router-header-item-mobile router-header-item-mobile-child ${isItemActive(item) ? 'router-header-group-active' : ''}`}
               >
                 <AppIcon name={item.icon} />
                 {t(item.name)}
@@ -209,7 +216,7 @@ const Header = ({ workspace = 'user', hideNavButtons = false }) => {
             navigate(button.to);
             setShowSidebar(false);
           }}
-          className={`router-header-item-mobile ${isRouteActive(button.to) ? 'router-header-group-active' : ''}`}
+          className={`router-header-item-mobile ${isItemActive(button) ? 'router-header-group-active' : ''}`}
         >
           {button.icon ? <AppIcon name={button.icon} /> : null}
           {t(button.name)}
