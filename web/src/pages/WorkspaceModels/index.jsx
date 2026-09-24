@@ -5,6 +5,7 @@ import { API } from '../../helpers/api';
 import { copy, showError, showSuccess } from '../../helpers';
 import { buildLogDrilldownPath } from '../../components/LogsTable.helpers';
 import { useIsAdmin } from '../../hooks/useAuth';
+import useUrlState from '../../hooks/useUrlState';
 import ModelSectionTabs from '../../components/ModelSectionTabs';
 import ModelOperationsSection from '../AdminDashboard/sections/ModelOperationsSection';
 import {
@@ -238,10 +239,32 @@ const WorkspaceModels = () => {
   const hasAdminAccess = useIsAdmin();
   const [payload, setPayload] = useState(EMPTY_PAYLOAD);
   const [loading, setLoading] = useState(false);
-  const [keyword, setKeyword] = useState('');
-  // Seed the health filter from the URL so cross-page CTAs (e.g. the admin
-  // dashboard "at-risk models" headline) can deep-link straight to a filtered view.
+  // Keyword / health / sort all persist to the URL so a refresh or back-nav
+  // restores the operator's view, and cross-page CTAs (e.g. the admin dashboard
+  // "at-risk models" headline) can deep-link straight to a filtered view.
   const [searchParams] = useSearchParams();
+  const [
+    { keyword, healthFilter, sortBy },
+    patchFilters,
+  ] = useUrlState({
+    keyword: { param: 'q', default: '' },
+    healthFilter: {
+      param: 'health',
+      default: 'all',
+      parse: (raw) => {
+        const normalized = String(raw || '').trim().toLowerCase();
+        return FILTER_OPTIONS.includes(normalized) ? normalized : 'all';
+      },
+    },
+    sortBy: {
+      param: 'sort',
+      default: 'health',
+      parse: (raw) => {
+        const normalized = String(raw || '').trim().toLowerCase();
+        return SORT_OPTIONS.includes(normalized) ? normalized : 'health';
+      },
+    },
+  });
   // The models page doubles as the models shell: catalog is the default,
   // URL-stable body every workspace user sees; operations is an admin-only tab
   // hosting the model operations section. A non-admin hand-typing ?tab=operations
@@ -249,11 +272,6 @@ const WorkspaceModels = () => {
   const rawTab = (searchParams.get('tab') || '').trim().toLowerCase();
   const activeTab =
     hasAdminAccess && rawTab === 'operations' ? 'operations' : 'catalog';
-  const [healthFilter, setHealthFilter] = useState(() => {
-    const requested = (searchParams.get('health') || '').trim().toLowerCase();
-    return FILTER_OPTIONS.includes(requested) ? requested : 'all';
-  });
-  const [sortBy, setSortBy] = useState('health');
 
   // Admins can jump straight from a model to the publish tab of a channel that
   // serves it (channel_ids comes from /api/v1/public/model/status). Single
@@ -499,7 +517,7 @@ const WorkspaceModels = () => {
                   className='workspace-models-search'
                   value={keyword}
                   placeholder={t('workspace_models.search_placeholder')}
-                  onChange={(e, { value }) => setKeyword(value)}
+                  onChange={(e, { value }) => patchFilters({ keyword: value })}
                 />
                 <AppTooltip title={t('workspace_models.refresh')}>
                   <AppButton
@@ -519,13 +537,13 @@ const WorkspaceModels = () => {
                   className='workspace-models-segmented'
                   options={healthFilterOptions}
                   value={healthFilter}
-                  onChange={(e, { value }) => setHealthFilter(value)}
+                  onChange={(e, { value }) => patchFilters({ healthFilter: value })}
                 />
                 <AppSegmented
                   className='workspace-models-segmented'
                   options={sortOptions}
                   value={sortBy}
-                  onChange={(e, { value }) => setSortBy(value)}
+                  onChange={(e, { value }) => patchFilters({ sortBy: value })}
                 />
               </div>
             }
