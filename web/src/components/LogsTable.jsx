@@ -908,6 +908,8 @@ const LogsTable = () => {
     setSort(sorterToSort(sorter));
   };
 
+  const [exportingFull, setExportingFull] = useState(false);
+
   const handleExportCsv = useCallback(() => {
     const stamp = timestamp2string(Math.floor(Date.now() / 1000)).replace(
       /[^0-9]/g,
@@ -932,19 +934,77 @@ const LogsTable = () => {
       { key: 'chargeAmount', label: t('log.table.quota') },
       { key: 'content', label: t('log.table.detail') },
     );
-    // 覆盖式分页下导出的是当前页(后端排序后的这一页),而非累积的全量。
-    // csv.js 的 format 只接收单元格值,无法访问整行,故此处把派生字段(渠道名)
-    // 先摊平成普通对象再导出。
-    const rows = logs.map((log) => ({
-      ...log,
-      channel: getLogChannelLabel(log),
-    }));
-    exportCSV(
-      `logs-${isAdminScope ? 'admin' : 'mine'}-${stamp}.csv`,
-      columns,
-      rows,
-    );
-  }, [isAdminScope, logs, t]);
+    // 拉一份全量筛选结果(覆盖式分页下当前页不代表完整集合),
+    // 再就地 exportCSV;与现有 fetchLogs 走同一后端参数,避免重复拼接。
+    setExportingFull(true);
+    const params = new URLSearchParams();
+    params.set('page', '1');
+    // 10k 仍是 100 的整数倍;后端若有上限会失败由 try/catch 兜底。
+    params.set('page_size', '10000');
+    if (sort?.orderBy) {
+      const backendOrderBy = LOG_SORT_FIELD_MAP[sort.orderBy] || '';
+      if (backendOrderBy) {
+        params.set('order_by', backendOrderBy);
+        params.set('order', sort.order === 'asc' ? 'asc' : 'desc');
+      }
+    }
+    const queryLogType = activeFilterKeys.includes('log_type')
+      ? logType
+      : 0;
+    params.set('type', String(queryLogType));
+    params.set('token_name', activeFilterKeys.includes('token_name') ? token_name : '');
+    params.set('model_name', activeFilterKeys.includes('model_name') ? model_name : '');
+    params.set('start_timestamp', String(start_timestamp || 0));
+    params.set('end_timestamp', String(end_timestamp || 0));
+    if (isAdminScope) {
+      params.set('username', activeFilterKeys.includes('username') ? username : '');
+      params.set('group_id', activeFilterKeys.includes('group_id') ? group_id : '');
+      params.set('channel', activeFilterKeys.includes('channel') ? channel : '');
+    }
+    const base = isAdminScope ? '/api/v1/admin/log/' : '/api/v1/public/log';
+    API.get(`${base}?${params.toString()}`)
+      .then((res) => {
+        const { success, message, data } = res?.data || {};
+        if (!success) {
+          showError(message || t('log.messages.load_failed'));
+          return;
+        }
+        const rows = (Array.isArray(data) ? data : []).map((log) => ({
+          ...log,
+          channel: getLogChannelLabel(log),
+        }));
+        if (rows.length === 0) {
+          showError(t('log.export.empty'));
+          return;
+        }
+        exportCSV(
+          `logs-${isAdminScope ? 'admin' : 'mine'}-${stamp}.csv`,
+          columns,
+          rows,
+        );
+        showSuccess(t('log.export.success', { count: rows.length }));
+      })
+      .catch((error) => {
+        showError(error?.message || t('log.messages.load_failed'));
+      })
+      .finally(() => {
+        setExportingFull(false);
+      });
+  }, [
+    activeFilterKeys,
+    channel,
+    end_timestamp,
+    getLogChannelLabel,
+    group_id,
+    isAdminScope,
+    logType,
+    model_name,
+    sort,
+    start_timestamp,
+    t,
+    token_name,
+    username,
+  ]);
 
   const resolveOptionLabel = useCallback(
     (filterKey, value) => {
@@ -1163,7 +1223,8 @@ const LogsTable = () => {
               type='button'
               className='router-section-button'
               onClick={handleExportCsv}
-              disabled={loading || logs.length === 0}
+              disabled={loading || exportingFull}
+              loading={exportingFull}
             >
               {t('common.export_csv')}
             </AppButton>

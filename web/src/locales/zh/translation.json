@@ -2246,6 +2246,10 @@
       "submit": "查询",
       "refresh": "刷新"
     },
+    "export": {
+      "success": "已导出 {{count}} 条日志",
+      "empty": "当前筛选无可导出的日志"
+    },
     "messages": {
       "load_failed": "加载日志详情失败"
     },

@@ -2246,6 +2246,10 @@
       "submit": "Query",
       "refresh": "Refresh"
     },
+    "export": {
+      "success": "Exported {{count}} logs",
+      "empty": "No logs to export for the current filters"
+    },
     "messages": {
       "load_failed": "Failed to load log detail"
     },
