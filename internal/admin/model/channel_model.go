@@ -920,6 +920,43 @@ func EnsureChannelTestModelWithDB(db *gorm.DB, channelID string) error {
 		Update("test_model", next).Error
 }
 
+// ListDistinctProvidersByChannelIDsWithDB returns, per channel id, the distinct
+// non-empty model providers (vendors) each channel serves, ordered by how many
+// models map to each provider (desc) then provider id. It reads only
+// (channel_id, provider) so the channel list can show vendor brand icons without
+// loading full model rows.
+func ListDistinctProvidersByChannelIDsWithDB(db *gorm.DB, channelIDs []string) (map[string][]string, error) {
+	result := make(map[string][]string)
+	normalizedIDs := normalizeTrimmedValuesPreserveOrder(channelIDs)
+	if len(normalizedIDs) == 0 {
+		return result, nil
+	}
+	type providerCountRow struct {
+		ChannelId string
+		Provider  string
+	}
+	rows := make([]providerCountRow, 0)
+	if err := db.
+		Model(&ChannelModel{}).
+		Select("channel_id, provider").
+		Where("channel_id IN ?", normalizedIDs).
+		Where("provider <> ''").
+		Group("channel_id, provider").
+		Order("channel_id asc, COUNT(*) desc, provider asc").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		channelID := strings.TrimSpace(row.ChannelId)
+		provider := strings.TrimSpace(row.Provider)
+		if channelID == "" || provider == "" {
+			continue
+		}
+		result[channelID] = append(result[channelID], provider)
+	}
+	return result, nil
+}
+
 func loadChannelModelRowsByChannelIDs(db *gorm.DB, channelIDs []string) (map[string][]ChannelModel, error) {
 	rowsByChannelID := make(map[string][]ChannelModel)
 	normalizedIDs := normalizeTrimmedValuesPreserveOrder(channelIDs)

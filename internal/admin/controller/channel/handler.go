@@ -22,6 +22,7 @@ const maxChannelListPageSize = 100
 type channelListItem struct {
 	ID                    string                         `json:"id"`
 	Protocol              string                         `json:"protocol"`
+	ModelVendors          []string                       `json:"model_vendors"`
 	Status                int                            `json:"status"`
 	Name                  string                         `json:"name"`
 	Weight                *uint                          `json:"weight,omitempty"`
@@ -115,6 +116,7 @@ func buildChannelListItem(channel *model.Channel) channelListItem {
 	return channelListItem{
 		ID:           strings.TrimSpace(channel.Id),
 		Protocol:     strings.TrimSpace(channel.Protocol),
+		ModelVendors: []string{},
 		Status:       channel.Status,
 		Name:         strings.TrimSpace(channel.Name),
 		Weight:       channel.Weight,
@@ -253,6 +255,10 @@ func listChannelsPage(page int, pageSize int, keyword string, status string) (ch
 	for _, row := range circuitRows {
 		circuitByChannelID[strings.TrimSpace(row.ChannelId)] = row
 	}
+	vendorsByChannelID, err := model.ListDistinctProvidersByChannelIDsWithDB(model.DB, channelIDs)
+	if err != nil {
+		return channelListPageData{}, err
+	}
 	for _, row := range rows {
 		item := buildChannelListItem(row)
 		if snapshot, ok := latestSnapshotMap[strings.TrimSpace(row.Id)]; ok {
@@ -262,6 +268,9 @@ func listChannelsPage(page int, pageSize int, keyword string, status string) (ch
 		}
 		if circuitRow, ok := circuitByChannelID[strings.TrimSpace(row.Id)]; ok {
 			item.CircuitBreaker = buildChannelCircuitBreakerListItem(circuitRow)
+		}
+		if vendors, ok := vendorsByChannelID[strings.TrimSpace(row.Id)]; ok {
+			item.ModelVendors = vendors
 		}
 		items = append(items, item)
 	}
