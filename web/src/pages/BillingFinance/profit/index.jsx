@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { API, showError, withCardLabels } from '../../../helpers';
 import { exportCSV } from '../../../helpers/csv';
 import { formatDecimalNumber } from '../../../helpers/render';
+import { buildLogDrilldownPath } from '../../../components/LogsTable.helpers';
 import {
   AppButton,
   AppErrorState,
@@ -351,8 +352,13 @@ function BillingPricingAnalysis({ embedded = false }) {
     {
       title: t('billing.pricing_analysis.columns.actions'),
       key: 'actions',
-      width: 120,
-      render: (_, row) => <Link to={buildProcurementTarget(row.dimension_key)}>{t('billing.pricing_analysis.view_procurement')}</Link>,
+      width: 170,
+      render: (_, row) => (
+        <div className='billing-pricing-analysis-actions'>
+          <Link to={buildProcurementTarget(row.dimension_key)}>{t('billing.pricing_analysis.view_procurement')}</Link>
+          <Link to={buildLogDrilldownPath('admin', { model_name: row.dimension_key })}>{t('log.drilldown.view')}</Link>
+        </div>
+      ),
     },
   ];
 

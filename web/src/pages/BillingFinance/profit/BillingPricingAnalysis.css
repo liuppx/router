@@ -2,6 +2,8 @@
 .billing-pricing-analysis-section { margin-top: 0; }
 .billing-pricing-analysis-note { margin-bottom: 12px; padding: 10px 12px; border: 1px solid rgba(37, 99, 235, .16); border-radius: 8px; background: var(--router-surface-info-strong, #eff6ff); color: var(--router-link-hover, #1e40af); font-size: 13px; }
 .billing-pricing-analysis-model { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.billing-pricing-analysis-actions { display: inline-flex; align-items: center; gap: 10px; }
+.billing-pricing-analysis-actions a { color: var(--router-link, #2563eb); white-space: nowrap; }
 .billing-pricing-analysis-group-select { min-width: 190px; }
 .billing-pricing-analysis-time-input { width: 200px; }
 .billing-pricing-analysis-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
