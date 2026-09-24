@@ -13,7 +13,7 @@ import {
   withCardLabels,
 } from '../helpers';
 import { useTranslation } from 'react-i18next';
-import useUrlState from '../hooks/useUrlState';
+import useUrlState, { parsePageParam, parseListPageSize } from '../hooks/useUrlState';
 import UnitDropdown from './UnitDropdown';
 import UserSectionTabs from './UserSectionTabs';
 import { buildLogDrilldownPath } from './LogsTable.helpers';
@@ -168,9 +168,21 @@ const UsersTable = ({ embedded = false }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [activePage, setActivePage] = useState(1);
-  const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
-  const pageSizeRef = useRef(ITEMS_PER_PAGE);
+  // page/pageSize 也入 URL:列表↔详情往返(from=pathname+search)后回到原页原尺寸,
+  // 而非退回第 1 页。仅挂载时读一次 URL 播种,之后以组件内 state 为准,URL 由
+  // 翻页/改尺寸/换筛选主动镜像回写(见 onPaginationChange 与筛选 handler)。
+  const initialListQuery = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      page: parsePageParam(params.get('page')),
+      pageSize: parseListPageSize(params.get('page_size')),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const didInitListRef = useRef(false);
+  const [activePage, setActivePage] = useState(initialListQuery.page);
+  const [pageSize, setPageSize] = useState(initialListQuery.pageSize);
+  const pageSizeRef = useRef(initialListQuery.pageSize);
   pageSizeRef.current = pageSize;
   const [totalCount, setTotalCount] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(false);
@@ -181,6 +193,12 @@ const UsersTable = ({ embedded = false }) => {
     status: { param: 'status', default: 'all' },
     role: { param: 'role', default: 'all' },
     keyword: { param: 'q', default: '' },
+    page: { param: 'page', default: 1, parse: parsePageParam },
+    pageSize: {
+      param: 'page_size',
+      default: ITEMS_PER_PAGE,
+      parse: parseListPageSize,
+    },
   });
   const setSearchKeyword = useCallback(
     (value) => patchQuery({ keyword: (value || '').toString() }),
@@ -350,6 +368,7 @@ const UsersTable = ({ embedded = false }) => {
         pageSizeRef.current = size;
         setPageSize(size);
         setActivePage(1);
+        patchQuery({ pageSize: size, page: 1 });
         if (!isSearchMode) {
           // 每页条数变了,按旧尺寸建立的行缓存已失效,重建
           setUsers([]);
@@ -363,6 +382,7 @@ const UsersTable = ({ embedded = false }) => {
         await loadUsers(nextPage, { status: statusFilter, role: roleFilter });
       }
       setActivePage(nextPage);
+      patchQuery({ page: nextPage });
     })();
   };
 
@@ -381,8 +401,12 @@ const UsersTable = ({ embedded = false }) => {
     setFocusLabel('');
     setFocusTotal(0);
     setIsFocusMode(false);
-    setActivePage(1);
-    loadUsers(1, { status: statusFilter, role: roleFilter })
+    // 首次挂载按 URL 复原页码;后续筛选变化(status/role)才回到第 1 页。
+    const firstRun = !didInitListRef.current;
+    didInitListRef.current = true;
+    const startPage = firstRun ? initialListQuery.page : 1;
+    setActivePage(startPage);
+    loadUsers(startPage, { status: statusFilter, role: roleFilter })
       .then()
       .catch((reason) => {
         setLoadError(true);
@@ -397,6 +421,7 @@ const UsersTable = ({ embedded = false }) => {
     focusParams.total,
     statusFilter,
     roleFilter,
+    initialListQuery,
   ]);
 
   useEffect(() => {
@@ -638,6 +663,7 @@ const UsersTable = ({ embedded = false }) => {
       // if keyword is blank, load files instead.
       await loadUsers(1, { status: statusFilter, role: roleFilter });
       setActivePage(1);
+      patchQuery({ page: 1 });
       return;
     }
     setSearching(true);
@@ -650,6 +676,7 @@ const UsersTable = ({ embedded = false }) => {
       setTotalCount(Array.isArray(data) ? data.length : 0);
       setUsers(data);
       setActivePage(1);
+      patchQuery({ page: 1 });
     } else {
       showError(message);
     }
@@ -949,7 +976,7 @@ const UsersTable = ({ embedded = false }) => {
             <AppSelect
               className='router-section-select'
               value={statusFilter}
-              onChange={(_, { value }) => patchQuery({ status: value })}
+              onChange={(_, { value }) => patchQuery({ status: value, page: 1 })}
               options={[
                 { value: 'all', label: t('user.filter.status_all') },
                 { value: '1', label: t('user.table.status_types.activated') },
@@ -959,7 +986,7 @@ const UsersTable = ({ embedded = false }) => {
             <AppSelect
               className='router-section-select'
               value={roleFilter}
-              onChange={(_, { value }) => patchQuery({ role: value })}
+              onChange={(_, { value }) => patchQuery({ role: value, page: 1 })}
               options={[
                 { value: 'all', label: t('user.filter.role_all') },
                 { value: '1', label: t('user.table.role_types.normal') },
@@ -974,7 +1001,7 @@ const UsersTable = ({ embedded = false }) => {
                 searchKeyword === ''
               }
               onClick={() =>
-                patchQuery({ status: 'all', role: 'all', keyword: '' })
+                patchQuery({ status: 'all', role: 'all', keyword: '', page: 1 })
               }
             >
               {t('common.clear_filters')}
