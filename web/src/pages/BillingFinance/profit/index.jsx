@@ -93,7 +93,7 @@ const pricingState = (row) => {
   return 'healthy';
 };
 
-function BillingPricingAnalysis() {
+function BillingPricingAnalysis({ embedded = false }) {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -177,6 +177,10 @@ function BillingPricingAnalysis() {
     if (model) params.set('model', model);
     if (groupID) params.set('group_id', groupID);
     if (initialContext.returnTo) params.set('return_to', initialContext.returnTo);
+    // Preserve the shell tab so the finance layout keeps this page active when it
+    // rewrites its own filter params.
+    const currentTab = new URLSearchParams(location.search).get('tab');
+    if (currentTab) params.set('tab', currentTab);
     navigate(
       {
         pathname: location.pathname,
@@ -378,9 +382,9 @@ function BillingPricingAnalysis() {
   ];
 
   return (
-    <div className='dashboard-container billing-pricing-analysis-page'>
+    <div className={`${embedded ? '' : 'dashboard-container '}billing-pricing-analysis-page`}>
       <AppFilterHeader
-        breadcrumbs={breadcrumbs}
+        breadcrumbs={embedded ? undefined : breadcrumbs}
         actions={
           <>
             <AppButton

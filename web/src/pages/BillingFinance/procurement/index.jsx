@@ -136,7 +136,7 @@ const normalizeHealth = (payload) => ({
     : [],
 });
 
-function BillingProcurementReport() {
+function BillingProcurementReport({ embedded = false }) {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -560,6 +560,10 @@ function BillingProcurementReport() {
     if (provider) params.set('provider', provider);
     if (model) params.set('model', model);
     if (initialContext.returnTo) params.set('return_to', initialContext.returnTo);
+    // Preserve the shell tab so the finance layout keeps this page active when it
+    // rewrites its own filter params.
+    const currentTab = new URLSearchParams(location.search).get('tab');
+    if (currentTab) params.set('tab', currentTab);
     navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true });
   }, [costScope, endAt, groupBy, groupID, initialContext.returnTo, location.pathname, managedChannelID, model, navigate, provider, startAt]);
 
@@ -947,9 +951,9 @@ function BillingProcurementReport() {
   ];
 
   return (
-    <div className='dashboard-container billing-procurement-report-page'>
+    <div className={`${embedded ? '' : 'dashboard-container '}billing-procurement-report-page`}>
       <AppFilterHeader
-        breadcrumbs={managedChannelID
+        breadcrumbs={embedded ? undefined : (managedChannelID
           ? [
               ...baseBreadcrumbs,
               {
@@ -970,7 +974,7 @@ function BillingProcurementReport() {
                 label: t('billing.procurement_report.title'),
                 active: true,
               },
-            ]}
+            ])}
         actions={!managedChannelID ? (
           <>
             <AppButton

@@ -128,7 +128,7 @@ const buildOperatingRiskItems = (items, t) => {
   ));
 };
 
-function BillingOverview() {
+function BillingOverview({ embedded = false }) {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -182,7 +182,12 @@ function BillingOverview() {
     Object.entries(financeContext).forEach(([key, value]) => {
       if (value !== '') params.set(key, String(value));
     });
+    // Preserve the shell tab so the finance layout doesn't fall back to overview
+    // when this page rewrites its own filter params.
+    const currentTab = new URLSearchParams(location.search).get('tab');
+    if (currentTab) params.set('tab', currentTab);
     navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [financeContext, location.pathname, navigate]);
 
   const load = useCallback(async () => {
@@ -379,9 +384,9 @@ function BillingOverview() {
   ];
 
   return (
-    <div className='dashboard-container billing-overview-page'>
+    <div className={`${embedded ? '' : 'dashboard-container '}billing-overview-page`}>
       <AppFilterHeader
-        breadcrumbs={[{ key: 'finance', label: t('header.finance') }, { key: 'billing-overview', label: t('billing.overview.title'), active: true }]}
+        breadcrumbs={embedded ? undefined : [{ key: 'finance', label: t('header.finance') }, { key: 'billing-overview', label: t('billing.overview.title'), active: true }]}
         actions={
           <>
             <AppButton
