@@ -208,6 +208,7 @@
       "refresh_status": "同步支付状态",
       "order_paid": "订单已支付，状态已更新",
       "order_canceled": "订单已取消",
+      "export_success": "已导出 {{count}} 条支付记录",
       "redirect_missing": "当前订单缺少支付链接，请重新下单或联系管理员",
       "tabs": {
         "orders": "订单记录",
@@ -3898,6 +3899,9 @@
     }
   },
   "billing": {
+    "export": {
+      "success": "已导出 {{count}} 行"
+    },
     "pricing_analysis": {
       "nav": "利润",
       "title": "利润",

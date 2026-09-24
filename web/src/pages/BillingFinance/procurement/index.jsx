@@ -1001,6 +1001,7 @@ function BillingProcurementReport({ embedded = false }) {
                   ],
                   report.items,
                 );
+                showSuccess(t('billing.export.success', { count: report.items.length }));
               }}
             >
               {t('common.export_csv')}

@@ -373,6 +373,7 @@ const TopUpRecordsPage = ({ embedded = false }) => {
       ],
       orders,
     );
+    showSuccess(t('topup.records.export_success', { count: orders.length }));
   }, [orders, t]);
   const sectionExtra = shouldShowSectionExtra ? (
     <>

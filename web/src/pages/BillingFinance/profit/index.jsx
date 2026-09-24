@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { API, showError, withCardLabels } from '../../../helpers';
+import { API, showError, showSuccess, withCardLabels } from '../../../helpers';
 import { exportCSV } from '../../../helpers/csv';
 import { formatDecimalNumber } from '../../../helpers/render';
 import { buildLogDrilldownPath } from '../../../components/LogsTable.helpers';
@@ -425,6 +425,7 @@ function BillingPricingAnalysis({ embedded = false }) {
                   ],
                   rows,
                 );
+                showSuccess(t('billing.export.success', { count: rows.length }));
               }}
             >
               {t('common.export_csv')}

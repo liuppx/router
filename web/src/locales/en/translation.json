@@ -208,6 +208,7 @@
       "refresh_status": "Sync Payment Status",
       "order_paid": "The order has been paid and refreshed",
       "order_canceled": "The order has been canceled",
+      "export_success": "Exported {{count}} payment records",
       "redirect_missing": "This order is missing a payment link. Please create a new order or contact admin.",
       "tabs": {
         "orders": "Order Records",
@@ -3898,6 +3899,9 @@
     }
   },
   "billing": {
+    "export": {
+      "success": "Exported {{count}} rows"
+    },
     "pricing_analysis": {
       "nav": "Profit",
       "title": "Profit",

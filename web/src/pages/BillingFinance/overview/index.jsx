@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { API, showError, timestamp2string, withCardLabels } from '../../../helpers';
+import { API, showError, showSuccess, timestamp2string, withCardLabels } from '../../../helpers';
 import { formatDecimalNumber } from '../../../helpers/render';
 import {
   BILLING_DECIMALS,
@@ -416,6 +416,7 @@ function BillingOverview({ embedded = false }) {
                   ],
                   report.items,
                 );
+                showSuccess(t('billing.export.success', { count: report.items.length }));
               }}
             >
               {t('common.export_csv')}
