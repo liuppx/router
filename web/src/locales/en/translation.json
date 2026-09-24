@@ -2515,6 +2515,23 @@
       "cancel_failed": "Failed to cancel task",
       "download_failed": "Failed to download task artifact",
       "download_unavailable": "No downloadable artifact is available for this task"
+    },
+    "batch": {
+      "enter_selection": "Batch actions",
+      "cancel_selection": "Cancel selection",
+      "retry_selected": "Retry selected ({{count}})",
+      "cancel_selected": "Cancel selected ({{count}})",
+      "confirm_retry": "Retry the {{count}} selected task(s)?",
+      "confirm_cancel": "Cancel the {{count}} selected task(s)?",
+      "no_retry_target": "No retryable tasks in selection (only failed/canceled can be retried).",
+      "no_cancel_target": "No cancelable tasks in selection (only pending/running can be canceled).",
+      "action_retry": "retry",
+      "action_cancel": "cancel",
+      "all_success_retry": "Batch retry done: {{count}} succeeded",
+      "all_success_cancel": "Batch cancel done: {{count}} succeeded",
+      "all_failed_retry": "Batch retry failed: {{count}} unprocessed",
+      "all_failed_cancel": "Batch cancel failed: {{count}} unprocessed",
+      "partial": "Batch {{action}} done: {{success}} succeeded, {{failed}} failed."
     }
   },
   "workspace_start": {

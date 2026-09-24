@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { API, showError, showSuccess, timestamp2string } from '../../helpers';
+import { API, showError, showInfo, showSuccess, timestamp2string } from '../../helpers';
+import useBatchRowActions from '../../hooks/useBatchRowActions';
 import useList, {
   adaptListResponse,
   sorterToSort,
@@ -13,10 +14,12 @@ import {
   TASK_LIST_TABLE_MIN_WIDTH,
 } from '../../constants/tableWidthPresets';
 import {
+  AppButton,
   AppEmpty,
   AppErrorState,
   AppFilterHeader,
   AppPagination,
+  AppPopconfirm,
   AppTable,
   AppTableActionButton,
   AppTag,
@@ -707,7 +710,7 @@ const Task = ({ pageKind: pageKindOverride = '', embedded = false }) => {
       loadTasks(page).then();
     }, 2500);
     return () => window.clearInterval(timer);
-  }, [items, loadTasks, page]);
+  }, [batchRunning, isBatchSelecting, items, loadTasks, page]);
 
   const handleRetryTask = async (taskId) => {
     try {
@@ -738,6 +741,76 @@ const Task = ({ pageKind: pageKindOverride = '', embedded = false }) => {
       showError(error?.message || t('task.messages.cancel_failed'));
     }
   };
+
+  const [batchRunning, setBatchRunning] = useState(false);
+  const batchActions = useBatchRowActions();
+  const { isSelecting: isBatchSelecting, selectedCount: batchSelectedCount } = batchActions;
+
+  // 批量重试/取消:后端无批量接口,沿用 ChannelsTable/告警面板的「串行循环+聚合
+  // toast」模式;仅系统任务页启用,用户任务不可触发(per-row 已被隐藏)。
+  const runBatchTaskAction = useCallback(
+    async (action) => {
+      if (batchRunning) return;
+      if (action !== 'retry' && action !== 'cancel') return;
+      if (!isSystemTaskPage) return;
+      const selected = new Set(batchActions.selectedRowKeys);
+      const targets = items.filter((item) => {
+        const id = getTaskId(item);
+        if (!selected.has(id)) return false;
+        const status = normalizeTaskStatus(item?.status);
+        return action === 'retry'
+          ? status === 'failed' || status === 'canceled'
+          : status === 'pending' || status === 'running';
+      });
+      if (targets.length === 0) {
+        showInfo(t(`task.batch.no_${action}_target`));
+        return;
+      }
+      const endpoint =
+        action === 'retry'
+          ? (id) => `/api/v1/admin/tasks/${id}/retry`
+          : (id) => `/api/v1/admin/tasks/${id}/cancel`;
+      setBatchRunning(true);
+      let successCount = 0;
+      const failures = [];
+      for (const item of targets) {
+        const id = getTaskId(item);
+        try {
+          const res = await API.post(endpoint(id));
+          if (res?.data?.success) {
+            successCount += 1;
+          } else {
+            failures.push(id);
+          }
+        } catch (error) {
+          console.error(`Failed to batch ${action} task:`, error);
+          failures.push(id);
+        }
+      }
+      setBatchRunning(false);
+      const failedCount = failures.length;
+      if (failedCount === 0) {
+        showSuccess(
+          t(`task.batch.all_success_${action}`, { count: successCount }),
+        );
+      } else if (successCount === 0) {
+        showError(
+          t(`task.batch.all_failed_${action}`, { count: failedCount }),
+        );
+      } else {
+        showError(
+          t('task.batch.partial', {
+            action: t(`task.batch.action_${action}`),
+            success: successCount,
+            failed: failedCount,
+          }),
+        );
+      }
+      batchActions.exit();
+      loadTasks(page).then();
+    },
+    [batchActions, batchRunning, isSystemTaskPage, items, loadTasks, page, t],
+  );
 
   const handleDownloadTaskArtifact = useCallback(
     async (item) => {
@@ -998,6 +1071,20 @@ const Task = ({ pageKind: pageKindOverride = '', embedded = false }) => {
               rowKey={(item) => getTaskId(item)}
               dataSource={items}
               onChange={handleTableChange}
+              rowSelection={
+                isSystemTaskPage && isBatchSelecting
+                  ? {
+                      ...batchActions.tableSelection,
+                      renderCell: (_, __, ___, originNode) => (
+                        <span
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          {originNode}
+                        </span>
+                      ),
+                    }
+                  : undefined
+              }
               locale={{
                 emptyText: loading ? (
                   t('common.loading')
@@ -1014,18 +1101,22 @@ const Task = ({ pageKind: pageKindOverride = '', embedded = false }) => {
               onRow={(item) => {
                 const taskId = getTaskId(item);
                 return {
-                  className: 'router-row-clickable',
-                  onClick: () =>
-                    navigate(`${detailBasePath}/${taskId}`, {
-                      state: {
-                        from: currentPagePath,
-                        fromLabel: pageTitle,
-                        contextType,
-                        contextLabel,
-                        originPath: returnPath,
-                        originLabel: contextLabel || returnLabel,
-                      },
-                    }),
+                  className: isBatchSelecting
+                    ? undefined
+                    : 'router-row-clickable',
+                  onClick: isBatchSelecting
+                    ? undefined
+                    : () =>
+                        navigate(`${detailBasePath}/${taskId}`, {
+                          state: {
+                            from: currentPagePath,
+                            fromLabel: pageTitle,
+                            contextType,
+                            contextLabel,
+                            originPath: returnPath,
+                            originLabel: contextLabel || returnLabel,
+                          },
+                        }),
                 };
               }}
               columns={[
@@ -1193,7 +1284,77 @@ const Task = ({ pageKind: pageKindOverride = '', embedded = false }) => {
                     </span>
                   }
                   end={
-                    <AppPagination
+                    <div className='router-task-footer-actions'>
+                      {isSystemTaskPage ? (
+                        isBatchSelecting ? (
+                          <>
+                            <AppPopconfirm
+                              title={t('task.batch.confirm_retry', {
+                                count: batchSelectedCount,
+                              })}
+                              okText={t('common.confirm')}
+                              cancelText={t('common.cancel')}
+                              disabled={
+                                batchSelectedCount === 0 || batchRunning
+                              }
+                              onConfirm={() => runBatchTaskAction('retry')}
+                            >
+                              <AppButton
+                                className='router-page-button'
+                                color='blue'
+                                disabled={
+                                  batchSelectedCount === 0 || batchRunning
+                                }
+                                loading={batchRunning}
+                              >
+                                {t('task.batch.retry_selected', {
+                                  count: batchSelectedCount,
+                                })}
+                              </AppButton>
+                            </AppPopconfirm>
+                            <AppPopconfirm
+                              title={t('task.batch.confirm_cancel', {
+                                count: batchSelectedCount,
+                              })}
+                              okText={t('common.confirm')}
+                              cancelText={t('common.cancel')}
+                              disabled={
+                                batchSelectedCount === 0 || batchRunning
+                              }
+                              onConfirm={() => runBatchTaskAction('cancel')}
+                            >
+                              <AppButton
+                                className='router-page-button'
+                                color='red'
+                                disabled={
+                                  batchSelectedCount === 0 || batchRunning
+                                }
+                                loading={batchRunning}
+                              >
+                                {t('task.batch.cancel_selected', {
+                                  count: batchSelectedCount,
+                                })}
+                              </AppButton>
+                            </AppPopconfirm>
+                            <AppButton
+                              className='router-page-button'
+                              disabled={batchRunning}
+                              onClick={batchActions.exit}
+                            >
+                              {t('task.batch.cancel_selection')}
+                            </AppButton>
+                          </>
+                        ) : (
+                          <AppButton
+                            className='router-page-button'
+                            disabled={batchRunning || loading}
+                            onClick={batchActions.enter}
+                          >
+                            {t('task.batch.enter_selection')}
+                          </AppButton>
+                        )
+                      ) : null}
+                      <AppPagination
                       className='router-page-pagination'
                       activePage={page}
                       total={total}
@@ -1212,6 +1373,7 @@ const Task = ({ pageKind: pageKindOverride = '', embedded = false }) => {
                         loadTasks(nextPage).then();
                       }}
                     />
+                    </div>
                   }
                 />
               )}
