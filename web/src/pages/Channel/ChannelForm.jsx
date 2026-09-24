@@ -25,7 +25,6 @@ import ChannelDetailOverviewTab from './components/ChannelDetailOverviewTab';
 import ChannelDetailPublishTab from './components/ChannelDetailPublishTab';
 import ChannelDetailTestsTab from './components/ChannelDetailTestsTab';
 import ChannelAppendProviderModal from './components/ChannelAppendProviderModal';
-import { buildLogDrilldownPath } from '../../components/LogsTable.helpers';
 import ChannelComplexPricingModal from './components/ChannelComplexPricingModal';
 import ChannelModelEditorModal from './components/ChannelModelEditorModal';
 import ChannelEndpointPolicyEditorModal from './components/ChannelEndpointPolicyEditorModal';
@@ -4020,21 +4019,6 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
             },
           ]}
           title={inputs.name || t('channel.edit.title_detail')}
-          actions={
-            hasChannelID ? (
-              <AppButton
-                className='router-page-button'
-                icon={<AppIcon name='book' />}
-                onClick={() =>
-                  navigate(
-                    buildLogDrilldownPath('admin', { channel: channelId }),
-                  )
-                }
-              >
-                {t('log.drilldown.view')}
-              </AppButton>
-            ) : null
-          }
         />
       ) : null}
       <div
