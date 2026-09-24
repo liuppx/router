@@ -2698,6 +2698,10 @@
     "add": {
       "title": "Create New User Account"
     },
+    "export": {
+      "success": "Exported {{count}} users",
+      "empty": "No users to export for the current filters"
+    },
     "messages": {
       "load_failed": "Failed to load",
       "update_failed": "Failed to update",

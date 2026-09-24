@@ -2698,6 +2698,10 @@
     "add": {
       "title": "创建新用户账户"
     },
+    "export": {
+      "success": "已导出 {{count}} 个用户",
+      "empty": "当前筛选无可导出的用户"
+    },
     "messages": {
       "load_failed": "加载失败",
       "update_failed": "更新失败",

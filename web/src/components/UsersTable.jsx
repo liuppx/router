@@ -747,11 +747,9 @@ const UsersTable = ({ embedded = false }) => {
     </AppTooltip>
   );
 
-  const exportCurrentUsers = useCallback(() => {
-    const exportRows = (Array.isArray(users) ? users : []).filter((user) => !user?.deleted);
-    if (exportRows.length === 0) {
-      return;
-    }
+  const [exporting, setExporting] = useState(false);
+
+  const buildExportCsvText = useCallback((exportRows) => {
     const escapeCSV = (value) => {
       const normalized = String(value ?? '');
       if (/[",\n]/.test(normalized)) {
@@ -798,10 +796,53 @@ const UsersTable = ({ embedded = false }) => {
           .join(','),
       ),
     ];
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const focusSuffix = focusLabel ? `-${focusLabel}` : '';
-    downloadTextAsFile(lines.join('\n'), `users${focusSuffix}-${timestamp}.csv`);
-  }, [focusLabel, users]);
+    return lines.join('\n');
+  }, []);
+
+  const handleExportUsers = useCallback(async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      // 覆盖式分页下当前可见用户不等于筛选后全量;后端无专门的"导出"端点,
+      // 故拉一次 page_size=10000 的全集,参数与列表一致(包括 status / role)。
+      const params = new URLSearchParams();
+      params.set('page', '1');
+      params.set('page_size', '10000');
+      const normalizedStatus = (statusFilter || 'all').toString();
+      const normalizedRole = (roleFilter || 'all').toString();
+      if (normalizedStatus !== 'all') params.set('status', normalizedStatus);
+      if (normalizedRole !== 'all') params.set('role', normalizedRole);
+      const res = await API.get(`/api/v1/admin/user/?${params.toString()}`);
+      const { success, message, data } = res?.data || {};
+      if (!success) {
+        showError(message || t('common.load_failed'));
+        return;
+      }
+      const exportRows = (Array.isArray(data) ? data : []).filter(
+        (user) => !user?.deleted,
+      );
+      if (exportRows.length === 0) {
+        showError(t('user.export.empty'));
+        return;
+      }
+      const csvText = buildExportCsvText(exportRows);
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const focusSuffix = focusLabel ? `-${focusLabel}` : '';
+      downloadTextAsFile(csvText, `users${focusSuffix}-${stamp}.csv`);
+      showSuccess(t('user.export.success', { count: exportRows.length }));
+    } catch (error) {
+      showError(error?.message || t('common.load_failed'));
+    } finally {
+      setExporting(false);
+    }
+  }, [
+    buildExportCsvText,
+    exporting,
+    focusLabel,
+    roleFilter,
+    statusFilter,
+    t,
+  ]);
 
   const balanceUnitOptions = useMemo(
     () => buildDisplayUnitOptions(currencyIndex),
@@ -953,8 +994,9 @@ const UsersTable = ({ embedded = false }) => {
             </AppButton>
             <AppButton
               className='router-page-button'
-              disabled={users.filter((user) => !user?.deleted).length === 0}
-              onClick={exportCurrentUsers}
+              disabled={exporting}
+              loading={exporting}
+              onClick={handleExportUsers}
             >
               {t('common.download')}
             </AppButton>
