@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { API } from '../helpers/api';
 import { showError, withCardLabels } from '../helpers';
-import useUrlState, { parseListPageSize } from '../hooks/useUrlState';
+import useUrlState, { parseListPageSize, parsePageParam } from '../hooks/useUrlState';
 import {
   AppButton,
   AppDescriptions,
@@ -116,6 +116,7 @@ function AdminChannelAlertsPanel() {
       time: timeFilter,
       keyword,
       pageSize,
+      page,
     },
     patchQuery,
   ] = useUrlState({
@@ -125,9 +126,9 @@ function AdminChannelAlertsPanel() {
     time: { param: 'time', default: 'all' },
     keyword: { param: 'q', default: '' },
     pageSize: { param: 'page_size', default: 20, parse: parseListPageSize },
+    page: { param: 'page', default: 1, parse: parsePageParam },
   });
   const [keywordInput, setKeywordInput] = useState(keyword);
-  const [page, setPage] = useState(1);
   const [tableSorter, setTableSorter] = useState({
     columnKey: 'createdAt',
     order: 'descend',
@@ -183,7 +184,8 @@ function AdminChannelAlertsPanel() {
   }, [loadAlertItems]);
 
   useEffect(() => {
-    setPage(1);
+    patchQuery({ page: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword, levelFilter, statusFilter, timeFilter, typeFilter]);
 
   const openNoteModal = useCallback((action, alert) => {
@@ -407,8 +409,9 @@ function AdminChannelAlertsPanel() {
 
   useEffect(() => {
     if (page > totalPages) {
-      setPage(totalPages);
+      patchQuery({ page: totalPages });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, totalPages]);
 
   const statusOptions = useMemo(
@@ -1026,11 +1029,10 @@ function AdminChannelAlertsPanel() {
             onPageChange={(e, { activePage, pageSize: nextSize }) => {
               const size = Number(nextSize) > 0 ? Number(nextSize) : pageSize;
               if (size !== pageSize) {
-                patchQuery({ pageSize: size });
-                setPage(1);
+                patchQuery({ pageSize: size, page: 1 });
                 return;
               }
-              setPage(Number(activePage || 1));
+              patchQuery({ page: Number(activePage || 1) });
             }}
           />
         </div>
