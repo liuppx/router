@@ -99,6 +99,7 @@ type channelHealthItem struct {
 	HealthScore        int                                 `json:"health_score"`
 	HealthLevel        string                              `json:"health_level"`
 	CircuitBreaker     *channelCircuitBreakerDashboardItem `json:"circuit_breaker,omitempty"`
+	RecentRequestCount int64                               `json:"recent_request_count"`
 	HealthPoints       []channelHealthPoint                `json:"health_points"`
 }
 
@@ -754,21 +755,23 @@ func buildChannelCircuitBreakerDashboardItem(row model.ChannelCircuitBreakerStat
 }
 
 type dashboardChannelHealthBucketRow struct {
-	ChannelID    string `gorm:"column:channel_id"`
-	BucketStart  int64  `gorm:"column:bucket_start"`
-	SuccessCount int64  `gorm:"column:success_count"`
-	FailureCount int64  `gorm:"column:failure_count"`
-	LatencyTotal int64  `gorm:"column:latency_total"`
-	LatencyCount int64  `gorm:"column:latency_count"`
+	ChannelID      string `gorm:"column:channel_id"`
+	BucketStart    int64  `gorm:"column:bucket_start"`
+	SuccessCount   int64  `gorm:"column:success_count"`
+	FailureCount   int64  `gorm:"column:failure_count"`
+	LatencyTotal   int64  `gorm:"column:latency_total"`
+	LatencyCount   int64  `gorm:"column:latency_count"`
+	LastObservedAt int64  `gorm:"column:last_observed_at"`
 }
 
 func (row dashboardChannelHealthBucketRow) aggregate() healthtrend.Aggregate {
 	return healthtrend.Aggregate{
-		BucketStart:  row.BucketStart,
-		SuccessCount: row.SuccessCount,
-		FailureCount: row.FailureCount,
-		LatencyTotal: row.LatencyTotal,
-		LatencyCount: row.LatencyCount,
+		BucketStart:    row.BucketStart,
+		SuccessCount:   row.SuccessCount,
+		FailureCount:   row.FailureCount,
+		LatencyTotal:   row.LatencyTotal,
+		LatencyCount:   row.LatencyCount,
+		LastObservedAt: row.LastObservedAt,
 	}
 }
 
@@ -790,7 +793,8 @@ func loadDashboardChannelHealthBuckets(channelIDs []string, since int64) (map[st
 			SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) AS success_count,
 			SUM(CASE WHEN type = ? THEN 1 ELSE 0 END) AS failure_count,
 			SUM(CASE WHEN elapsed_time > 0 THEN elapsed_time ELSE 0 END) AS latency_total,
-			SUM(CASE WHEN elapsed_time > 0 THEN 1 ELSE 0 END) AS latency_count
+			SUM(CASE WHEN elapsed_time > 0 THEN 1 ELSE 0 END) AS latency_count,
+			MAX(created_at) AS last_observed_at
 		`, bucketExpr), model.LogTypeConsume, model.LogTypeRelayFailure).
 		Where("channel_id IN ?", normalizedChannelIDs).
 		Where("type IN ?", []int{model.LogTypeConsume, model.LogTypeRelayFailure}).
@@ -947,6 +951,8 @@ func listDashboardChannels() ([]channelHealthItem, channelHealthSummaryData, err
 		if circuitRow, ok := circuitByChannelID[channelID]; ok {
 			circuitBreaker = buildChannelCircuitBreakerDashboardItem(circuitRow)
 		}
+		healthPoints := healthtrend.BuildPoints(nowTs, healthBucketsByChannelID[channelID])
+		recentTraffic := healthtrend.Summarize(healthPoints)
 		items = append(items, channelHealthItem{
 			ID:                 channelID,
 			Name:               strings.TrimSpace(row.Name),
@@ -969,7 +975,8 @@ func listDashboardChannels() ([]channelHealthItem, channelHealthSummaryData, err
 			HealthScore:        health.HealthScore,
 			HealthLevel:        health.HealthLevel,
 			CircuitBreaker:     circuitBreaker,
-			HealthPoints:       healthtrend.BuildPoints(nowTs, healthBucketsByChannelID[channelID]),
+			RecentRequestCount: recentTraffic.TotalCount,
+			HealthPoints:       healthPoints,
 		})
 	}
 	healthSummary := summarizeChannelHealthItems(items)

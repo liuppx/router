@@ -3065,7 +3065,7 @@
         },
         "history": {
           "title": "Recent Call Health",
-          "hint": "Prioritizes circuit, risky, retest-needed, and high-usage channels. Each cell is a 5-minute call window; gray means that window has no call sample.",
+          "hint": "Fixed to the last 5 hours. Prioritizes circuit, risky, retest-needed, and high request-volume channels. Each cell is a 5-minute call window; gray means that window has no call sample.",
           "no_data": "No call sample",
           "window": "Time Window",
           "success_count": "Successes",

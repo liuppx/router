@@ -7,11 +7,12 @@ func TestBuildPointsAggregatesFiveMinuteBuckets(t *testing.T) {
 	bucket := BucketStart(now)
 	points := BuildPoints(now, []Aggregate{
 		{
-			BucketStart:  bucket,
-			SuccessCount: 2,
-			FailureCount: 1,
-			LatencyTotal: 450,
-			LatencyCount: 3,
+			BucketStart:    bucket,
+			SuccessCount:   2,
+			FailureCount:   1,
+			LatencyTotal:   450,
+			LatencyCount:   3,
+			LastObservedAt: bucket + 42,
 		},
 	})
 	if len(points) != BucketCount {
@@ -33,6 +34,9 @@ func TestBuildPointsAggregatesFiveMinuteBuckets(t *testing.T) {
 	if latest.PassRate < 0.6666 || latest.PassRate > 0.6667 {
 		t.Fatalf("latest pass rate=%f, want about 0.6667", latest.PassRate)
 	}
+	if latest.LastObservedAt != bucket+42 {
+		t.Fatalf("latest observed at=%d, want %d", latest.LastObservedAt, bucket+42)
+	}
 	if points[0].State != StateUnknown || points[0].TotalCount != 0 {
 		t.Fatalf("first point=%+v, want empty unknown bucket", points[0])
 	}
@@ -41,8 +45,8 @@ func TestBuildPointsAggregatesFiveMinuteBuckets(t *testing.T) {
 func TestSummarizePointsUsesObservedBuckets(t *testing.T) {
 	now := int64(1700001800)
 	points := BuildPoints(now, []Aggregate{
-		{BucketStart: BucketStart(now) - BucketIntervalSeconds, SuccessCount: 1, LatencyTotal: 100, LatencyCount: 1},
-		{BucketStart: BucketStart(now), FailureCount: 2},
+		{BucketStart: BucketStart(now) - BucketIntervalSeconds, SuccessCount: 1, LatencyTotal: 100, LatencyCount: 1, LastObservedAt: BucketStart(now) - BucketIntervalSeconds + 20},
+		{BucketStart: BucketStart(now), FailureCount: 2, LastObservedAt: BucketStart(now) + 30},
 	})
 	summary := Summarize(points)
 	if summary.SuccessCount != 1 || summary.FailureCount != 2 || summary.TotalCount != 3 {
@@ -54,7 +58,20 @@ func TestSummarizePointsUsesObservedBuckets(t *testing.T) {
 	if summary.AvgLatencyMs != 100 {
 		t.Fatalf("summary avg latency=%d, want 100", summary.AvgLatencyMs)
 	}
-	if summary.LastObservedAt != BucketStart(now)+BucketIntervalSeconds-1 {
-		t.Fatalf("last observed=%d, want latest bucket end", summary.LastObservedAt)
+	if summary.LastObservedAt != BucketStart(now)+30 {
+		t.Fatalf("last observed=%d, want precise latest observation", summary.LastObservedAt)
+	}
+}
+
+func TestSummarizePointsWeightsLatencyBySampleCount(t *testing.T) {
+	now := int64(1700001800)
+	bucket := BucketStart(now)
+	points := BuildPoints(now, []Aggregate{
+		{BucketStart: bucket - BucketIntervalSeconds, SuccessCount: 1, LatencyTotal: 100, LatencyCount: 1},
+		{BucketStart: bucket, SuccessCount: 10, LatencyTotal: 5000, LatencyCount: 10},
+	})
+	summary := Summarize(points)
+	if summary.AvgLatencyMs != 463 {
+		t.Fatalf("weighted avg latency=%d, want 463", summary.AvgLatencyMs)
 	}
 }

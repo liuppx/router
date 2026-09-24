@@ -140,7 +140,7 @@ const normalizePayload = (payload) => {
       unsupported_count: toNumber(item?.unsupported_count),
       pass_rate: toNumber(item?.pass_rate),
       avg_latency_ms: toNumber(item?.avg_latency_ms),
-      last_tested_at: toNumber(item?.last_tested_at),
+      last_signal_at: toNumber(item?.last_signal_at),
       supported_endpoints: Array.isArray(item?.supported_endpoints)
         ? item.supported_endpoints
         : [],
@@ -155,6 +155,7 @@ const normalizePayload = (payload) => {
             failure_count: toNumber(point?.failure_count),
             total_count: toNumber(point?.total_count),
             avg_latency_ms: toNumber(point?.avg_latency_ms),
+            last_observed_at: toNumber(point?.last_observed_at),
             pass_rate: toNumber(point?.pass_rate),
           }))
         : [],
@@ -670,7 +671,7 @@ const WorkspaceModels = () => {
                     </div>
                     <div className='workspace-model-last-tested'>
                       {t(`workspace_models.card.last_signal.${item.health_source}`, {
-                        time: formatUpdatedAt(item.last_tested_at),
+                        time: formatUpdatedAt(item.last_signal_at),
                       })}
                     </div>
                   </div>

@@ -776,6 +776,9 @@ func TestBuildUserModelStatusPayloadAggregatesGroupModels(t *testing.T) {
 	if gpt.HealthSource != "probe" {
 		t.Fatalf("gpt health source = %q, want probe", gpt.HealthSource)
 	}
+	if gpt.LastSignalAt != now {
+		t.Fatalf("gpt last signal at = %d, want %d", gpt.LastSignalAt, now)
+	}
 	if gpt.Provider != "openai" {
 		t.Fatalf("gpt provider = %q, want openai", gpt.Provider)
 	}
@@ -859,5 +862,21 @@ func TestLoadUserModelStatusTrafficRowsFiltersClientAbort(t *testing.T) {
 	}
 	if got[0].LatencyTotal != 1200 || got[0].LatencyCount != 1 {
 		t.Fatalf("bucket latency total/count=%d/%d, want 1200/1", got[0].LatencyTotal, got[0].LatencyCount)
+	}
+	if got[0].LastObservedAt != now {
+		t.Fatalf("bucket last observed at=%d, want %d", got[0].LastObservedAt, now)
+	}
+}
+
+func TestCalcUserModelStatusTreatsStaleProbeAsUnknown(t *testing.T) {
+	item := UserModelStatusItem{
+		HealthSource:   "probe",
+		LastSignalAt:   helper.GetTimestamp() - userModelStatusFreshnessSeconds - 1,
+		ChannelCount:   1,
+		SupportedCount: 1,
+	}
+	calcUserModelStatus(&item)
+	if item.HealthLevel != userModelHealthLevelUnknown || item.Status != userModelStatusUnknown || item.HealthScore != 0 {
+		t.Fatalf("stale probe health=%s status=%s score=%d, want unknown/unknown/0", item.HealthLevel, item.Status, item.HealthScore)
 	}
 }

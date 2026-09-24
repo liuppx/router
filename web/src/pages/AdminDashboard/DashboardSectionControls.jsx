@@ -2,10 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { AppButton, AppIcon, AppSelect, AppTooltip } from '../../router-ui';
 import { formatUpdatedAt } from './dashboardShared';
 
-// Shared period picker + refresh cluster used by every dashboard section
-// (spending / channel health / user analytics / model operations). `extra`
-// slots a section-specific control (e.g. a sort segmented) between the period
-// picker and the refresh button, matching the original renderSectionControls.
+// Shared period picker (when a section has a period) + refresh cluster. `extra`
+// slots a section-specific control between the picker and refresh button.
 export const DashboardSectionControls = ({
   period,
   periodOptions,
@@ -16,16 +14,22 @@ export const DashboardSectionControls = ({
   extra = null,
 }) => {
   const { t } = useTranslation();
+  const hasPeriodControl =
+    Array.isArray(periodOptions) &&
+    periodOptions.length > 0 &&
+    typeof onPeriodChange === 'function';
   return (
     <div className='admin-dashboard-section-controls'>
-      <div className='admin-dashboard-period-control'>
-        <AppSelect
-          className='router-section-dropdown'
-          options={periodOptions}
-          value={period}
-          onChange={(e, { value }) => onPeriodChange(value)}
-        />
-      </div>
+      {hasPeriodControl ? (
+        <div className='admin-dashboard-period-control'>
+          <AppSelect
+            className='router-section-dropdown'
+            options={periodOptions}
+            value={period}
+            onChange={(e, { value }) => onPeriodChange(value)}
+          />
+        </div>
+      ) : null}
       {extra}
       <div className='admin-dashboard-refresh-controls'>
         <span className='admin-dashboard-generated-at'>

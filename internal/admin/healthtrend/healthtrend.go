@@ -18,22 +18,25 @@ const (
 )
 
 type Aggregate struct {
-	BucketStart  int64
-	SuccessCount int64
-	FailureCount int64
-	LatencyTotal int64
-	LatencyCount int64
+	BucketStart    int64
+	SuccessCount   int64
+	FailureCount   int64
+	LatencyTotal   int64
+	LatencyCount   int64
+	LastObservedAt int64
 }
 
 type Point struct {
-	State        string  `json:"state"`
-	BucketStart  int64   `json:"bucket_start"`
-	BucketEnd    int64   `json:"bucket_end"`
-	SuccessCount int64   `json:"success_count"`
-	FailureCount int64   `json:"failure_count"`
-	TotalCount   int64   `json:"total_count"`
-	AvgLatencyMs int64   `json:"avg_latency_ms"`
-	PassRate     float64 `json:"pass_rate"`
+	State          string  `json:"state"`
+	BucketStart    int64   `json:"bucket_start"`
+	BucketEnd      int64   `json:"bucket_end"`
+	SuccessCount   int64   `json:"success_count"`
+	FailureCount   int64   `json:"failure_count"`
+	TotalCount     int64   `json:"total_count"`
+	AvgLatencyMs   int64   `json:"avg_latency_ms"`
+	LatencyCount   int64   `json:"latency_count"`
+	PassRate       float64 `json:"pass_rate"`
+	LastObservedAt int64   `json:"last_observed_at"`
 }
 
 type Summary struct {
@@ -110,14 +113,23 @@ func BuildPoints(now int64, rows []Aggregate) []Point {
 			points[index].AvgLatencyMs += row.LatencyTotal
 			latencyCounts[index] += row.LatencyCount
 		}
+		if row.LastObservedAt > points[index].LastObservedAt {
+			points[index].LastObservedAt = row.LastObservedAt
+		}
 	}
 	for i := range points {
 		if latencyCounts[i] > 0 {
 			points[i].AvgLatencyMs = points[i].AvgLatencyMs / latencyCounts[i]
+			points[i].LatencyCount = latencyCounts[i]
 		}
 		points[i].State = StateForCounts(points[i].SuccessCount, points[i].FailureCount)
 		if points[i].TotalCount > 0 {
 			points[i].PassRate = float64(points[i].SuccessCount) / float64(points[i].TotalCount)
+			// Older aggregate callers identify only their five-minute bucket.
+			// New callers report the precise final observation timestamp.
+			if points[i].LastObservedAt <= 0 {
+				points[i].LastObservedAt = points[i].BucketEnd
+			}
 		}
 	}
 	return points
@@ -147,13 +159,13 @@ func Summarize(points []Point) Summary {
 		summary.TotalCount += point.TotalCount
 		if point.TotalCount > 0 {
 			summary.ObservedBucketCount++
-			if point.BucketEnd > summary.LastObservedAt {
-				summary.LastObservedAt = point.BucketEnd
+			if point.LastObservedAt > summary.LastObservedAt {
+				summary.LastObservedAt = point.LastObservedAt
 			}
 		}
-		if point.AvgLatencyMs > 0 {
-			latencyTotal += point.AvgLatencyMs
-			latencyCount++
+		if point.AvgLatencyMs > 0 && point.LatencyCount > 0 {
+			latencyTotal += point.AvgLatencyMs * point.LatencyCount
+			latencyCount += point.LatencyCount
 		}
 	}
 	if latencyCount > 0 {

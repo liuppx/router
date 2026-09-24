@@ -13,7 +13,6 @@ import {
   CHANNEL_SORT_OPTIONS,
   CHANNEL_HEALTH_POINT_COLORS,
   EMPTY_CHANNEL_HEALTH_SUMMARY,
-  PERIOD_OPTIONS,
   buildChannelHealthHistory,
   formatCount,
   formatPercent,
@@ -28,28 +27,15 @@ import { DashboardSectionControls } from '../DashboardSectionControls';
 
 // Channel health analytics, extracted from AdminDashboard's channels section so
 // the channel shell (/admin/channel?tab=health) can host it inline without a
-// full route swap. Self-contained: owns period/sort state, fetches its own
+// full route swap. Self-contained: owns sort state, fetches its own
 // section data, and renders its own toolbar (the shell provides breadcrumb+tabs).
 const ChannelHealthSection = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const [period, setPeriod] = useState('last_7_days');
   const [channelSort, setChannelSort] = useState('health');
 
-  const { dashboard, loading, reload } = useAdminDashboardData('channels', {
-    period,
-  });
-
-  const periodOptions = useMemo(
-    () =>
-      PERIOD_OPTIONS.map((value) => ({
-        key: value,
-        value,
-        text: t(`dashboard.spending.period.${value}`),
-      })),
-    [t],
-  );
+  const { dashboard, loading, reload } = useAdminDashboardData('channels');
 
   const channelSortOptions = useMemo(
     () =>
@@ -81,6 +67,7 @@ const ChannelHealthSection = () => {
         status: Number(row.status || 0),
         capabilities: renderCapabilities(row.capabilities),
         health_score: Number(row.health_score || 0),
+        request_count: Number(row.recent_request_count || 0),
         health_level: row.health_level || 'unknown',
         pass_rate_percent: toPercent(row.pass_rate),
         coverage_rate_percent: toPercent(row.coverage_rate),
@@ -123,8 +110,9 @@ const ChannelHealthSection = () => {
           return leftLatency - rightLatency;
         }
       } else if (channelSort === 'requests') {
-        // Busiest-first by total request count; ties break on health_score desc
-        // so high-volume + risky channels still float to the top.
+        // Busiest-first by the same five-hour request window used by the health
+        // strip; ties break on health_score desc so high-volume + risky channels
+        // still float to the top.
         const leftReq = Number(left.request_count || 0);
         const rightReq = Number(right.request_count || 0);
         if (leftReq !== rightReq) {
@@ -227,9 +215,6 @@ const ChannelHealthSection = () => {
             className='admin-dashboard-section-toolbar'
             end={
               <DashboardSectionControls
-                period={period}
-                periodOptions={periodOptions}
-                onPeriodChange={setPeriod}
                 generatedAt={dashboard.generated_at}
                 loading={loading}
                 onRefresh={reload}
