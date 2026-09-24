@@ -8,7 +8,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import UnitDropdown from './UnitDropdown';
 import useList, { sorterToSort, sortOrderForColumn } from '../hooks/useList';
-import { parseListPageSize } from '../hooks/useUrlState';
+import { parseListPageSize, parsePageParam } from '../hooks/useUrlState';
 
 import { LIST_PAGE_SIZE } from '../constants';
 import { exportCSV } from '../helpers/csv';
@@ -114,6 +114,13 @@ const LogsTable = () => {
     // Seed once from the URL; later changes flow through setPageSize.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // Seed the page from the URL once so returning from a log detail (or a shared
+  // link) restores the same page; filter/sort/size changes reset back to page 1.
+  const initialPage = useMemo(
+    () => parsePageParam(new URLSearchParams(location.search).get('page')),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
   const [logType, setLogType] = useState(initialSearchFilters.logType);
   const [filterOptions, setFilterOptions] = useState({
     tokenNames: [],
@@ -248,6 +255,7 @@ const LogsTable = () => {
   } = useList({
     fetcher: fetchLogs,
     pageSize: initialPageSize,
+    initialPage,
     initialSort,
   });
 
@@ -288,6 +296,12 @@ const LogsTable = () => {
     if (Number(pageSize) !== LIST_PAGE_SIZE) {
       query.set('page_size', String(pageSize));
     }
+    // Page position (default 1 is stripped). Folded into this rebuild-from-state
+    // effect so it stays consistent with the filters/sort/size it writes; any of
+    // those resets the page to 1 via loadLogs(1), which drops the param here.
+    if (Number(activePage) > 1) {
+      query.set('page', String(activePage));
+    }
     const nextSearch = query.toString();
     const currentSearch = location.search.startsWith('?')
       ? location.search.slice(1)
@@ -308,6 +322,7 @@ const LogsTable = () => {
     logType,
     sort,
     pageSize,
+    activePage,
     isAdminScope,
     location.pathname,
     location.search,
@@ -837,10 +852,14 @@ const LogsTable = () => {
   }, [cleanupTimestamp, refresh, t]);
 
   // `loadLogs` (useList.load) is stable, so `fetchLogs` is the real trigger:
-  // its identity changes with the filter deps, reloading page 1 on filter change
-  // (and once on mount).
+  // its identity changes with the filter deps, reloading page 1 on filter change.
+  // On the very first run we restore the seeded page instead; later filter
+  // changes reset to page 1 as usual.
+  const didInitLogsRef = useRef(false);
   useEffect(() => {
-    loadLogs(1);
+    const firstRun = !didInitLogsRef.current;
+    didInitLogsRef.current = true;
+    loadLogs(firstRun ? initialPage : 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchLogs]);
 
