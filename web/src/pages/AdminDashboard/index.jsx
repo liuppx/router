@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import {
   CartesianGrid,
   Line,
@@ -23,11 +24,16 @@ import {
   chartTooltipLabelStyle,
   chartTooltipItemStyle,
 } from '../../router-ui';
+import { API } from '../../helpers';
+import useChannelAlertSummary from '../../hooks/useChannelAlertSummary';
+import { adaptListResponse } from '../../hooks/useList';
+import AdminChannelAlertsPanel from '../../components/AdminChannelAlertsPanel';
+import ChannelHealthSection from './sections/ChannelHealthSection';
 import './Dashboard.css';
 import {
   PERIOD_OPTIONS,
   TREND_METRIC_OPTIONS,
-  DASHBOARD_SECTION_TITLES,
+  EMPTY_CHANNEL_HEALTH_SUMMARY,
   formatCount,
   useAdminDashboardData,
   useUsdFormatter,
@@ -35,13 +41,12 @@ import {
 import { DashboardSectionControls } from './DashboardSectionControls';
 import './AdminDashboard.css';
 
-// The admin dashboard is now the spending overview only. Channel health, user
-// analytics, and model operations moved to their own entity shells
-// (/admin/channel?tab=health, /admin/user?tab=analytics,
-// /workspace/service/models?tab=operations); old ?section= deep links are
-// redirected there by DashboardSectionRedirect in App.jsx.
+// 首屏 = 值班台:顶部一排可点击状态磁贴(火/供给/失败任务/收支)让运营者一眼
+// 看清「今天有没有事」并直接下钻到处置现场;其下内嵌告警面板(就地 ack/resolve)
+// 与渠道健康概览;经营大盘下沉到最底。告警/健康小件自包含、零 props、各自轮询。
 const AdminDashboard = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { formatUsd } = useUsdFormatter();
   const [period, setPeriod] = useState('last_7_days');
   const [trendMetric, setTrendMetric] = useState('spend_amount');
@@ -50,7 +55,39 @@ const AdminDashboard = () => {
     period,
   });
 
-  const spendingTitle = t(DASHBOARD_SECTION_TITLES.spending);
+  // 值班状态条数据源(均复用既有接口,无新后端):
+  // - 告警摘要:与侧栏红点共用的 hook(60s 轮询)。
+  const { unresolvedCritical, unacknowledged } = useChannelAlertSummary();
+  // - 渠道健康摘要:复用 dashboard?section=channels 的 channel_health_summary。
+  const { dashboard: channelsDashboard } = useAdminDashboardData('channels');
+  const channelHealthSummary = useMemo(
+    () => ({
+      ...EMPTY_CHANNEL_HEALTH_SUMMARY,
+      ...(channelsDashboard.channel_health_summary || {}),
+    }),
+    [channelsDashboard.channel_health_summary],
+  );
+  // - 失败任务数:轻量拉一页系统任务(status=failed)取 total。
+  const [failedTaskCount, setFailedTaskCount] = useState(0);
+  useEffect(() => {
+    let active = true;
+    API.get('/api/v1/admin/tasks', {
+      params: { status: 'failed', page: 1, page_size: 1 },
+    })
+      .then((response) => {
+        if (!active || response?.data?.success !== true) return;
+        const { total } = adaptListResponse(response.data);
+        setFailedTaskCount(Number(total || 0));
+      })
+      .catch(() => {
+        // 值班条为概览信号,失败静默降级为 0,不打断首屏。
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const dutyTitle = t('dashboard.admin.duty.title');
 
   const periodOptions = useMemo(
     () =>
@@ -148,11 +185,72 @@ const AdminDashboard = () => {
       breadcrumbs={[
         { key: 'admin', label: t('header.admin_workspace') },
         { key: 'dashboard', label: t('header.dashboard') },
-        { key: 'spending', label: spendingTitle, active: true },
+        { key: 'duty', label: dutyTitle, active: true },
       ]}
-      title={spendingTitle}
+      title={dutyTitle}
     />
   );
+
+  const renderDutyStrip = () => {
+    const riskyChannels =
+      Number(channelHealthSummary.risk_count || 0) +
+      Number(channelHealthSummary.active_circuit_breaker_count || 0);
+    const tiles = [
+      {
+        key: 'pending_alerts',
+        label: t('dashboard.admin.duty.pending_alerts'),
+        value: unresolvedCritical,
+        hint: t('dashboard.admin.duty.pending_alerts_hint', {
+          count: unacknowledged,
+        }),
+        tone: 'critical',
+        to: '/admin/channel?tab=alerts',
+      },
+      {
+        key: 'risky_channels',
+        label: t('dashboard.admin.duty.risky_channels'),
+        value: riskyChannels,
+        tone: 'critical',
+        to: '/admin/channel?tab=health',
+      },
+      {
+        key: 'failed_tasks',
+        label: t('dashboard.admin.duty.failed_tasks'),
+        value: failedTaskCount,
+        tone: 'warning',
+        to: '/admin/channel?tab=tasks',
+      },
+      {
+        key: 'net_amount',
+        label: t('dashboard.admin.duty.net_amount'),
+        display: formatUsd(dashboard.summary.net_amount),
+        tone: 'info',
+        to: '/admin/finance',
+      },
+    ];
+    return (
+      <div className='admin-dashboard-duty-strip'>
+        {tiles.map((tile) => (
+          <button
+            type='button'
+            key={tile.key}
+            className={`admin-dashboard-channel-bell admin-dashboard-channel-bell-cta is-${tile.tone}${
+              tile.value > 0 ? ' is-active' : ''
+            }`}
+            onClick={() => navigate(tile.to)}
+          >
+            <div className='admin-dashboard-channel-bell-value'>
+              {tile.display !== undefined ? tile.display : tile.value}
+            </div>
+            <div className='admin-dashboard-channel-bell-label'>{tile.label}</div>
+            {tile.hint ? (
+              <div className='admin-dashboard-duty-tile-hint'>{tile.hint}</div>
+            ) : null}
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   const renderSpendingSection = () => (
     <AppSection className='admin-dashboard-section'>
@@ -277,6 +375,9 @@ const AdminDashboard = () => {
   return (
     <div className='dashboard-container admin-dashboard-container'>
       {renderPageHeader()}
+      {renderDutyStrip()}
+      <AdminChannelAlertsPanel />
+      <ChannelHealthSection />
       <AppSpin spinning={loading} className='admin-dashboard-content-spin'>
         {renderSpendingSection()}
       </AppSpin>

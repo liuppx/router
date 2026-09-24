@@ -384,6 +384,26 @@
   border-color: var(--router-status-danger, #dc2626);
 }
 
+/* 值班状态条:复用告警 bell 的视觉语汇,作为首屏顶部一眼看清「有没有事」的入口条。 */
+.admin-dashboard-duty-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0 16px;
+}
+
+.admin-dashboard-duty-tile-hint {
+  color: var(--router-text-muted, #94a3b8);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+@media (max-width: 720px) {
+  .admin-dashboard-duty-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* Channel section: ambient fleet stats as a slim strip below the alert bells. */
 .admin-dashboard-channel-meta-strip {
   display: flex;

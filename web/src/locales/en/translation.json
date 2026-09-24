@@ -3003,6 +3003,14 @@
         "models": "Model Operations",
         "alerts": "Alerts"
       },
+      "duty": {
+        "title": "Duty Station",
+        "pending_alerts": "Unresolved Critical",
+        "pending_alerts_hint": "{{count}} more unacknowledged",
+        "risky_channels": "Risky Channels",
+        "failed_tasks": "Failed Tasks",
+        "net_amount": "Net"
+      },
       "model_tabs": {
         "catalog": "Catalog",
         "operations": "Operations"
