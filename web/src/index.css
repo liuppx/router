@@ -252,6 +252,23 @@ body,
     text-overflow: ellipsis;
 }
 
+/* 侧栏告警红点:label 命中 badge 时切成带红点的 JSX(见 AdminSidebar.decorateLabel)。 */
+.router-nav-label-with-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.router-nav-alert-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff4d4f;
+    box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.18);
+    flex: 0 0 auto;
+}
+
 .router-ui-nav-menu.router-admin-nav-menu .ant-menu-item .anticon,
 .router-ui-nav-menu.router-admin-nav-menu .ant-menu-submenu-title .anticon {
     min-width: 16px;

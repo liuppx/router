@@ -11,7 +11,7 @@ export const ADMIN_MENU_GROUPS = [
     icon: 'chart line',
     items: [
       {
-        name: 'dashboard.admin.nav.spending',
+        name: 'dashboard.admin.nav.duty',
         to: '/admin/dashboard',
         icon: 'chart line',
       },
@@ -33,6 +33,9 @@ export const ADMIN_MENU_GROUPS = [
         name: 'header.channel',
         to: '/admin/channel',
         icon: 'sitemap',
+        // 声明式红点标记:AdminSidebar 据此把本项 label 换成带告警红点的 JSX
+        // (数据源 useChannelAlertSummary,仅 unresolved_critical>0 时亮)。
+        badge: 'channel-alerts',
       },
       {
         name: 'header.group',

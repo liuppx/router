@@ -2997,6 +2997,7 @@
       "title": "管理员总览",
       "nav": {
         "spending": "经营总览",
+        "duty": "值班台",
         "channels": "渠道健康",
         "users": "用户分析",
         "models": "模型经营",
@@ -3124,6 +3125,7 @@
       },
       "alerts": {
         "title": "告警",
+        "sidebar_badge": "{{count}} 条未解决严重告警",
         "description": "汇总渠道账务异常、熔断事件以及模型/端点运行时禁用，集中进入处理流程。",
         "empty": "当前没有告警",
         "load_failed": "加载告警失败",
@@ -4515,6 +4517,7 @@
   "personal_setting": {
     "unset": "未设置",
     "set": "已设置",
+    "identity_did_unset": "未绑定身份(用夜莺钱包插件登录以绑定)",
     "section": {
       "account_info": "账户信息",
       "notification_preferences": "通知偏好"
@@ -4545,6 +4548,7 @@
     },
     "field": {
       "wallet": "钱包地址",
+      "identity_did": "身份 DID",
       "avatar": "头像",
       "email": "邮箱",
       "password": "密码",

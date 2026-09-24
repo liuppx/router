@@ -8,6 +8,7 @@ import {
 } from '../constants/adminMenu';
 import { isUserRouteActive } from '../constants/userMenu';
 import { useIsAdmin } from '../hooks/useAuth';
+import useChannelAlertSummary from '../hooks/useChannelAlertSummary';
 import { AppIcon, AppNavMenu } from '../router-ui';
 
 // Persist only the groups the user explicitly collapsed. Stored as an array
@@ -48,6 +49,8 @@ const AdminSidebar = ({ compact = false }) => {
   // than localStorage, and recompute when it changes — so a server-side role
   // change is reflected in the sidebar without a full re-login.
   const hasAdminAccess = useIsAdmin();
+  // 侧栏主动推送:仅未解决严重告警(unresolved_critical)驱动渠道项红点。
+  const { unresolvedCritical } = useChannelAlertSummary();
   const menuItems = useMemo(
     () => buildUnifiedWorkspaceMenuGroups(hasAdminAccess),
     [hasAdminAccess],
@@ -152,8 +155,32 @@ const AdminSidebar = ({ compact = false }) => {
   };
 
   const items = useMemo(
-    () =>
-      menuItems.map((group) => {
+    () => {
+      // 命中 badge 标记且有对应计数时,把纯字符串 label 换成带红点的 JSX;
+      // 其余项保持字符串路径不变(避免全量重排)。当前仅渠道项(channel-alerts)
+      // 在 unresolved_critical>0 时亮红点。
+      const decorateLabel = (item) => {
+        const label = t(item.name);
+        if (item.badge === 'channel-alerts' && unresolvedCritical > 0) {
+          return (
+            <span className='router-nav-label-with-badge'>
+              {label}
+              <i
+                className='router-nav-alert-dot'
+                role='img'
+                aria-label={t('dashboard.admin.alerts.sidebar_badge', {
+                  count: unresolvedCritical,
+                })}
+                title={t('dashboard.admin.alerts.sidebar_badge', {
+                  count: unresolvedCritical,
+                })}
+              />
+            </span>
+          );
+        }
+        return label;
+      };
+      return menuItems.map((group) => {
         if (Array.isArray(group.items)) {
           // A single-item group is pure nesting noise (e.g. "设置 > 设置"):
           // render it as a flat leaf pointing at its only child, keeping the
@@ -164,7 +191,7 @@ const AdminSidebar = ({ compact = false }) => {
             return {
               key: only.to,
               icon: <AppIcon name={group.icon} />,
-              label: t(only.name),
+              label: decorateLabel(only),
             };
           }
           return {
@@ -174,7 +201,7 @@ const AdminSidebar = ({ compact = false }) => {
             children: group.items.map((item) => ({
               key: item.to,
               icon: <AppIcon name={item.icon} />,
-              label: t(item.name),
+              label: decorateLabel(item),
             })),
           };
         }
@@ -183,8 +210,9 @@ const AdminSidebar = ({ compact = false }) => {
           icon: <AppIcon name={group.icon} />,
           label: t(group.name),
         };
-      }),
-    [menuItems, t],
+      });
+    },
+    [menuItems, t, unresolvedCritical],
   );
 
   return (

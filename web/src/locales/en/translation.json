@@ -2997,6 +2997,7 @@
       "title": "Admin Overview",
       "nav": {
         "spending": "Overview",
+        "duty": "Duty Station",
         "channels": "Channel Health",
         "users": "User Analytics",
         "models": "Model Operations",
@@ -3124,6 +3125,7 @@
       },
       "alerts": {
         "title": "Alerts",
+        "sidebar_badge": "{{count}} unresolved critical alerts",
         "description": "Aggregate billing anomalies, circuit breaker events, and model or endpoint disablements into one handling queue.",
         "empty": "There are no alerts right now",
         "load_failed": "Failed to load alerts",
@@ -4515,6 +4517,7 @@
   "personal_setting": {
     "unset": "Not set",
     "set": "Set",
+    "identity_did_unset": "No identity bound (sign in with the YeYing wallet plugin to bind)",
     "section": {
       "account_info": "Account info",
       "notification_preferences": "Notification preferences"
@@ -4545,6 +4548,7 @@
     },
     "field": {
       "wallet": "Wallet address",
+      "identity_did": "Identity DID",
       "avatar": "Avatar",
       "email": "Email",
       "password": "Password",
