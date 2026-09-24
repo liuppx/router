@@ -13,7 +13,7 @@ import {
 } from '../helpers';
 import useList, { sorterToSort, sortOrderForColumn } from '../hooks/useList';
 import useBatchRowActions from '../hooks/useBatchRowActions';
-import { parseListPageSize } from '../hooks/useUrlState';
+import { parseListPageSize, parsePageParam } from '../hooks/useUrlState';
 
 import { LIST_PAGE_SIZE } from '../constants';
 import {
@@ -186,6 +186,14 @@ const TokensTable = () => {
     return raw ? parseListPageSize(raw) : LIST_PAGE_SIZE;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // Seed the page from the URL once so returning from a detail page (or a shared
+  // link) lands on the same page instead of snapping back to 1. Default 1 is
+  // stripped from the URL; filters/search/sort/size all reset back to page 1.
+  const initialPage = useMemo(
+    () => parsePageParam(new URLSearchParams(location.search).get('page')),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
   const [statusFilter, setStatusFilter] = useState(() => initialStatus);
   const [currencyIndex, setCurrencyIndex] = useState(() =>
     buildPublicDisplayCurrencyIndex([]),
@@ -246,6 +254,7 @@ const TokensTable = () => {
   } = useList({
     fetcher: fetchTokens,
     pageSize: initialPageSize,
+    initialPage,
     initialSort,
   });
 
@@ -260,7 +269,40 @@ const TokensTable = () => {
       } else {
         params.set('page_size', String(size));
       }
+      // Resizing returns to page 1 (see useList.setPageSize), so drop the page
+      // param in the same write to keep the URL consistent with the reset.
+      params.delete('page');
       const nextSearch = params.toString();
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+        },
+        { replace: true },
+      );
+    },
+    [location.pathname, location.search, navigate],
+  );
+
+  // page lives in the URL (default 1 is stripped) so a refresh / shared link /
+  // return-from-detail keeps the current page. Folded into each single navigate
+  // rather than a standalone effect, so it never clobbers the sibling param
+  // writes (status / sort / size) that also reset the page back to 1.
+  const syncPageToUrl = useCallback(
+    (page) => {
+      const params = new URLSearchParams(location.search);
+      if (Number(page) > 1) {
+        params.set('page', String(page));
+      } else {
+        params.delete('page');
+      }
+      const nextSearch = params.toString();
+      const currentSearch = location.search.startsWith('?')
+        ? location.search.slice(1)
+        : location.search;
+      if (nextSearch === currentSearch) {
+        return;
+      }
       navigate(
         {
           pathname: location.pathname,
@@ -287,6 +329,7 @@ const TokensTable = () => {
       return;
     }
     const nextPage = Number(nextActivePage) > 0 ? Number(nextActivePage) : 1;
+    syncPageToUrl(nextPage);
     if (isSearchMode) {
       // Search mode keeps the full result set client-side; just slice.
       setActivePage(nextPage);
@@ -308,7 +351,7 @@ const TokensTable = () => {
       // Restore the search result set when arriving with a keyword in the URL.
       searchTokens();
     } else {
-      loadTokens(1);
+      loadTokens(initialPage);
     }
     // Run once on mount; searchTokens reads the seeded keyword.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -330,6 +373,7 @@ const TokensTable = () => {
       params.set('status', normalized);
     }
     params.delete('q');
+    params.delete('page');
     const nextSearch = params.toString();
     navigate(
       {
@@ -354,6 +398,8 @@ const TokensTable = () => {
       params.delete('order_by');
       params.delete('order');
     }
+    // Sorting returns to page 1 (see useList.setSort), so drop the page param too.
+    params.delete('page');
     const nextSearch = params.toString();
     const currentSearch = location.search.startsWith('?')
       ? location.search.slice(1)
@@ -557,6 +603,8 @@ const TokensTable = () => {
       } else {
         params.set('q', trimmed);
       }
+      // Entering/leaving search returns to page 1, so never carry a page param.
+      params.delete('page');
       const nextSearch = params.toString();
       const currentSearch = location.search.startsWith('?')
         ? location.search.slice(1)
@@ -619,6 +667,7 @@ const TokensTable = () => {
     // Status already at default: just drop the keyword and reload the list.
     const params = new URLSearchParams(location.search);
     params.delete('q');
+    params.delete('page');
     const nextSearch = params.toString();
     navigate(
       {
