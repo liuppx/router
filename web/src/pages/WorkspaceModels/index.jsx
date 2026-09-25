@@ -299,18 +299,6 @@ const WorkspaceModels = () => {
     [t],
   );
 
-  const handleCreateToken = useCallback(
-    (model) => {
-      const value = String(model || '').trim();
-      navigate(
-        value
-          ? `/workspace/token/add?model=${encodeURIComponent(value)}`
-          : '/workspace/token/add',
-      );
-    },
-    [navigate],
-  );
-
   const renderChannelCount = useCallback(
     (item) => {
       const value = `${formatCount(item.tested_channel_count)} / ${formatCount(item.channel_count)}`;
@@ -702,16 +690,6 @@ const WorkspaceModels = () => {
                       disabled={!item.model}
                     >
                       {t('workspace_models.card.copy_model')}
-                    </AppButton>
-                    <AppButton
-                      size='small'
-                      color='blue'
-                      className='router-inline-button'
-                      icon={<AppIcon name='plus' />}
-                      onClick={() => handleCreateToken(item.model)}
-                      disabled={!item.model}
-                    >
-                      {t('workspace_models.card.create_token')}
                     </AppButton>
                     <AppButton
                       size='small'

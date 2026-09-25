@@ -4365,7 +4365,6 @@
       },
       "no_endpoints": "暂无可用端点",
       "copy_model": "复制模型名",
-      "create_token": "用此模型创建令牌",
       "copied": "已复制模型名：{{model}}",
       "copy_failed": "复制失败，请手动复制"
     }

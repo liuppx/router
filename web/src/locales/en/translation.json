@@ -4365,7 +4365,6 @@
       },
       "no_endpoints": "No available endpoints",
       "copy_model": "Copy model name",
-      "create_token": "Create a token with this model",
       "copied": "Model name copied: {{model}}",
       "copy_failed": "Copy failed, please copy manually"
     }
