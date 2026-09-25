@@ -35,6 +35,7 @@ type channelListItem struct {
 	BillingSummary        string                         `json:"billing_summary"`
 	BillingSnapshotAt     int64                          `json:"billing_snapshot_at"`
 	BillingQuotaItemCount int                            `json:"billing_quota_item_count"`
+	BillingLevel          string                         `json:"billing_level,omitempty"`
 	UsedQuota             int64                          `json:"used_quota"`
 	UsedAmount            int64                          `json:"used_amount"`
 	Priority              int64                          `json:"priority"`
@@ -263,6 +264,7 @@ func listChannelsPage(page int, pageSize int, keyword string, status string) (ch
 		item := buildChannelListItem(row)
 		if snapshot, ok := latestSnapshotMap[strings.TrimSpace(row.Id)]; ok {
 			item.BillingSummary, item.BillingSnapshotAt, item.BillingQuotaItemCount = summarizeChannelBillingSnapshot(snapshot)
+			item.BillingLevel = model.ChannelBillingLevelFromSnapshot(snapshot)
 		} else {
 			item.BillingSummary = "-"
 		}

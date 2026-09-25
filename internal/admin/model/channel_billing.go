@@ -535,6 +535,24 @@ func NormalizeChannelBillingSnapshotItems(items []ChannelBillingSnapshotItem) []
 	return normalized
 }
 
+// ChannelBillingLevelFromSnapshot 从快照的权益项聚合出渠道级余额告警等级:
+// 任一项已耗尽 → "depleted";否则任一项偏低 → "low";其余(含无项/已过期)→ ""。
+// 用于渠道列表与大盘「低余额渠道」信号,读取快照落库时算好的 item.Status,
+// 不做时间相关的重算(低/耗尽只与剩余额度有关,快照间稳定)。
+func ChannelBillingLevelFromSnapshot(snapshot ChannelBillingSnapshot) string {
+	items := NormalizeChannelBillingSnapshotItems(snapshot.Items)
+	level := ""
+	for _, item := range items {
+		switch item.Status {
+		case ChannelBillingItemStatusDepleted:
+			return ChannelBillingItemStatusDepleted
+		case ChannelBillingItemStatusLow:
+			level = ChannelBillingItemStatusLow
+		}
+	}
+	return level
+}
+
 func ListChannelBillingSnapshotItemsBySnapshotIDsWithDB(db *gorm.DB, snapshotIDs []string) ([]ChannelBillingSnapshotItem, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database handle is nil")

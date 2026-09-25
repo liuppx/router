@@ -101,6 +101,7 @@ type channelHealthItem struct {
 	CircuitBreaker     *channelCircuitBreakerDashboardItem `json:"circuit_breaker,omitempty"`
 	RecentRequestCount int64                               `json:"recent_request_count"`
 	HealthPoints       []channelHealthPoint                `json:"health_points"`
+	BillingLevel       string                              `json:"billing_level,omitempty"`
 }
 
 type channelHealthSummaryData struct {
@@ -113,6 +114,7 @@ type channelHealthSummaryData struct {
 	RiskCount                 int64   `json:"risk_count"`
 	ActiveCircuitBreakerCount int64   `json:"active_circuit_breaker_count"`
 	HighLatencyCount          int64   `json:"high_latency_count"`
+	LowBalanceChannelCount    int64   `json:"low_balance_channel_count"`
 }
 
 type channelCircuitBreakerDashboardItem struct {
@@ -874,6 +876,10 @@ func summarizeChannelHealthItems(items []channelHealthItem) channelHealthSummary
 		if item.AvgLatencyMs >= 8000 {
 			summary.HighLatencyCount++
 		}
+		if item.BillingLevel == model.ChannelBillingItemStatusLow ||
+			item.BillingLevel == model.ChannelBillingItemStatusDepleted {
+			summary.LowBalanceChannelCount++
+		}
 	}
 	if summary.WithTests > 0 {
 		summary.AvgPassRate = passRateTotal / float64(summary.WithTests)
@@ -934,6 +940,16 @@ func listDashboardChannels() ([]channelHealthItem, channelHealthSummaryData, err
 	for _, row := range circuitRows {
 		circuitByChannelID[strings.TrimSpace(row.ChannelId)] = row
 	}
+	billingSnapshots, err := model.ListLatestChannelBillingSnapshotsByChannelIDsWithDB(model.DB, channelIDs)
+	if err != nil {
+		return nil, channelHealthSummaryData{}, err
+	}
+	billingLevelByChannelID := make(map[string]string, len(billingSnapshots))
+	for _, snapshot := range billingSnapshots {
+		if level := model.ChannelBillingLevelFromSnapshot(snapshot); level != "" {
+			billingLevelByChannelID[strings.TrimSpace(snapshot.ChannelId)] = level
+		}
+	}
 	nowTs := helper.GetTimestamp()
 	healthBucketsByChannelID, err := loadDashboardChannelHealthBuckets(channelIDs, healthtrend.WindowStart(nowTs))
 	if err != nil {
@@ -977,6 +993,7 @@ func listDashboardChannels() ([]channelHealthItem, channelHealthSummaryData, err
 			CircuitBreaker:     circuitBreaker,
 			RecentRequestCount: recentTraffic.TotalCount,
 			HealthPoints:       healthPoints,
+			BillingLevel:       billingLevelByChannelID[channelID],
 		})
 	}
 	healthSummary := summarizeChannelHealthItems(items)
