@@ -2613,6 +2613,7 @@
       "user_id": "用户 ID",
       "package_mode_title": "套餐",
       "balance_mode_title": "余额",
+      "tokens_title": "令牌",
       "remaining_amount": "剩余",
       "used_amount": "已用",
       "request_count_hint": "累计请求次数",

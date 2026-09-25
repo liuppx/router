@@ -16,6 +16,7 @@ import {
 import UnitDropdown from '../../components/UnitDropdown';
 import { buildLogDrilldownPath } from '../../components/LogsTable.helpers';
 import BusinessRecordsTable from '../../components/BusinessRecordsTable';
+import TokensTable from '../../components/TokensTable';
 import CopyButton from '../../components/CopyButton';
 import {
   AppButton,
@@ -1224,6 +1225,11 @@ const UserDetail = () => {
       label: t('topup.payment_history.title'),
       disabled: editSection !== '' && activeDetailTab !== 'records',
     },
+    {
+      key: 'tokens',
+      label: t('user.detail.tokens_title'),
+      disabled: editSection !== '' && activeDetailTab !== 'tokens',
+    },
   ];
 
   return (
@@ -1868,6 +1874,14 @@ const UserDetail = () => {
                     return `/admin/user/detail/${encodeURIComponent(userId)}/payment/${encodeURIComponent(paymentID)}`;
                   }}
                 />
+              </AppDetailSection>
+              ) : null}
+
+              {activeDetailTab === 'tokens' ? (
+              <AppDetailSection
+                title={t('user.detail.tokens_title')}
+              >
+                <TokensTable admin embedded userId={userId} />
               </AppDetailSection>
               ) : null}
         </div>

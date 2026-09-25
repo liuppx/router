@@ -142,7 +142,7 @@ function buildChatTokenUrl(chatLink, tokenKey) {
   }
 }
 
-const TokensTable = ({ admin = false } = {}) => {
+const TokensTable = ({ admin = false, embedded = false, userId = '' } = {}) => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -151,6 +151,12 @@ const TokensTable = ({ admin = false } = {}) => {
   // edit route swap over, an owner column appears, and the "add token" button is
   // hidden (admin-create-on-behalf is intentionally out of scope). Personal mode
   // (admin=false) keeps its original behavior untouched.
+  //
+  // Embedded mode scopes the list to a single user (userId) for the admin user
+  // detail page: it drops its own header/breadcrumbs, hides the owner column and
+  // the keyword search box (the search endpoint isn't user-scoped, so showing it
+  // would leak other users' tokens), and — since it lives under another page's
+  // route — never writes its filter/page/sort state back into the URL.
   const apiBase = admin ? '/api/v1/admin/token' : '/api/v1/public/token';
   const tokenRoutePrefix = admin ? '/admin/token' : '/workspace/token';
   // The public delete route expects a trailing slash; the admin route matches
@@ -238,6 +244,9 @@ const TokensTable = ({ admin = false } = {}) => {
       params.set('order_by', backendOrderBy);
       params.set('order', order === 'asc' ? 'asc' : 'desc');
     }
+    if (userId) {
+      params.set('user_id', userId);
+    }
     const res = await API.get(`${apiBase}/?${params.toString()}`);
     const { success, message, data, meta } = res.data;
     if (!success) {
@@ -248,7 +257,7 @@ const TokensTable = ({ admin = false } = {}) => {
       ? data.map(normalizeTokenRow).filter(Boolean)
       : [];
     return { rows, total: Number(meta?.total || rows.length || 0) };
-  }, [statusFilter]);
+  }, [statusFilter, userId, apiBase]);
 
   const {
     rows,
@@ -275,6 +284,9 @@ const TokensTable = ({ admin = false } = {}) => {
   // than through useUrlState, so mirror the param here.
   const syncPageSizeToUrl = useCallback(
     (size) => {
+      if (embedded) {
+        return;
+      }
       const params = new URLSearchParams(location.search);
       if (Number(size) === LIST_PAGE_SIZE) {
         params.delete('page_size');
@@ -293,7 +305,7 @@ const TokensTable = ({ admin = false } = {}) => {
         { replace: true },
       );
     },
-    [location.pathname, location.search, navigate],
+    [embedded, location.pathname, location.search, navigate],
   );
 
   // page lives in the URL (default 1 is stripped) so a refresh / shared link /
@@ -302,6 +314,9 @@ const TokensTable = ({ admin = false } = {}) => {
   // writes (status / sort / size) that also reset the page back to 1.
   const syncPageToUrl = useCallback(
     (page) => {
+      if (embedded) {
+        return;
+      }
       const params = new URLSearchParams(location.search);
       if (Number(page) > 1) {
         params.set('page', String(page));
@@ -323,7 +338,7 @@ const TokensTable = ({ admin = false } = {}) => {
         { replace: true },
       );
     },
-    [location.pathname, location.search, navigate],
+    [embedded, location.pathname, location.search, navigate],
   );
 
   const onPaginationChange = (e, { activePage: nextActivePage, pageSize: nextSize }) => {
@@ -387,13 +402,15 @@ const TokensTable = ({ admin = false } = {}) => {
     params.delete('q');
     params.delete('page');
     const nextSearch = params.toString();
-    navigate(
-      {
-        pathname: location.pathname,
-        search: nextSearch ? `?${nextSearch}` : '',
-      },
-      { replace: true },
-    );
+    if (!embedded) {
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+        },
+        { replace: true },
+      );
+    }
     setIsSearchMode(false);
     setSearchKeyword('');
     loadTokens(1);
@@ -402,6 +419,9 @@ const TokensTable = ({ admin = false } = {}) => {
 
   // Reflect the active sort in the URL (replace), preserving other params.
   useEffect(() => {
+    if (embedded) {
+      return;
+    }
     const params = new URLSearchParams(location.search);
     if (sort?.field) {
       params.set('order_by', sort.field);
@@ -606,6 +626,9 @@ const TokensTable = ({ admin = false } = {}) => {
   // history), preserving any other query params. Cleared search removes `q`.
   const writeSearchParam = useCallback(
     (keyword) => {
+      if (embedded) {
+        return;
+      }
       const params = new URLSearchParams(location.search);
       const trimmed = (keyword || '').trim();
       if (trimmed === '') {
@@ -630,7 +653,7 @@ const TokensTable = ({ admin = false } = {}) => {
         { replace: true },
       );
     },
-    [location.pathname, location.search, navigate],
+    [embedded, location.pathname, location.search, navigate],
   );
 
   const searchTokens = async () => {
@@ -679,13 +702,15 @@ const TokensTable = ({ admin = false } = {}) => {
     params.delete('q');
     params.delete('page');
     const nextSearch = params.toString();
-    navigate(
-      {
-        pathname: location.pathname,
-        search: nextSearch ? `?${nextSearch}` : '',
-      },
-      { replace: true },
-    );
+    if (!embedded) {
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+        },
+        { replace: true },
+      );
+    }
     setIsSearchMode(false);
     loadTokens(1);
   };
@@ -725,7 +750,9 @@ const TokensTable = ({ admin = false } = {}) => {
     <>
       <AppFilterHeader
         breadcrumbs={
-          admin
+          embedded
+            ? []
+            : admin
             ? [{ key: 'token', label: t('token.admin.title'), active: true }]
             : [
                 { key: 'workspace', label: t('header.user_workspace') },
@@ -733,7 +760,7 @@ const TokensTable = ({ admin = false } = {}) => {
                 { key: 'token', label: t('header.token'), active: true },
               ]
         }
-        title={admin ? t('token.admin.title') : t('header.token')}
+        title={embedded ? '' : admin ? t('token.admin.title') : t('header.token')}
         actions={
           <div className='router-list-toolbar-actions'>
             {!admin && (
@@ -850,24 +877,26 @@ const TokensTable = ({ admin = false } = {}) => {
                 { value: '4', label: t('token.table.status_depleted') },
               ]}
             />
-            <form
-              className='router-search-form-xs'
-              onSubmit={(event) => {
-                event.preventDefault();
-                searchTokens();
-              }}
-            >
-              <AppInput
-                className='router-section-input'
-                icon='search'
-                fluid
-                iconPosition='left'
-                placeholder={t('token.search')}
-                value={searchKeyword}
-                loading={searching}
-                onChange={handleKeywordChange}
-              />
-            </form>
+            {!embedded && (
+              <form
+                className='router-search-form-xs'
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  searchTokens();
+                }}
+              >
+                <AppInput
+                  className='router-section-input'
+                  icon='search'
+                  fluid
+                  iconPosition='left'
+                  placeholder={t('token.search')}
+                  value={searchKeyword}
+                  loading={searching}
+                  onChange={handleKeywordChange}
+                />
+              </form>
+            )}
             <AppButton
               className='router-section-button'
               disabled={statusFilter === 'all' && searchKeyword === ''}
@@ -952,7 +981,7 @@ const TokensTable = ({ admin = false } = {}) => {
             ellipsis: true,
             render: (value) => value || t('token.table.no_name'),
           },
-          ...(admin
+          ...(admin && !embedded
             ? [
                 {
                   title: t('token.table.owner'),

@@ -2613,6 +2613,7 @@
       "user_id": "User ID",
       "package_mode_title": "Package",
       "balance_mode_title": "Balance",
+      "tokens_title": "Tokens",
       "remaining_amount": "Remaining",
       "used_amount": "Used",
       "request_count_hint": "Total requests",
