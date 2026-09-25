@@ -35,6 +35,11 @@ func GetByUsername(username string) (*model.User, error) {
 	return userrepo.GetByUsername(username)
 }
 
+// GetUsernamesByIds 批量取用户名(id -> username),供列表页富化属主信息。
+func GetUsernamesByIds(ids []string) map[string]string {
+	return userrepo.GetUsernamesByIds(ids)
+}
+
 func GetIDByAffCode(code string) (string, error) {
 	return userrepo.GetIDByAffCode(code)
 }

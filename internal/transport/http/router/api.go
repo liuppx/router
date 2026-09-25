@@ -397,6 +397,10 @@ func SetApiRouter(engine *gin.Engine) {
 		adminTokenRoute.Use(middleware.AdminAuth())
 		{
 			adminTokenRoute.GET("/search", token.SearchAdminTokens)
+			adminTokenRoute.GET("/", token.ListAdminTokens)
+			adminTokenRoute.GET("/:id", token.GetAdminToken)
+			adminTokenRoute.PUT("/", token.UpdateAdminToken)
+			adminTokenRoute.DELETE("/:id", token.DeleteAdminToken)
 		}
 
 		adminRedemptionRoute := adminRouter.Group("/redemption")

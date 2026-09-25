@@ -633,6 +633,37 @@ func GetUsernameById(id string) string {
 	return username
 }
 
+// GetUsernamesByIds 批量取用户名,返回 id -> username 映射,供列表页富化属主信息、
+// 避免逐行查询的 N+1。空入参或去重后为空时返回空 map。
+func GetUsernamesByIds(ids []string) map[string]string {
+	result := make(map[string]string)
+	unique := make([]string, 0, len(ids))
+	seen := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		trimmed := strings.TrimSpace(id)
+		if trimmed == "" {
+			continue
+		}
+		if _, ok := seen[trimmed]; ok {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		unique = append(unique, trimmed)
+	}
+	if len(unique) == 0 {
+		return result
+	}
+	rows := make([]struct {
+		Id       string
+		Username string
+	}, 0, len(unique))
+	model.DB.Model(&model.User{}).Where("id IN ?", unique).Select("id", "username").Find(&rows)
+	for _, row := range rows {
+		result[row.Id] = row.Username
+	}
+	return result
+}
+
 func AccessTokenExists(token string) (bool, error) {
 	var user model.User
 	err := model.DB.Where("access_token = ?", token).First(&user).Error

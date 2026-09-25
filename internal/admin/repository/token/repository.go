@@ -99,6 +99,39 @@ func CountFiltered(userId string, statusFilter int) (int64, error) {
 	return total, err
 }
 
+// buildAdminTokenQuery 组装 admin 全站令牌查询的公共过滤条件(不加 user 作用域):
+// statusFilter!=0 按状态过滤;userID 非空按属主过滤;keyword 非空按 name/id 模糊匹配。
+func buildAdminTokenQuery(statusFilter int, keyword, userID string) *gorm.DB {
+	query := model.DB.Model(&model.Token{})
+	if statusFilter != 0 {
+		query = query.Where("status = ?", statusFilter)
+	}
+	if id := strings.TrimSpace(userID); id != "" {
+		query = query.Where("user_id = ?", id)
+	}
+	if kw := strings.TrimSpace(keyword); kw != "" {
+		likeKeyword := "%" + kw + "%"
+		query = query.Where("name LIKE ? OR id LIKE ?", likeKeyword, likeKeyword)
+	}
+	return query
+}
+
+// GetAllAdminFiltered 列出全站令牌(跨用户),支持状态/属主/关键词过滤与分页排序。
+// 排序复用 buildTokenOrder 的列白名单,列名绝不来自请求原文。
+func GetAllAdminFiltered(start, num int, orderBy, order string, statusFilter int, keyword, userID string) ([]*model.Token, error) {
+	var tokens []*model.Token
+	query := buildAdminTokenQuery(statusFilter, keyword, userID).Order(buildTokenOrder(orderBy, order))
+	err := query.Limit(num).Offset(start).Find(&tokens).Error
+	return tokens, err
+}
+
+// CountAdminFiltered 统计全站令牌总数,过滤条件与 GetAllAdminFiltered 一致。
+func CountAdminFiltered(statusFilter int, keyword, userID string) (int64, error) {
+	var total int64
+	err := buildAdminTokenQuery(statusFilter, keyword, userID).Count(&total).Error
+	return total, err
+}
+
 func GetFirstAvailable(userId string) (*model.Token, error) {
 	if strings.TrimSpace(userId) == "" {
 		return nil, errors.New("user id is empty")

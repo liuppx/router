@@ -68,6 +68,29 @@ func NewTokens(tokens []*model.Token) []*Token {
 	return items
 }
 
+// AdminToken 在 Token 基础上带出属主用户名,供全站令牌管理列表展示 owner 列。
+type AdminToken struct {
+	*Token
+	Username string `json:"username"`
+}
+
+// NewAdminTokens 组装带属主用户名的令牌列表;nameByID 为 user_id -> username 映射,
+// 缺失时 username 为空字符串。
+func NewAdminTokens(tokens []*model.Token, nameByID map[string]string) []*AdminToken {
+	items := make([]*AdminToken, 0, len(tokens))
+	for _, token := range tokens {
+		username := ""
+		if token != nil {
+			username = nameByID[token.UserId]
+		}
+		items = append(items, &AdminToken{
+			Token:    NewToken(token),
+			Username: username,
+		})
+	}
+	return items
+}
+
 type Redemption struct {
 	*model.Redemption
 	CreditAmount int64 `json:"credit_amount"`
