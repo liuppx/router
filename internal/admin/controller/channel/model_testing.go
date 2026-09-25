@@ -54,6 +54,7 @@ type channelModelTestTargetItem struct {
 const (
 	channelModelResponsesTestModeText            = "text"
 	channelModelResponsesTestModeImageGeneration = "image_generation"
+	channelHealthProbeResponsesMaxOutputTokens   = 16
 )
 
 func normalizeResponsesTestMode(raw string) string {
@@ -588,9 +589,7 @@ func runSingleChannelModelTestWithContextAndStream(ctx context.Context, channel 
 		}
 		request := buildResponsesTextModelTestRequest(row.Model, stream)
 		if isChannelHealthProbeContext(ctx) {
-			request.Input = "1"
-			maxOutputTokens := 1
-			request.MaxOutputTokens = &maxOutputTokens
+			request = buildResponsesTextModelHealthProbeRequest(row.Model, stream)
 		}
 		requestBody, _ := json.Marshal(request)
 		execution := executeChannelTextModelTestRawBodyWithRetry(
@@ -1136,6 +1135,14 @@ func buildResponsesTextModelTestRequest(modelName string, stream bool) *relaymod
 		},
 		Stream: stream,
 	}
+}
+
+func buildResponsesTextModelHealthProbeRequest(modelName string, stream bool) *relaymodel.GeneralOpenAIRequest {
+	request := buildResponsesTextModelTestRequest(modelName, stream)
+	request.Input = "1"
+	maxOutputTokens := channelHealthProbeResponsesMaxOutputTokens
+	request.MaxOutputTokens = &maxOutputTokens
+	return request
 }
 
 func buildResponsesTextModelTestRequestBody(modelName string, stream bool) []byte {

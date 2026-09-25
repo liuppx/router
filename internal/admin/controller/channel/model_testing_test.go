@@ -61,6 +61,16 @@ func TestBuildResponsesTextModelTestRequestBody_Stream_NoStreamOptions(t *testin
 	}
 }
 
+func TestBuildResponsesTextModelHealthProbeRequest_UsesResponsesMinimum(t *testing.T) {
+	request := buildResponsesTextModelHealthProbeRequest("qwen3.7-max-2026-05-17", false)
+	if request.Input != "1" {
+		t.Fatalf("health probe input = %v, want 1", request.Input)
+	}
+	if request.MaxOutputTokens == nil || *request.MaxOutputTokens != 16 {
+		t.Fatalf("health probe max_output_tokens = %v, want 16", request.MaxOutputTokens)
+	}
+}
+
 func TestReplaceModelNameInRawTextRequest_PreserveStreamFlag(t *testing.T) {
 	body := []byte(`{"model":"old-model","stream":true,"input":"hello"}`)
 	updated, stream, err := replaceModelNameInRawTextRequest(body, "new-model")
