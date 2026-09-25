@@ -3931,6 +3931,16 @@
     "export": {
       "success": "Exported {{count}} rows"
     },
+    "records": {
+      "title": "Records",
+      "summary": "All money flows in one place: top-up orders, purchases, reconciliation and redemptions.",
+      "kinds": {
+        "topup": "Top-ups",
+        "purchase": "Purchases",
+        "reconcile": "Reconcile",
+        "redemption": "Redemptions"
+      }
+    },
     "pricing_analysis": {
       "nav": "Profit",
       "title": "Profit",

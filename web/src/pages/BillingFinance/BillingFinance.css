@@ -9,3 +9,13 @@
   align-items: center;
   justify-content: center;
 }
+
+.billing-finance-records-switch {
+  margin-bottom: 12px;
+}
+
+.billing-finance-records-hint {
+  margin: 8px 0 0;
+  color: var(--router-text-muted, #6b7280);
+  font-size: 13px;
+}

@@ -3931,6 +3931,16 @@
     "export": {
       "success": "已导出 {{count}} 行"
     },
+    "records": {
+      "title": "流水/记录",
+      "summary": "全站资金流水:充值单、采购、对账与兑换记录集中查询。",
+      "kinds": {
+        "topup": "充值单",
+        "purchase": "采购",
+        "reconcile": "对账",
+        "redemption": "兑换"
+      }
+    },
     "pricing_analysis": {
       "nav": "利润",
       "title": "利润",

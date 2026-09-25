@@ -8,6 +8,7 @@ import './BillingFinance.css';
 const BillingOverviewPage = lazy(() => import('./overview'));
 const BillingPricingAnalysisPage = lazy(() => import('./profit'));
 const BillingProcurementReportPage = lazy(() => import('./procurement'));
+const FinanceRecordsPage = lazy(() => import('./records'));
 
 // Single finance shell: overview / profit / procurement all live under
 // `/admin/finance?tab=...` so switching a tab only changes the query string —
@@ -17,6 +18,7 @@ const TABS = [
   { key: 'overview', labelKey: 'billing.overview.title' },
   { key: 'profit', labelKey: 'billing.pricing_analysis.title' },
   { key: 'procurement', labelKey: 'billing.procurement_report.title' },
+  { key: 'records', labelKey: 'billing.records.title' },
 ];
 
 const VALID_TABS = new Set(TABS.map((tab) => tab.key));
@@ -49,6 +51,8 @@ const FinanceLayout = () => {
         return <BillingPricingAnalysisPage embedded />;
       case 'procurement':
         return <BillingProcurementReportPage embedded />;
+      case 'records':
+        return <FinanceRecordsPage />;
       case 'overview':
       default:
         return <BillingOverviewPage embedded />;
