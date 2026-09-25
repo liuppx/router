@@ -88,7 +88,6 @@ export const CHANNEL_LIST_COLUMN_WIDTHS = {
   type: 104,
   status: 92,
   createdAt: 148,
-  updatedAt: 148,
   capabilities: 160,
   billing: 180,
   priority: 92,
@@ -101,7 +100,6 @@ export const CHANNEL_LIST_TABLE_MIN_WIDTH =
   CHANNEL_LIST_COLUMN_WIDTHS.type +
   CHANNEL_LIST_COLUMN_WIDTHS.status +
   CHANNEL_LIST_COLUMN_WIDTHS.createdAt +
-  CHANNEL_LIST_COLUMN_WIDTHS.updatedAt +
   CHANNEL_LIST_COLUMN_WIDTHS.capabilities +
   CHANNEL_LIST_COLUMN_WIDTHS.billing +
   CHANNEL_LIST_COLUMN_WIDTHS.priority +
@@ -159,7 +157,6 @@ export const USER_LIST_COLUMN_WIDTHS = {
   balance: 120,
   requestCount: 100,
   createdAt: 148,
-  updatedAt: 148,
   role: 92,
   status: 92,
   actions: 176,
@@ -171,7 +168,6 @@ export const USER_LIST_TABLE_MIN_WIDTH =
   USER_LIST_COLUMN_WIDTHS.balance +
   USER_LIST_COLUMN_WIDTHS.requestCount +
   USER_LIST_COLUMN_WIDTHS.createdAt +
-  USER_LIST_COLUMN_WIDTHS.updatedAt +
   USER_LIST_COLUMN_WIDTHS.role +
   USER_LIST_COLUMN_WIDTHS.status +
   USER_LIST_COLUMN_WIDTHS.actions;

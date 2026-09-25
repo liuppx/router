@@ -385,14 +385,6 @@ const BusinessRecordsTable = ({
             sortValue: (row) => Number(row?.created_at || 0),
             render: (row) => formatDateTime(row.created_at),
           },
-          {
-            key: 'updated_at',
-            label: t('user.table.updated_at'),
-            width: BUSINESS_FLOW_COLUMN_WIDTHS.datetime,
-            cellClassName: 'router-table-col-datetime',
-            sortValue: (row) => Number(row?.updated_at || 0),
-            render: (row) => formatDateTime(row.updated_at),
-          },
         ],
         defaultSorter: {
           columnKey: 'created_at',

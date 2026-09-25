@@ -875,18 +875,6 @@ const ChannelsTable = ({ embedded = false }) => {
             render: (value) => (value ? renderTimestamp(value) : '-'),
           },
           {
-            title: t('channel.table.updated_at'),
-            dataIndex: 'updated_at',
-            key: 'updated_at',
-            className: 'router-table-col-datetime',
-            width: CHANNEL_LIST_COLUMN_WIDTHS.updatedAt,
-            sorter: (a, b) => compareNumberValue(a.updated_at, b.updated_at),
-            sortDirections: ['ascend', 'descend'],
-            sortOrder:
-              tableSorter.columnKey === 'updated_at' ? tableSorter.order : null,
-            render: (value) => (value ? renderTimestamp(value) : '-'),
-          },
-          {
             title: t('channel.table.capabilities'),
             dataIndex: 'capabilities',
             key: 'capabilities',

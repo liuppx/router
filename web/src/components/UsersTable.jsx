@@ -1245,20 +1245,6 @@ const UsersTable = ({ embedded = false }) => {
             render: (value) => (value ? timestamp2string(value) : '-'),
           },
           {
-            title: t('user.table.updated_at'),
-            dataIndex: 'updated_at',
-            key: 'updated_at',
-            className: 'router-table-col-datetime',
-            width: USER_LIST_COLUMN_WIDTHS.updatedAt,
-            sorter: (a, b) => compareNumberValue(a.updated_at, b.updated_at),
-            sortDirections: ['ascend', 'descend'],
-            sortOrder:
-              tableSorter.columnKey === 'updated_at'
-                ? tableSorter.order
-                : null,
-            render: (value) => (value ? timestamp2string(value) : '-'),
-          },
-          {
             title: t('user.table.role_text'),
             dataIndex: 'role',
             key: 'role',
