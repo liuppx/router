@@ -12,6 +12,7 @@
     "group": "Group",
     "entitlement": "Entitlements",
     "token": "Token",
+    "token_admin": "All tokens",
     "account": "Account",
     "redemption": "Redemption",
     "topup": "Top Up",
@@ -1849,6 +1850,9 @@
   },
   "token": {
     "title": "Token Management",
+    "admin": {
+      "title": "All tokens"
+    },
     "batch": {
       "enter_selection": "Batch Actions",
       "cancel_selection": "Cancel Selection",
@@ -1867,6 +1871,7 @@
     },
     "table": {
       "name": "Name",
+      "owner": "Owner",
       "status": "Status",
       "token": "Token",
       "used_amount": "Used",

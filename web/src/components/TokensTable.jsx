@@ -142,11 +142,23 @@ function buildChatTokenUrl(chatLink, tokenKey) {
   }
 }
 
-const TokensTable = () => {
+const TokensTable = ({ admin = false } = {}) => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const currentPagePath = `${location.pathname}${location.search}${location.hash}`;
+  // Admin mode reuses this table across all users' tokens: the API prefix and the
+  // edit route swap over, an owner column appears, and the "add token" button is
+  // hidden (admin-create-on-behalf is intentionally out of scope). Personal mode
+  // (admin=false) keeps its original behavior untouched.
+  const apiBase = admin ? '/api/v1/admin/token' : '/api/v1/public/token';
+  const tokenRoutePrefix = admin ? '/admin/token' : '/workspace/token';
+  // The public delete route expects a trailing slash; the admin route matches
+  // `/:id` without one (a trailing slash would trigger a method-losing redirect).
+  const buildDeletePath = (id) =>
+    admin
+      ? `${apiBase}/${encodeURIComponent(id)}`
+      : `${apiBase}/${encodeURIComponent(id)}/`;
   // Seed the search keyword from the URL once, so a refresh or shared link
   // keeps the active search instead of dropping back to the full list.
   const initialSearchKeyword = useMemo(
@@ -226,7 +238,7 @@ const TokensTable = () => {
       params.set('order_by', backendOrderBy);
       params.set('order', order === 'asc' ? 'asc' : 'desc');
     }
-    const res = await API.get(`/api/v1/public/token/?${params.toString()}`);
+    const res = await API.get(`${apiBase}/?${params.toString()}`);
     const { success, message, data, meta } = res.data;
     if (!success) {
       showError(message);
@@ -449,15 +461,15 @@ const TokensTable = () => {
     try {
       switch (action) {
         case 'delete':
-          res = await API.delete(`/api/v1/public/token/${id}/`);
+          res = await API.delete(buildDeletePath(id));
           break;
         case 'enable':
           data.status = 1;
-          res = await API.put('/api/v1/public/token/?status_only=true', data);
+          res = await API.put(`${apiBase}/?status_only=true`, data);
           break;
         case 'disable':
           data.status = 2;
-          res = await API.put('/api/v1/public/token/?status_only=true', data);
+          res = await API.put(`${apiBase}/?status_only=true`, data);
           break;
         default:
           return;
@@ -512,7 +524,7 @@ const TokensTable = () => {
       const failedIDs = [];
       for (const id of keys) {
         try {
-          const res = await API.put('/api/v1/public/token/?status_only=true', {
+          const res = await API.put(`${apiBase}/?status_only=true`, {
             id,
             status: targetStatus,
           });
@@ -550,9 +562,7 @@ const TokensTable = () => {
     const failedIDs = [];
     for (const id of keys) {
       try {
-        const res = await API.delete(
-          `/api/v1/public/token/${encodeURIComponent(id)}/`,
-        );
+        const res = await API.delete(buildDeletePath(id));
         if (res?.data?.success) succeeded += 1;
         else {
           failed += 1;
@@ -634,7 +644,7 @@ const TokensTable = () => {
     setSearching(true);
     try {
       const res = await API.get(
-        `/api/v1/public/token/search?keyword=${searchKeyword}`,
+        `${apiBase}/search?keyword=${searchKeyword}`,
       );
       const { success, message, data } = res.data;
       if (success) {
@@ -714,27 +724,33 @@ const TokensTable = () => {
   return (
     <>
       <AppFilterHeader
-        breadcrumbs={[
-          { key: 'workspace', label: t('header.user_workspace') },
-          { key: 'mine', label: t('header.mine') },
-          { key: 'token', label: t('header.token'), active: true },
-        ]}
-        title={t('header.token')}
+        breadcrumbs={
+          admin
+            ? [{ key: 'token', label: t('token.admin.title'), active: true }]
+            : [
+                { key: 'workspace', label: t('header.user_workspace') },
+                { key: 'mine', label: t('header.mine') },
+                { key: 'token', label: t('header.token'), active: true },
+              ]
+        }
+        title={admin ? t('token.admin.title') : t('header.token')}
         actions={
           <div className='router-list-toolbar-actions'>
-            <AppButton
-              className='router-page-button'
-              color='blue'
-              onClick={() =>
-                navigate('/workspace/token/add', {
-                  state: {
-                    from: currentPagePath,
-                  },
-                })
-              }
-            >
-              {t('token.buttons.add')}
-            </AppButton>
+            {!admin && (
+              <AppButton
+                className='router-page-button'
+                color='blue'
+                onClick={() =>
+                  navigate('/workspace/token/add', {
+                    state: {
+                      from: currentPagePath,
+                    },
+                  })
+                }
+              >
+                {t('token.buttons.add')}
+              </AppButton>
+            )}
             {batchSelectionMode ? (
               <>
                 <AppPopconfirm
@@ -900,16 +916,18 @@ const TokensTable = () => {
             ) : (
               <AppEmpty
                 action={
-                  <AppButton
-                    color='blue'
-                    onClick={() =>
-                      navigate('/workspace/token/add', {
-                        state: { from: currentPagePath },
-                      })
-                    }
-                  >
-                    {t('token.buttons.add')}
-                  </AppButton>
+                  admin ? undefined : (
+                    <AppButton
+                      color='blue'
+                      onClick={() =>
+                        navigate('/workspace/token/add', {
+                          state: { from: currentPagePath },
+                        })
+                      }
+                    >
+                      {t('token.buttons.add')}
+                    </AppButton>
+                  )
                 }
               >
                 {t('token.table.empty_cta')}
@@ -919,7 +937,7 @@ const TokensTable = () => {
           onRow={(token) => ({
             className: 'router-row-clickable',
             onClick: () =>
-              navigate(`/workspace/token/${token.id}`, {
+              navigate(`${tokenRoutePrefix}/${token.id}`, {
                 state: {
                   from: currentPagePath,
                 },
@@ -934,6 +952,39 @@ const TokensTable = () => {
             ellipsis: true,
             render: (value) => value || t('token.table.no_name'),
           },
+          ...(admin
+            ? [
+                {
+                  title: t('token.table.owner'),
+                  dataIndex: 'username',
+                  key: 'owner',
+                  ellipsis: true,
+                  render: (value, token) => {
+                    const userId = (token?.user_id || '').toString().trim();
+                    const label = value || userId || '-';
+                    return (
+                      <AppButton
+                        type='button'
+                        basic
+                        className='router-inline-button'
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (!userId) {
+                            return;
+                          }
+                          navigate(
+                            `/admin/user/detail/${encodeURIComponent(userId)}`,
+                            { state: { from: currentPagePath } },
+                          );
+                        }}
+                      >
+                        {label}
+                      </AppButton>
+                    );
+                  },
+                },
+              ]
+            : []),
           {
             title: t('token.table.token'),
             dataIndex: 'key',

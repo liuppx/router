@@ -45,13 +45,17 @@ import {
 } from '../../router-ui';
 import { buildLogDrilldownPath } from '../../components/LogsTable.helpers';
 
-const EditToken = () => {
+const EditToken = ({ admin = false } = {}) => {
   const { t } = useTranslation();
   const location = useLocation();
   const params = useParams();
   const tokenId = params.id;
   const isCreateMode = tokenId === undefined;
   const isDetailMode = !isCreateMode;
+  // Admin mode edits any user's token: the API prefix and the list fallback route
+  // swap over. The backend validates model entitlement against the token owner.
+  const apiBase = admin ? '/api/v1/admin/token' : '/api/v1/public/token';
+  const tokenListPath = admin ? '/admin/token' : '/workspace/token';
   const returnPath = (() => {
     const from = location.state?.from;
     if (typeof from !== 'string') {
@@ -404,11 +408,11 @@ const EditToken = () => {
       navigate(returnPath);
       return;
     }
-    navigate('/token');
+    navigate(tokenListPath);
   };
 
   const handleBack = () => {
-    navigate(returnPath || '/token');
+    navigate(returnPath || tokenListPath);
   };
 
   const setExpiredTime = (month, day, hour, minute) => {
@@ -495,7 +499,7 @@ const EditToken = () => {
 
   const loadToken = useCallback(async () => {
     try {
-      let res = await API.get(`/api/v1/public/token/${tokenId}`);
+      let res = await API.get(`${apiBase}/${tokenId}`);
       const { success, message, data, code } = res.data || {};
       if (success && data) {
         syncTokenState(data);
@@ -503,14 +507,14 @@ const EditToken = () => {
         const errorMessage = message || t('token.edit.messages.load_failed');
         showError(errorMessage);
         if (code === 'token_not_found') {
-          navigate('/workspace/token', { replace: true });
+          navigate(tokenListPath, { replace: true });
         }
       }
     } catch (error) {
       showError(error.message || t('token.edit.messages.load_failed'));
     }
     setLoading(false);
-  }, [navigate, syncTokenState, t, tokenId]);
+  }, [navigate, syncTokenState, t, tokenId, apiBase, tokenListPath]);
 
   const loadAvailableModels = useCallback(async () => {
     try {
@@ -644,7 +648,7 @@ const EditToken = () => {
         showError(t('token.edit.messages.id_required'));
         return;
       }
-      res = await API.put(`/api/v1/public/token/`, {
+      res = await API.put(`${apiBase}/`, {
         ...localInputs,
         id: normalizedTokenId,
       });

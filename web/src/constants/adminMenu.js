@@ -93,8 +93,7 @@ export const ADMIN_MENU_GROUPS = [
     ],
   },
   {
-    // 「用户任务」已归入用户 SectionTabs,系统组瘦身到只剩日志;单项组按规则
-    // 渲染为扁平叶子(日志现已是各实体下钻的落点,升为近顶层更合理)。
+    // 系统组:日志(各实体下钻落点)与全站令牌管理。多叶子组按分组渲染。
     key: 'system',
     name: 'header.system',
     icon: 'book',
@@ -103,6 +102,11 @@ export const ADMIN_MENU_GROUPS = [
         name: 'header.log',
         to: '/admin/log',
         icon: 'book',
+      },
+      {
+        name: 'header.token_admin',
+        to: '/admin/token',
+        icon: 'key',
       },
     ],
   },

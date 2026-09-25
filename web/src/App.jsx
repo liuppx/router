@@ -62,6 +62,7 @@ const PasswordResetForm = lazy(() => import('./components/PasswordResetForm'));
 const PasswordResetConfirm = lazy(() => import('./components/PasswordResetConfirm'));
 const Token = lazy(() => import('./pages/Token'));
 const EditToken = lazy(() => import('./pages/Token/EditToken'));
+const AdminTokens = lazy(() => import('./pages/Token/AdminTokens'));
 const TopUp = lazy(() => import('./pages/TopUp'));
 const TopUpOrderDetail = lazy(() => import('./pages/TopUp/TopUpOrderDetail'));
 const TopUpOrderReturn = lazy(() => import('./pages/TopUp/TopUpOrderReturn'));
@@ -946,6 +947,14 @@ function App() {
         />
         <Route path='/admin/finance' element={<FinanceLayout />} />
         <Route path='/admin/finance/*' element={<FinanceTabRedirect />} />
+        <Route
+          path='/admin/token'
+          element={<AdminTokens />}
+        />
+        <Route
+          path='/admin/token/:id'
+          element={<EditToken admin />}
+        />
         <Route
           path='/admin/log'
           element={<Log />}

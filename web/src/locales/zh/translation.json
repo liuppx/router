@@ -12,6 +12,7 @@
     "group": "分组",
     "entitlement": "权益",
     "token": "令牌",
+    "token_admin": "全站令牌",
     "account": "账户",
     "redemption": "兑换",
     "topup": "充值",
@@ -1849,6 +1850,9 @@
   },
   "token": {
     "title": "令牌管理",
+    "admin": {
+      "title": "全站令牌"
+    },
     "batch": {
       "enter_selection": "批量操作",
       "cancel_selection": "取消选择",
@@ -1867,6 +1871,7 @@
     },
     "table": {
       "name": "名称",
+      "owner": "属主",
       "status": "状态",
       "token": "令牌",
       "used_amount": "已用",
