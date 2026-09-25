@@ -226,6 +226,13 @@ const AdminDashboard = () => {
         to: '/admin/channel?tab=health',
       },
       {
+        key: 'low_balance_channels',
+        label: t('dashboard.admin.duty.low_balance_channels'),
+        value: Number(channelHealthSummary.low_balance_channel_count || 0),
+        tone: 'warning',
+        to: '/admin/channel',
+      },
+      {
         key: 'failed_tasks',
         label: t('dashboard.admin.duty.failed_tasks'),
         value: failedTaskCount,

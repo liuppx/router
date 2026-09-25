@@ -3014,6 +3014,7 @@
         "pending_alerts": "待处理严重告警",
         "pending_alerts_hint": "另有 {{count}} 条未确认",
         "risky_channels": "风险渠道",
+        "low_balance_channels": "低余额渠道",
         "failed_tasks": "失败任务",
         "net_amount": "净收支"
       },
