@@ -12,8 +12,8 @@ import '../AdminDashboard/AdminDashboard.css';
 
 // Single channel shell: list / health / alerts / system tasks all live under
 // `/admin/channel?tab=...` so switching a tab only changes the query string —
-// the breadcrumb + tab strip stay mounted and the body swaps in place instead
-// of tearing down a whole route (the old cross-route SectionTabs behavior).
+// the tab strip stays mounted and the body swaps in place instead of tearing
+// down a whole route (the old cross-route SectionTabs behavior).
 const TABS = [
   { key: 'list', labelKey: 'channel.tabs.list' },
   { key: 'health', labelKey: 'channel.tabs.health' },
@@ -43,20 +43,10 @@ const ChannelLayout = () => {
     }
   };
 
-  const activeTabLabelKey =
-    TABS.find((tab) => tab.key === activeTab)?.labelKey || 'channel.tabs.list';
-
   return (
     <div className='dashboard-container admin-dashboard-container'>
       <AppFilterHeader
         className='admin-dashboard-toolbar'
-        breadcrumbs={[
-          { key: 'admin', label: t('header.admin_workspace') },
-          { key: 'resource', label: t('header.model') },
-          { key: 'channel', label: t('header.channel') },
-          { key: activeTab, label: t(activeTabLabelKey), active: true },
-        ]}
-        title={t('header.channel')}
         query={
           <SectionTabs
             active={activeTab}

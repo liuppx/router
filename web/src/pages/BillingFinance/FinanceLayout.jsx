@@ -11,8 +11,8 @@ const BillingProcurementReportPage = lazy(() => import('./procurement'));
 
 // Single finance shell: overview / profit / procurement all live under
 // `/admin/finance?tab=...` so switching a tab only changes the query string —
-// the breadcrumb + tab strip stay mounted and the body swaps in place instead
-// of tearing down a whole route (the old cross-route SectionTabs behavior).
+// the tab strip stays mounted and the body swaps in place instead of tearing
+// down a whole route (the old cross-route SectionTabs behavior).
 const TABS = [
   { key: 'overview', labelKey: 'billing.overview.title' },
   { key: 'profit', labelKey: 'billing.pricing_analysis.title' },
@@ -59,10 +59,12 @@ const FinanceLayout = () => {
     TABS.find((tab) => tab.key === activeTab)?.labelKey || 'billing.overview.title';
 
   // When arriving via a drill-down, surface a clickable crumb back to the source
-  // tab (with its own filters intact) ahead of the active crumb.
+  // tab (with its own filters intact); pair it with the active crumb so the back
+  // link has context. Absent a drill-down we render no breadcrumb at all — the tab
+  // strip below is the sole "where am I" signal (matches the other admin shells).
   const returnTo = searchParams.get('return_to');
   const sourceTab = returnToTab(returnTo);
-  const returnCrumb =
+  const breadcrumbs =
     sourceTab && sourceTab !== activeTab
       ? [
           {
@@ -70,18 +72,14 @@ const FinanceLayout = () => {
             label: t(TABS.find((tab) => tab.key === sourceTab)?.labelKey),
             onClick: () => navigate(returnTo),
           },
+          { key: activeTab, label: t(activeLabelKey), active: true },
         ]
-      : [];
+      : undefined;
 
   return (
     <div className='dashboard-container billing-finance-page'>
       <AppFilterHeader
-        breadcrumbs={[
-          { key: 'finance', label: t('header.finance') },
-          ...returnCrumb,
-          { key: activeTab, label: t(activeLabelKey), active: true },
-        ]}
-        title={t('header.finance')}
+        breadcrumbs={breadcrumbs}
         query={
           <SectionTabs
             active={activeTab}

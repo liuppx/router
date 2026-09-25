@@ -11,9 +11,9 @@ import '../AdminDashboard/AdminDashboard.css';
 
 // Single customer shell: user list / conversion analytics / user tasks all live
 // under `/admin/user?tab=...` so switching a tab only changes the query — the
-// breadcrumb + tab strip stay mounted and the body swaps in place. The list tab
-// still honors ?focus_ids= deep links (UsersTable reads them) since that lands
-// on the default tab.
+// tab strip stays mounted and the body swaps in place. The list tab still honors
+// ?focus_ids= deep links (UsersTable reads them) since that lands on the default
+// tab.
 const TABS = [
   { key: 'list', labelKey: 'user.tabs.list' },
   { key: 'analytics', labelKey: 'user.tabs.analytics' },
@@ -40,20 +40,10 @@ const UserLayout = () => {
     }
   };
 
-  const activeTabLabelKey =
-    TABS.find((tab) => tab.key === activeTab)?.labelKey || 'user.tabs.list';
-
   return (
     <div className='dashboard-container admin-dashboard-container'>
       <AppFilterHeader
         className='admin-dashboard-toolbar'
-        breadcrumbs={[
-          { key: 'admin', label: t('header.admin_workspace') },
-          { key: 'business', label: t('header.operation') },
-          { key: 'user', label: t('header.user') },
-          { key: activeTab, label: t(activeTabLabelKey), active: true },
-        ]}
-        title={t('header.user')}
         query={
           <SectionTabs
             active={activeTab}
