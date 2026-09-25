@@ -28,16 +28,13 @@ const RecordListPage = ({ kind, embedded = false }) => {
   const parentBreadcrumbs =
     config.scope === 'entitlement'
       ? [
-          { key: 'model', label: t('header.model') },
           {
             key: 'entitlement',
             label: t('header.entitlement'),
             onClick: () => navigate('/admin/entitlement'),
           },
         ]
-      : [
-          { key: 'business', label: t('header.operation') },
-        ];
+      : [];
 
   const sectionTabs =
     kind === 'purchase' ? (

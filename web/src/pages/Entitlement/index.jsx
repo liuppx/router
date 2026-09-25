@@ -928,7 +928,6 @@ const Entitlement = ({ embedded = false }) => {
             ? undefined
             : [
                 { key: 'admin', label: t('header.admin_workspace') },
-                { key: 'model', label: t('header.model') },
                 {
                   key: 'entitlement',
                   label: t('header.entitlement'),

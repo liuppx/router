@@ -954,14 +954,12 @@ const Task = ({ pageKind: pageKindOverride = '', embedded = false }) => {
   const rootBreadcrumbs = isSystemTaskPage
     ? [
         { key: 'workspace', label: t('header.admin_workspace') },
-        { key: 'resource', label: t('header.model') },
         { key: 'channel', label: t('header.channel') },
         { key: 'task', label: pageTitle, active: true },
       ]
     : isAdminPage
       ? [
           { key: 'workspace', label: t('header.admin_workspace') },
-          { key: 'operation', label: t('header.operation') },
           { key: 'task', label: pageTitle, active: true },
         ]
       : [

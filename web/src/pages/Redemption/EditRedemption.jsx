@@ -140,7 +140,6 @@ const EditRedemption = () => {
       <AppFilterHeader
         breadcrumbs={[
           { key: 'workspace', label: t('header.admin_workspace') },
-          { key: 'business', label: t('header.operation') },
           {
             key: 'redemption-list',
             label: t('header.redemption'),

@@ -201,10 +201,6 @@ const PaymentRecordDetail = () => {
       return [
         { key: 'admin', label: t('header.admin_workspace') },
         {
-          key: 'operation',
-          label: t('header.operation'),
-        },
-        {
           key: 'user-list',
           label: t('header.user'),
           onClick: () => navigate('/admin/user'),
@@ -230,7 +226,6 @@ const PaymentRecordDetail = () => {
     }
     return [
       { key: 'admin', label: t('header.admin_workspace') },
-      { key: 'model', label: t('header.model') },
       {
         key: 'entitlement',
         label: t('header.entitlement'),

@@ -885,7 +885,6 @@ const UsersTable = ({ embedded = false }) => {
                     ? t('header.admin_workspace')
                     : t('header.user_workspace'),
                 },
-                { key: 'business', label: t('header.operation') },
                 { key: 'user', label: t('header.user'), active: true },
               ]
         }

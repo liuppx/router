@@ -599,7 +599,6 @@ const ChannelsTable = ({ embedded = false }) => {
             ? undefined
             : [
                 { key: 'admin', label: t('header.admin_workspace') },
-                { key: 'resource', label: t('header.model') },
                 { key: 'channel', label: t('header.channel'), active: true },
               ]
         }

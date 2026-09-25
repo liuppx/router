@@ -92,7 +92,6 @@ const RedemptionRecordDetail = () => {
       <AppFilterHeader
         breadcrumbs={[
           { key: 'admin', label: t('header.admin_workspace') },
-          { key: 'business', label: t('header.operation') },
           {
             key: 'redemption-root',
             label: t('header.redemption'),

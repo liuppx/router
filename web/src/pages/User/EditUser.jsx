@@ -1231,7 +1231,6 @@ const UserDetail = () => {
       <AppFilterHeader
         breadcrumbs={[
           { key: 'admin', label: t('header.admin_workspace') },
-          { key: 'business', label: t('header.operation') },
           {
             key: 'user-list',
             label: t('header.user'),

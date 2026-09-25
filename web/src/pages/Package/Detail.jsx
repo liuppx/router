@@ -1117,7 +1117,6 @@ const PackageDetail = () => {
       <AppFilterHeader
         breadcrumbs={[
           { key: 'admin', label: t('header.admin_workspace') },
-          { key: 'model', label: t('header.model') },
           {
             key: 'entitlement',
             label: t('header.entitlement'),

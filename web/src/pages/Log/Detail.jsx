@@ -1015,12 +1015,6 @@ const LogDetail = () => {
       <AppFilterHeader
         breadcrumbs={[
           {
-            key: 'section',
-            label: isAdminPage
-              ? t('header.operation')
-              : t('header.mine'),
-          },
-          {
             key: 'log-list',
             label: t('header.log'),
             onClick: () => navigate(listPath),

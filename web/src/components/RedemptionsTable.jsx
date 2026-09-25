@@ -469,7 +469,6 @@ const RedemptionsTable = ({ sectionTabs = null, embedded = false }) => {
             ? undefined
             : [
                 { key: 'workspace', label: t('header.admin_workspace') },
-                { key: 'business', label: t('header.operation') },
                 {
                   key: 'redemption',
                   label: t('header.redemption'),

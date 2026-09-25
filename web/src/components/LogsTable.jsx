@@ -89,10 +89,6 @@ const LogsTable = () => {
           ? t('header.admin_workspace')
           : t('header.user_workspace'),
       },
-      {
-        key: 'section',
-        label: isAdminScope ? t('header.operation') : t('header.mine'),
-      },
     ];
     if (!isAdminScope && logSource === 'quota') {
       items.push({

@@ -880,7 +880,6 @@ const TopupPlanDetail = () => {
           { key: 'admin', label: t('header.admin_workspace') },
           ...(redemptionSourcePath
             ? [
-                { key: 'operation', label: t('header.operation') },
                 {
                   key: 'redemption-source',
                   label: t('header.redemption'),
@@ -896,7 +895,6 @@ const TopupPlanDetail = () => {
               ]
             : []),
           ...(redemptionSourcePath ? [] : [
-            { key: 'model', label: t('header.model') },
             {
               key: 'entitlement',
               label: t('header.entitlement'),
