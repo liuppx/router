@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -27,8 +27,6 @@ import {
 import { API } from '../../helpers';
 import useChannelAlertSummary from '../../hooks/useChannelAlertSummary';
 import { adaptListResponse } from '../../hooks/useList';
-import AdminChannelAlertsPanel from '../../components/AdminChannelAlertsPanel';
-import ChannelHealthSection from './sections/ChannelHealthSection';
 import './Dashboard.css';
 import {
   PERIOD_OPTIONS,
@@ -40,6 +38,13 @@ import {
 } from './dashboardShared';
 import { DashboardSectionControls } from './DashboardSectionControls';
 import './AdminDashboard.css';
+
+// 两个重面板延后到值班状态条首绘之后再加载,保住首屏首字节的处置信号(磁贴数字)
+// 尽快点亮;告警面板与健康概览随后填入(AppSpin 占位)。
+const AdminChannelAlertsPanel = lazy(() =>
+  import('../../components/AdminChannelAlertsPanel'),
+);
+const ChannelHealthSection = lazy(() => import('./sections/ChannelHealthSection'));
 
 // 首屏 = 值班台:顶部一排可点击状态磁贴(火/供给/失败任务/收支)让运营者一眼
 // 看清「今天有没有事」并直接下钻到处置现场;其下内嵌告警面板(就地 ack/resolve)
@@ -59,7 +64,12 @@ const AdminDashboard = () => {
   // - 告警摘要:与侧栏红点共用的 hook(60s 轮询)。
   const { unresolvedCritical, unacknowledged } = useChannelAlertSummary();
   // - 渠道健康摘要:复用 dashboard?section=channels 的 channel_health_summary。
-  const { dashboard: channelsDashboard } = useAdminDashboardData('channels');
+  //   同一份结果注入内嵌 <ChannelHealthSection>,避免它再取一次同 section。
+  const {
+    dashboard: channelsDashboard,
+    loading: channelsLoading,
+    reload: channelsReload,
+  } = useAdminDashboardData('channels');
   const channelHealthSummary = useMemo(
     () => ({
       ...EMPTY_CHANNEL_HEALTH_SUMMARY,
@@ -376,8 +386,20 @@ const AdminDashboard = () => {
     <div className='dashboard-container admin-dashboard-container'>
       {renderPageHeader()}
       {renderDutyStrip()}
-      <AdminChannelAlertsPanel />
-      <ChannelHealthSection />
+      <Suspense
+        fallback={
+          <AppSpin spinning className='admin-dashboard-content-spin' />
+        }
+      >
+        <AdminChannelAlertsPanel />
+        <ChannelHealthSection
+          injectedData={{
+            dashboard: channelsDashboard,
+            loading: channelsLoading,
+            reload: channelsReload,
+          }}
+        />
+      </Suspense>
       <AppSpin spinning={loading} className='admin-dashboard-content-spin'>
         {renderSpendingSection()}
       </AppSpin>

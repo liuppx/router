@@ -507,12 +507,23 @@ export const useUsdFormatter = () => {
 // Fetch + normalize one dashboard section. Mirrors the original loadData:
 // GET /api/v1/admin/dashboard/ with { period, section, ...extraParams }.
 // `extraParams` carries the users section's user_keyword / user_growth_granularity.
-export const useAdminDashboardData = (section, { period, extraParams } = {}) => {
+// `enabled: false` turns the hook into a no-op (no fetch, no effect) so a caller
+// can satisfy the rules-of-hooks while sourcing the data from elsewhere (e.g. a
+// parent that already loaded this section and injects it — avoids a duplicate
+// request).
+export const useAdminDashboardData = (
+  section,
+  { period, extraParams } = {},
+  { enabled = true } = {},
+) => {
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
   const [loading, setLoading] = useState(false);
   const extraParamsKey = JSON.stringify(extraParams || {});
 
   const reload = useCallback(async () => {
+    if (!enabled) {
+      return;
+    }
     setLoading(true);
     try {
       const params = { period, section, ...(extraParams || {}) };
@@ -531,7 +542,7 @@ export const useAdminDashboardData = (section, { period, extraParams } = {}) => 
     }
     // extraParamsKey stands in for the extraParams object identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [section, period, extraParamsKey]);
+  }, [section, period, extraParamsKey, enabled]);
 
   useEffect(() => {
     reload();

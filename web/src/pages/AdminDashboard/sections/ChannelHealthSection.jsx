@@ -29,13 +29,19 @@ import { DashboardSectionControls } from '../DashboardSectionControls';
 // the channel shell (/admin/channel?tab=health) can host it inline without a
 // full route swap. Self-contained: owns sort state, fetches its own
 // section data, and renders its own toolbar (the shell provides breadcrumb+tabs).
-const ChannelHealthSection = () => {
+// `injectedData` lets a parent that already loaded the `channels` section pass it
+// in (e.g. the duty station reuses its strip fetch) — the internal fetch is then
+// disabled so the same data isn't requested twice.
+const ChannelHealthSection = ({ injectedData = null }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [channelSort, setChannelSort] = useState('health');
 
-  const { dashboard, loading, reload } = useAdminDashboardData('channels');
+  const self = useAdminDashboardData('channels', undefined, {
+    enabled: !injectedData,
+  });
+  const { dashboard, loading, reload } = injectedData || self;
 
   const channelSortOptions = useMemo(
     () =>

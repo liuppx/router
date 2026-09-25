@@ -1,10 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { API } from '../helpers';
 import { useIsAdmin } from './useAuth';
 
 // 值班台 / 侧栏红点共用的告警摘要源:只取 summary(page_size=1,列表几乎不落地),
 // 后端按扫描窗口聚合,故此计数是页无关的全量口径。60s 轮询一次,失败静默降级为
-// 全 0,绝不打断 UI(侧栏/首屏不应因告警接口抖动而报错或闪空)。
+// 保留上次计数,绝不打断 UI(侧栏/首屏不应因告警接口抖动而报错或闪空)。
+//
+// 单例轮询:侧栏与首屏值班台会同时挂载本 hook。若各自起 setInterval,就是两条
+// 对 /channel/alerts 的重复轮询。这里把状态与定时器提升到模块级——所有消费者
+// 共享一份 summary 和一个 60s 定时器,引用计数到 0 时停表,避免重复取数。
 const EMPTY_SUMMARY = {
   activeTotal: 0,
   unresolvedCritical: 0,
@@ -26,51 +30,85 @@ const normalizeSummary = (raw) => {
   };
 };
 
+// ---- 模块级共享存储(单例) ----
+let sharedSummary = EMPTY_SUMMARY;
+let sharedLoading = false;
+let sharedTimer = null;
+let inFlight = null;
+const subscribers = new Set();
+
+const notify = () => {
+  subscribers.forEach((listener) => listener());
+};
+
+const fetchSummary = async () => {
+  // 合并并发调用:多消费者同时触发时只发一条请求。
+  if (inFlight) {
+    return inFlight;
+  }
+  sharedLoading = true;
+  notify();
+  inFlight = API.get('/api/v1/admin/channel/alerts', {
+    params: { page: 1, page_size: 1 },
+  })
+    .then((response) => {
+      if (response?.data?.success === true) {
+        sharedSummary = normalizeSummary(response?.data?.data?.summary);
+      }
+    })
+    .catch(() => {
+      // 静默降级:保留上一次的计数,不清零、不报错,避免网络抖动清空红点。
+    })
+    .finally(() => {
+      sharedLoading = false;
+      inFlight = null;
+      notify();
+    });
+  return inFlight;
+};
+
+const startPolling = () => {
+  if (sharedTimer !== null) {
+    return;
+  }
+  fetchSummary();
+  sharedTimer = window.setInterval(fetchSummary, POLL_INTERVAL_MS);
+};
+
+const stopPolling = () => {
+  if (sharedTimer !== null) {
+    window.clearInterval(sharedTimer);
+    sharedTimer = null;
+  }
+};
+
+const subscribe = (listener) => {
+  subscribers.add(listener);
+  startPolling();
+  return () => {
+    subscribers.delete(listener);
+    if (subscribers.size === 0) {
+      stopPolling();
+    }
+  };
+};
+
 const useChannelAlertSummary = () => {
   const isAdmin = useIsAdmin();
-  const [summary, setSummary] = useState(EMPTY_SUMMARY);
-  const [loading, setLoading] = useState(false);
-  const mountedRef = useRef(true);
-
-  const load = useCallback(async () => {
-    if (!isAdmin) {
-      return;
-    }
-    setLoading(true);
-    try {
-      const response = await API.get('/api/v1/admin/channel/alerts', {
-        params: { page: 1, page_size: 1 },
-      });
-      if (!mountedRef.current) {
-        return;
-      }
-      if (response?.data?.success === true) {
-        setSummary(normalizeSummary(response?.data?.data?.summary));
-      }
-    } catch {
-      // 静默降级:保留上一次的计数,不清零、不报错,避免网络抖动清空红点。
-    } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [isAdmin]);
+  const [, forceRender] = useState(0);
 
   useEffect(() => {
-    mountedRef.current = true;
     if (!isAdmin) {
-      setSummary(EMPTY_SUMMARY);
       return undefined;
     }
-    load();
-    const timer = window.setInterval(load, POLL_INTERVAL_MS);
-    return () => {
-      mountedRef.current = false;
-      window.clearInterval(timer);
-    };
-  }, [isAdmin, load]);
+    const unsubscribe = subscribe(() => forceRender((tick) => tick + 1));
+    return unsubscribe;
+  }, [isAdmin]);
 
-  return { ...summary, loading, reload: load };
+  if (!isAdmin) {
+    return { ...EMPTY_SUMMARY, loading: false, reload: fetchSummary };
+  }
+  return { ...sharedSummary, loading: sharedLoading, reload: fetchSummary };
 };
 
 export default useChannelAlertSummary;

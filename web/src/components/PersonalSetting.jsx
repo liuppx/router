@@ -165,6 +165,7 @@ const PersonalSetting = () => {
   };
 
   const walletAddress = currentUser?.wallet_address || '-';
+  const walletIdentityDID = currentUser?.wallet_identity_did || '';
   const avatarURL = currentUser?.avatar_url || '';
   const hasPassword = currentUser?.has_password === true;
 
@@ -325,6 +326,13 @@ const PersonalSetting = () => {
             <AppInput
               className='router-section-input'
               value={walletAddress}
+              readOnly
+            />
+          </AppField>
+          <AppField label={t('personal_setting.field.identity_did')}>
+            <AppInput
+              className='router-section-input'
+              value={walletIdentityDID || t('personal_setting.identity_did_unset')}
               readOnly
             />
           </AppField>
