@@ -45,10 +45,12 @@ const AdminChannelAlertsPanel = lazy(() =>
   import('../../components/AdminChannelAlertsPanel'),
 );
 const ChannelHealthSection = lazy(() => import('./sections/ChannelHealthSection'));
+const RouteAnomaliesSection = lazy(() => import('./sections/RouteAnomaliesSection'));
 
 // 首屏 = 值班台:顶部一排可点击状态磁贴(火/供给/失败任务/收支)让运营者一眼
-// 看清「今天有没有事」并直接下钻到处置现场;其下内嵌告警面板(就地 ack/resolve)
-// 与渠道健康概览;经营大盘下沉到最底。告警/健康小件自包含、零 props、各自轮询。
+// 看清「今天有没有事」并直接下钻到处置现场;其下内嵌排障三件套——告警面板(就地
+// ack/resolve)、渠道健康概览、路由异常排名,把「出问题去哪看」收敛到一个入口;
+// 经营大盘下沉到最底。这些小件自包含、零/注入 props、各自轮询或取数。
 const AdminDashboard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -399,6 +401,7 @@ const AdminDashboard = () => {
             reload: channelsReload,
           }}
         />
+        <RouteAnomaliesSection />
       </Suspense>
       <AppSpin spinning={loading} className='admin-dashboard-content-spin'>
         {renderSpendingSection()}
