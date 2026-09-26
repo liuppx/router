@@ -335,7 +335,7 @@ const AdminDashboard = () => {
         <div className='admin-dashboard-subsection-header admin-dashboard-trend-block-header'>
           <div className='admin-dashboard-subsection-header-main'>
             <div className='admin-dashboard-subsection-title'>
-              {t('dashboard.admin.sections.spending')}
+              {t('dashboard.admin.spending.trend_title')}
             </div>
             <div className='admin-dashboard-subsection-description'>
               {t('dashboard.admin.spending.insights.trend_hint')}
@@ -415,6 +415,14 @@ const AdminDashboard = () => {
         />
         <RouteAnomaliesSection />
       </Suspense>
+      <div className='admin-dashboard-board-divider'>
+        <div className='admin-dashboard-board-divider-title'>
+          {t('dashboard.admin.board.operations_title')}
+        </div>
+        <div className='admin-dashboard-board-divider-hint'>
+          {t('dashboard.admin.board.operations_hint')}
+        </div>
+      </div>
       <AppSpin spinning={loading} className='admin-dashboard-content-spin'>
         {renderSpendingSection()}
       </AppSpin>

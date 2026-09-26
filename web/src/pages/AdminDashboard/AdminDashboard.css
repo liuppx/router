@@ -158,6 +158,27 @@
   margin-top: 10px;
 }
 
+.admin-dashboard-board-divider {
+  margin: 24px 0 8px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--router-border-color, var(--router-border-color, #e5e7eb));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-dashboard-board-divider-title {
+  color: var(--router-text-primary, var(--router-text-primary, #1f2937));
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.admin-dashboard-board-divider-hint {
+  color: var(--router-text-muted, var(--router-text-muted, #6b7280));
+  font-size: 12px;
+}
+
 .admin-dashboard-trend-toolbar {
   margin-bottom: 8px;
 }

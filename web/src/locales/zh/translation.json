@@ -3078,6 +3078,10 @@
         "tasks_active": "运行中任务",
         "tasks_failed": "失败任务"
       },
+      "board": {
+        "operations_title": "经营大盘",
+        "operations_hint": "收支趋势与模型运营复盘，非实时处置项。"
+      },
       "sections": {
         "spending": "收支",
         "channels": "渠道",
@@ -3269,6 +3273,7 @@
         "headline": {
           "net": "本期净额"
         },
+        "trend_title": "趋势",
         "insights": {
           "net_positive": "净流入为正",
           "net_positive_hint": "当前周期内充值大于消费，收支保持正向。",

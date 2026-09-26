@@ -3078,6 +3078,10 @@
         "tasks_active": "Active Tasks",
         "tasks_failed": "Failed Tasks"
       },
+      "board": {
+        "operations_title": "Operations Board",
+        "operations_hint": "Spend trends and model analytics — for review, not live triage."
+      },
       "sections": {
         "spending": "Spending",
         "channels": "Channels",
@@ -3269,6 +3273,7 @@
         "headline": {
           "net": "Net this period"
         },
+        "trend_title": "Trend",
         "insights": {
           "net_positive": "Positive Net Inflow",
           "net_positive_hint": "Top-up exceeds spend in the selected period, keeping cashflow positive.",
