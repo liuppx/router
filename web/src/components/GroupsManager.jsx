@@ -19,7 +19,6 @@ import {
   AppFilterHeader,
   AppFormActions,
   AppFormRow,
-  AppIcon,
   AppInput,
   AppInputNumber,
   AppModal,
@@ -2509,21 +2508,6 @@ const GroupsManager = ({ detailGroupId = '' }) => {
           },
         ]}
         title={t('group_manage.detail.title')}
-        actions={
-          activeGroup.id ? (
-            <AppButton
-              className='router-page-button'
-              icon={<AppIcon name='book' />}
-              onClick={() =>
-                navigate(
-                  buildLogDrilldownPath('admin', { group_id: activeGroup.id }),
-                )
-              }
-            >
-              {t('log.drilldown.view')}
-            </AppButton>
-          ) : null
-        }
       />
       <div className='router-tab-detail-page router-entity-detail-page'>
         <div className='router-entity-detail-tabs router-block-gap-sm'>
