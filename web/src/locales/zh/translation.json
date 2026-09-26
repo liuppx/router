@@ -4303,9 +4303,7 @@
       "total": "可用模型",
       "healthy": "正常",
       "warning": "预警",
-      "critical": "异常",
-      "pass_rate": "平均通过率",
-      "latency": "平均延迟"
+      "critical": "异常"
     },
     "filters": {
       "health": {

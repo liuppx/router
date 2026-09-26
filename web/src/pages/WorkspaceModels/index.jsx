@@ -453,34 +453,45 @@ const WorkspaceModels = () => {
       <AppSection className='workspace-models-section'>
         <div className='workspace-models-toolbar'>
           <div className='workspace-models-summary-grid'>
-            <div className='workspace-models-summary-item'>
-              <span>{t('workspace_models.summary.total')}</span>
-              <strong>{formatCount(summary.model_count)}</strong>
-            </div>
-            <div className='workspace-models-summary-item workspace-models-summary-item-green'>
-              <span>{t('workspace_models.summary.healthy')}</span>
-              <strong>{formatCount(summary.healthy_model_count)}</strong>
-            </div>
-            <div className='workspace-models-summary-item workspace-models-summary-item-orange'>
-              <span>{t('workspace_models.summary.warning')}</span>
-              <strong>{formatCount(summary.warning_model_count)}</strong>
-            </div>
-            <div className='workspace-models-summary-item workspace-models-summary-item-red'>
-              <span>{t('workspace_models.summary.critical')}</span>
-              <strong>{formatCount(summary.critical_model_count)}</strong>
-            </div>
-            <div className='workspace-models-summary-item'>
-              <span>{t('workspace_models.summary.pass_rate')}</span>
-              <strong>{formatPercent(summary.avg_pass_rate)}</strong>
-            </div>
-            <div className='workspace-models-summary-item'>
-              <span>{t('workspace_models.summary.latency')}</span>
-              <strong>
-                {summary.avg_latency_ms > 0
-                  ? `${formatCount(summary.avg_latency_ms)} ms`
-                  : '-'}
-              </strong>
-            </div>
+            {[
+              {
+                key: 'all',
+                label: t('workspace_models.summary.total'),
+                value: summary.model_count,
+                tone: '',
+              },
+              {
+                key: 'healthy',
+                label: t('workspace_models.summary.healthy'),
+                value: summary.healthy_model_count,
+                tone: 'green',
+              },
+              {
+                key: 'warning',
+                label: t('workspace_models.summary.warning'),
+                value: summary.warning_model_count,
+                tone: 'orange',
+              },
+              {
+                key: 'critical',
+                label: t('workspace_models.summary.critical'),
+                value: summary.critical_model_count,
+                tone: 'red',
+              },
+            ].map((card) => (
+              <button
+                type='button'
+                key={card.key}
+                className={`workspace-models-summary-item${
+                  card.tone ? ` workspace-models-summary-item-${card.tone}` : ''
+                }${healthFilter === card.key ? ' is-active' : ''}`}
+                aria-pressed={healthFilter === card.key}
+                onClick={() => patchFilters({ healthFilter: card.key })}
+              >
+                <span>{card.label}</span>
+                <strong>{formatCount(card.value)}</strong>
+              </button>
+            ))}
           </div>
           <AppToolbar
             className='workspace-models-controls'

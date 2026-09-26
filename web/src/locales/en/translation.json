@@ -4303,9 +4303,7 @@
       "total": "Available models",
       "healthy": "Healthy",
       "warning": "Warning",
-      "critical": "Critical",
-      "pass_rate": "Average pass rate",
-      "latency": "Average latency"
+      "critical": "Critical"
     },
     "filters": {
       "health": {
