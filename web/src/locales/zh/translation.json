@@ -3017,10 +3017,6 @@
         "failed_tasks": "失败任务",
         "net_amount": "净收支"
       },
-      "model_tabs": {
-        "catalog": "可用模型",
-        "operations": "经营"
-      },
       "period": {
         "label": "统计周期"
       },

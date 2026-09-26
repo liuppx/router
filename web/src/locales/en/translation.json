@@ -3017,10 +3017,6 @@
         "failed_tasks": "Failed Tasks",
         "net_amount": "Net"
       },
-      "model_tabs": {
-        "catalog": "Catalog",
-        "operations": "Operations"
-      },
       "period": {
         "label": "Period"
       },

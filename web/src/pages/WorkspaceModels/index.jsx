@@ -1,13 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { API } from '../../helpers/api';
 import { copy, showError, showSuccess } from '../../helpers';
 import { buildLogDrilldownPath } from '../../components/LogsTable.helpers';
 import { useIsAdmin } from '../../hooks/useAuth';
 import useUrlState from '../../hooks/useUrlState';
-import ModelSectionTabs from '../../components/ModelSectionTabs';
-import ModelOperationsSection from '../AdminDashboard/sections/ModelOperationsSection';
 import {
   AppButton,
   AppFilterHeader,
@@ -242,7 +240,6 @@ const WorkspaceModels = () => {
   // Keyword / health / sort all persist to the URL so a refresh or back-nav
   // restores the operator's view, and cross-page CTAs (e.g. the admin dashboard
   // "at-risk models" headline) can deep-link straight to a filtered view.
-  const [searchParams] = useSearchParams();
   const [
     { keyword, healthFilter, sortBy },
     patchFilters,
@@ -265,14 +262,6 @@ const WorkspaceModels = () => {
       },
     },
   });
-  // The models page doubles as the models shell: catalog is the default,
-  // URL-stable body every workspace user sees; operations is an admin-only tab
-  // hosting the model operations section. A non-admin hand-typing ?tab=operations
-  // falls back to catalog so we never mount the admin-only section for them.
-  const rawTab = (searchParams.get('tab') || '').trim().toLowerCase();
-  const activeTab =
-    hasAdminAccess && rawTab === 'operations' ? 'operations' : 'catalog';
-
   // Admins can jump straight from a model to the publish tab of a channel that
   // serves it (channel_ids comes from /api/v1/public/model/status). Single
   // channel → direct deep link; multiple → a popover of per-channel links.
@@ -460,11 +449,7 @@ const WorkspaceModels = () => {
         ]}
         title={t('workspace_models.title')}
       />
-      {hasAdminAccess ? <ModelSectionTabs active={activeTab} /> : null}
-      {activeTab === 'operations' ? (
-        <ModelOperationsSection />
-      ) : (
-        <AppSpin spinning={loading}>
+      <AppSpin spinning={loading}>
       <AppSection className='workspace-models-section'>
         <div className='workspace-models-toolbar'>
           <div className='workspace-models-summary-grid'>
@@ -715,7 +700,6 @@ const WorkspaceModels = () => {
         )}
       </AppSection>
       </AppSpin>
-      )}
     </div>
   );
 };

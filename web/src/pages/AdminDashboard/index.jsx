@@ -46,6 +46,11 @@ const AdminChannelAlertsPanel = lazy(() =>
 );
 const ChannelHealthSection = lazy(() => import('./sections/ChannelHealthSection'));
 const RouteAnomaliesSection = lazy(() => import('./sections/RouteAnomaliesSection'));
+// 经营大盘(模型运营)由原「可用模型 / 经营」双 TAB 合并下沉而来,自包含取数,
+// 与收支大盘同属值班台底部的经营板块;延后加载,不与首屏排障信号争首字节。
+const ModelOperationsSection = lazy(() =>
+  import('./sections/ModelOperationsSection'),
+);
 
 // 首屏 = 值班台:顶部一排可点击状态磁贴(火/供给/失败任务/收支)让运营者一眼
 // 看清「今天有没有事」并直接下钻到处置现场;其下内嵌排障三件套——告警面板(就地
@@ -413,6 +418,13 @@ const AdminDashboard = () => {
       <AppSpin spinning={loading} className='admin-dashboard-content-spin'>
         {renderSpendingSection()}
       </AppSpin>
+      <Suspense
+        fallback={
+          <AppSpin spinning className='admin-dashboard-content-spin' />
+        }
+      >
+        <ModelOperationsSection />
+      </Suspense>
     </div>
   );
 };
