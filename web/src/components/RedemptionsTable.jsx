@@ -568,7 +568,7 @@ const RedemptionsTable = ({ sectionTabs = null, embedded = false }) => {
           </div>
         }
         query={
-          <div className='router-list-toolbar-query'>
+          <div className='router-list-toolbar-query router-redemption-list-query'>
             <AppSelect
               className='router-section-select'
               value={statusFilter}
@@ -581,9 +581,8 @@ const RedemptionsTable = ({ sectionTabs = null, embedded = false }) => {
               ]}
             />
             <AppInput
-              className='router-section-input'
+              className='router-section-input router-redemption-list-search'
               icon='search'
-              fluid
               iconPosition='left'
               placeholder={t('redemption.search')}
               value={searchKeyword}

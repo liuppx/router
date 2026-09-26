@@ -4714,6 +4714,29 @@ html[data-theme='dark'] .router-workspace-start-checklist-status {
     flex: 0 0 auto;
 }
 
+.router-redemption-list-query {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    width: auto;
+    max-width: 100%;
+}
+
+.router-redemption-list-query .router-ui-select.router-section-select {
+    flex: 0 0 128px;
+    width: 128px;
+}
+
+.router-redemption-list-query .router-ui-input.router-redemption-list-search,
+.router-redemption-list-query .router-ui-input.router-redemption-list-search.ant-input-affix-wrapper {
+    flex: 0 1 240px;
+    width: 240px;
+    min-width: 160px;
+}
+
+.router-redemption-list-query .router-ui-button.router-section-button {
+    flex: 0 0 auto;
+}
+
 .router-user-focus-summary {
     display: flex;
     align-items: center;
@@ -6413,6 +6436,17 @@ html[data-theme='dark'] .router-workspace-start-checklist-status {
 
   .router-channel-list-query .router-ui-input.router-channel-list-search,
   .router-channel-list-query .router-ui-input.router-channel-list-search.ant-input-affix-wrapper {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .router-redemption-list-query {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .router-redemption-list-query .router-ui-input.router-redemption-list-search,
+  .router-redemption-list-query .router-ui-input.router-redemption-list-search.ant-input-affix-wrapper {
     flex: 1 1 100%;
     width: 100%;
   }
