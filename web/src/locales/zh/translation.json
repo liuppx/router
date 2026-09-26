@@ -4475,6 +4475,9 @@
     "placeholder": {
       "search": "搜索名称、说明、分组"
     },
+    "card": {
+      "no_description": "暂无使用简介"
+    },
     "request_count": "请求次数",
     "enabled": "启用",
     "disabled": "停用",

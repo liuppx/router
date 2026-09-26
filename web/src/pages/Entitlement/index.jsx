@@ -26,14 +26,15 @@ import {
   AppModal,
   AppPagination,
   AppSelect,
+  AppSkeleton,
   AppSwitch,
-  AppTable,
   AppTableActionButton,
   AppTag,
   AppTextarea,
 } from '../../router-ui';
 import { normalizeSupportedModels } from '../TopUp/shared.jsx';
 import EntitlementSectionTabs from '../../components/EntitlementSectionTabs';
+import './Entitlement.css';
 
 const PRODUCT_KIND_BALANCE = 'balance';
 const PRODUCT_KIND_SUBSCRIPTION = 'subscription';
@@ -45,7 +46,6 @@ const PRODUCT_KIND_OPTIONS = [
   { key: PRODUCT_KIND_SUBSCRIPTION, value: PRODUCT_KIND_SUBSCRIPTION, textKey: 'entitlement.kind.subscription' },
 ];
 
-const PRODUCT_LIST_TABLE_MIN_WIDTH = 1000;
 const PRODUCT_FORM_KIND_OPTIONS = PRODUCT_KIND_OPTIONS.filter(
   (item) => item.value !== PRODUCT_KIND_ALL,
 );
@@ -482,111 +482,116 @@ const Entitlement = ({ embedded = false }) => {
     [navigate, location],
   );
 
-  const columns = useMemo(
-    () => [
-      {
-        title: t('entitlement.columns.name'),
-        dataIndex: 'name',
-        key: 'name',
-        width: 180,
-        ellipsis: true,
-        render: (value) => value || '-',
-      },
-      {
-        title: t('entitlement.columns.type'),
-        dataIndex: 'kind',
-        key: 'kind',
-        width: 84,
-        render: (value) => (
-          <AppTag color={value === PRODUCT_KIND_SUBSCRIPTION ? 'blue' : 'green'}>
-            {getProductKindLabel(value, t)}
-          </AppTag>
-        ),
-      },
-      {
-        title: t('entitlement.columns.group'),
-        dataIndex: 'group_name',
-        key: 'group',
-        width: 150,
-        ellipsis: true,
-        render: (_, row) => {
-          const groupId = row?.group_id;
-          const label = row.group_name || row.group_id || '-';
-          if (!groupId) {
-            return label;
-          }
-          return (
-            <button
-              type='button'
-              className='router-link-button router-link-inline'
-              onClick={(event) => {
-                event.stopPropagation();
-                navigate(`/admin/group/detail/${encodeURIComponent(groupId)}`, {
-                  state: { from: `${location.pathname}${location.search}` },
-                });
-              }}
-            >
-              {label}
-            </button>
-          );
-        },
-      },
-      {
-        title: t('entitlement.columns.supported_models'),
-        key: 'supported_models',
-        width: 92,
-        render: (_, row) => (
-          <SupportedModelsCount
-            models={row.supported_models}
-            onOpen={(models) => openModelsDialog(row, models)}
-          />
-        ),
-      },
-      {
-        title: t('entitlement.columns.sale_price'),
-        key: 'sale_price',
-        width: 130,
-        render: (_, row) => formatAmount(row.sale_price, row.sale_currency || 'CNY'),
-      },
-      {
-        title: t('entitlement.columns.validity'),
-        key: 'duration',
-        width: 100,
-        render: (_, row) => formatDuration(row, t),
-      },
-      {
-        title: t('entitlement.columns.visibility'),
-        key: 'visibility_scope',
-        width: 100,
-        render: (_, row) => formatVisibility(row, t),
-      },
-      {
-        title: t('entitlement.columns.status'),
-        dataIndex: 'enabled',
-        key: 'enabled',
-        width: 84,
-        render: (value) => (
-          <AppTag color={value ? 'green' : 'default'}>
-            {value ? t('entitlement.enabled') : t('entitlement.disabled')}
-          </AppTag>
-        ),
-      },
-      {
-        title: t('common.updated_at'),
-        dataIndex: 'updated_at',
-        key: 'updated_at',
-        className: 'router-table-col-datetime',
-        width: 168,
-        render: (value) => (value ? timestamp2string(value) : '-'),
-      },
-      {
-        title: t('common.operation'),
-        key: 'action',
-        className: 'router-table-col-actions-icon',
-        width: 52,
-        render: (_, row) => (
+  const renderProductCard = useCallback(
+    (row) => {
+      const groupId = row?.group_id;
+      const groupLabel = row.group_name || row.group_id || '-';
+      const description = (row.description || '').toString().trim();
+      return (
+        <div
+          key={row.id}
+          className='entitlement-card router-row-clickable'
+          role='button'
+          tabIndex={0}
+          onClick={() => openDetail(row)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              openDetail(row);
+            }
+          }}
+        >
+          <div className='entitlement-card-header'>
+            <div className='entitlement-card-title' title={row.name || '-'}>
+              {row.name || '-'}
+            </div>
+            <div className='entitlement-card-badges'>
+              <AppTag color={row.kind === PRODUCT_KIND_SUBSCRIPTION ? 'blue' : 'green'}>
+                {getProductKindLabel(row.kind, t)}
+              </AppTag>
+              <AppTag color={row.enabled ? 'green' : 'default'}>
+                {row.enabled ? t('entitlement.enabled') : t('entitlement.disabled')}
+              </AppTag>
+            </div>
+          </div>
           <div
-            className='router-action-group-tight router-table-actions-icon-compact'
+            className={`entitlement-card-intro${
+              description ? '' : ' entitlement-card-intro-empty'
+            }`}
+          >
+            {description || t('entitlement.card.no_description')}
+          </div>
+          <div className='entitlement-card-meta'>
+            <div className='entitlement-card-meta-item'>
+              <span className='entitlement-card-meta-label'>
+                {t('entitlement.columns.group')}
+              </span>
+              <span className='entitlement-card-meta-value'>
+                {groupId ? (
+                  <button
+                    type='button'
+                    className='router-link-button router-link-inline'
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(
+                        `/admin/group/detail/${encodeURIComponent(groupId)}`,
+                        { state: { from: `${location.pathname}${location.search}` } },
+                      );
+                    }}
+                  >
+                    {groupLabel}
+                  </button>
+                ) : (
+                  groupLabel
+                )}
+              </span>
+            </div>
+            <div className='entitlement-card-meta-item'>
+              <span className='entitlement-card-meta-label'>
+                {t('entitlement.columns.supported_models')}
+              </span>
+              <span className='entitlement-card-meta-value'>
+                <SupportedModelsCount
+                  models={row.supported_models}
+                  onOpen={(models) => openModelsDialog(row, models)}
+                />
+              </span>
+            </div>
+            <div className='entitlement-card-meta-item'>
+              <span className='entitlement-card-meta-label'>
+                {t('entitlement.columns.sale_price')}
+              </span>
+              <span className='entitlement-card-meta-value'>
+                {formatAmount(row.sale_price, row.sale_currency || 'CNY')}
+              </span>
+            </div>
+            <div className='entitlement-card-meta-item'>
+              <span className='entitlement-card-meta-label'>
+                {t('entitlement.columns.validity')}
+              </span>
+              <span className='entitlement-card-meta-value'>
+                {formatDuration(row, t)}
+              </span>
+            </div>
+            <div className='entitlement-card-meta-item'>
+              <span className='entitlement-card-meta-label'>
+                {t('entitlement.columns.visibility')}
+              </span>
+              <span className='entitlement-card-meta-value'>
+                {formatVisibility(row, t)}
+              </span>
+            </div>
+            <div className='entitlement-card-meta-item'>
+              <span className='entitlement-card-meta-label'>
+                {t('common.updated_at')}
+              </span>
+              <span className='entitlement-card-meta-value'>
+                {row.updated_at ? timestamp2string(row.updated_at) : '-'}
+              </span>
+            </div>
+          </div>
+          <div
+            className='entitlement-card-actions'
             onClick={(event) => {
               event.stopPropagation();
             }}
@@ -599,10 +604,10 @@ const Entitlement = ({ embedded = false }) => {
               onClick={() => setDeleteRow(row)}
             />
           </div>
-        ),
-      },
-    ],
-    [openModelsDialog, submitting, t],
+        </div>
+      );
+    },
+    [location.pathname, location.search, navigate, openDetail, openModelsDialog, submitting, t],
   );
 
   const renderForm = () => {
@@ -996,47 +1001,34 @@ const Entitlement = ({ embedded = false }) => {
 
       {embedded ? null : <EntitlementSectionTabs active='list' />}
 
-      <div className='router-table-scroll-x'>
-        <AppTable
-          className='router-hover-table router-list-table router-table-fit-page'
-          pagination={false}
-          scroll={{ x: PRODUCT_LIST_TABLE_MIN_WIDTH }}
-          rowKey='id'
-          dataSource={rows}
-          loading={loading}
-          locale={{
-            emptyText: loading ? (
-              t('common.loading')
-            ) : loadError ? (
-              <AppErrorState
-                message={t('common.load_failed')}
-                onRetry={loadProducts}
-                retryText={t('common.retry')}
-              />
-            ) : (
-              <AppEmpty
-                action={
-                  <AppButton
-                    type='button'
-                    color='blue'
-                    onClick={openCreate}
-                    disabled={submitting}
-                  >
-                    {t('common.add')}
-                  </AppButton>
-                }
-              >
-                {t('entitlement.empty_cta')}
-              </AppEmpty>
-            ),
-          }}
-          onRow={(row) => ({
-            className: row?.id ? 'router-row-clickable' : '',
-            onClick: () => openDetail(row),
-          })}
-          columns={columns}
+      {loading && rows.length === 0 ? (
+        <AppSkeleton variant='cards' count={6} />
+      ) : loadError ? (
+        <AppErrorState
+          message={t('common.load_failed')}
+          onRetry={loadProducts}
+          retryText={t('common.retry')}
         />
-      </div>
+      ) : rows.length === 0 ? (
+        <AppEmpty
+          action={
+            <AppButton
+              type='button'
+              color='blue'
+              onClick={openCreate}
+              disabled={submitting}
+            >
+              {t('common.add')}
+            </AppButton>
+          }
+        >
+          {t('entitlement.empty_cta')}
+        </AppEmpty>
+      ) : (
+        <div className='entitlement-card-grid'>
+          {rows.map((row) => renderProductCard(row))}
+        </div>
+      )}
 
       {total > pageSize ? (
         <div className='router-pagination-wrap-md'>
