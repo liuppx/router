@@ -53,19 +53,29 @@ export const ADMIN_MENU_GROUPS = [
     ],
   },
   {
-    key: 'customers',
-    name: 'header.customers',
+    // 用户从原「产品与客户」组拎出:用户是消费主体,与「产品」(兑换码/权益)分属
+    // 两类实体,独立成单项组 → 侧边栏渲染为扁平叶子。
+    // 用户的「分析」/「任务」面现为 /admin/user?tab=…(基准 `to` 覆盖)。
+    // /admin/task 列表已重定向到 tab 条,但任务详情仍在 /admin/task/:id,
+    // 故保留该 matchPath 前缀以在详情页高亮本项。
+    key: 'users',
+    name: 'header.user',
     icon: 'users',
     items: [
       {
-        // 用户的「分析」/「任务」面现为 /admin/user?tab=…(基准 `to` 覆盖)。
-        // /admin/task 列表已重定向到 tab 条,但任务详情仍在 /admin/task/:id,
-        // 故保留该 matchPath 前缀以在详情页高亮本项。
         name: 'header.user',
         to: '/admin/user',
         icon: 'user',
         matchPaths: ['/admin/task'],
       },
+    ],
+  },
+  {
+    // 产品:面向售卖的实体(兑换码、权益产品)。用户已拎出为独立组。
+    key: 'products',
+    name: 'header.products',
+    icon: 'ticket',
+    items: [
       {
         name: 'header.redemption',
         to: '/admin/redemption',
