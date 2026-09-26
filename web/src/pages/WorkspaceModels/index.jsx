@@ -418,6 +418,8 @@ const WorkspaceModels = () => {
     return rows;
   }, [healthFilter, keyword, payload.models, sortBy]);
 
+  const isFiltered = healthFilter !== 'all' || keyword.trim().length > 0;
+
   const renderHealthTag = (level) => {
     const normalized = String(level || 'unknown').trim().toLowerCase();
     return (
@@ -452,47 +454,6 @@ const WorkspaceModels = () => {
       <AppSpin spinning={loading}>
       <AppSection className='workspace-models-section'>
         <div className='workspace-models-toolbar'>
-          <div className='workspace-models-summary-grid'>
-            {[
-              {
-                key: 'all',
-                label: t('workspace_models.summary.total'),
-                value: summary.model_count,
-                tone: '',
-              },
-              {
-                key: 'healthy',
-                label: t('workspace_models.summary.healthy'),
-                value: summary.healthy_model_count,
-                tone: 'green',
-              },
-              {
-                key: 'warning',
-                label: t('workspace_models.summary.warning'),
-                value: summary.warning_model_count,
-                tone: 'orange',
-              },
-              {
-                key: 'critical',
-                label: t('workspace_models.summary.critical'),
-                value: summary.critical_model_count,
-                tone: 'red',
-              },
-            ].map((card) => (
-              <button
-                type='button'
-                key={card.key}
-                className={`workspace-models-summary-item${
-                  card.tone ? ` workspace-models-summary-item-${card.tone}` : ''
-                }${healthFilter === card.key ? ' is-active' : ''}`}
-                aria-pressed={healthFilter === card.key}
-                onClick={() => patchFilters({ healthFilter: card.key })}
-              >
-                <span>{card.label}</span>
-                <strong>{formatCount(card.value)}</strong>
-              </button>
-            ))}
-          </div>
           <AppToolbar
             className='workspace-models-controls'
             start={
@@ -513,6 +474,16 @@ const WorkspaceModels = () => {
                     icon={<AppIcon name='exchange' />}
                   />
                 </AppTooltip>
+                <span className='workspace-models-count'>
+                  {isFiltered
+                    ? t('workspace_models.summary.count_filtered', {
+                        shown: formatCount(filteredModels.length),
+                        total: formatCount(summary.model_count),
+                      })
+                    : t('workspace_models.summary.count', {
+                        total: formatCount(summary.model_count),
+                      })}
+                </span>
               </div>
             }
             end={

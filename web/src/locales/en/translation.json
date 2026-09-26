@@ -4300,10 +4300,8 @@
     "empty": "No available model status",
     "history_label": "{{model}} recent model status",
     "summary": {
-      "total": "Available models",
-      "healthy": "Healthy",
-      "warning": "Warning",
-      "critical": "Critical"
+      "count": "{{total}} models",
+      "count_filtered": "{{shown}} / {{total}} models"
     },
     "filters": {
       "health": {

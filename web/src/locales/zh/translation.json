@@ -4300,10 +4300,8 @@
     "empty": "暂无可用模型状态",
     "history_label": "{{model}} 最近模型状态",
     "summary": {
-      "total": "可用模型",
-      "healthy": "正常",
-      "warning": "预警",
-      "critical": "异常"
+      "count": "共 {{total}} 个模型",
+      "count_filtered": "命中 {{shown}} / {{total}} 个模型"
     },
     "filters": {
       "health": {
