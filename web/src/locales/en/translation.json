@@ -74,10 +74,10 @@
       "channel_model_disabled_source": "Channel model runtime disablement",
       "channel_model_disabled_no_reason": "Open model details for more information",
       "channel_model_disabled_by": "Disabled by",
-      "task_source_admin": "System task",
+      "task_source_admin": "Background execution",
       "task_source_user": "My task",
-      "admin_task_failed_title": "Channel task failed",
-      "admin_task_running_title": "Channel task running",
+      "admin_task_failed_title": "Channel background execution failed",
+      "admin_task_running_title": "Channel background execution running",
       "user_task_failed_title": "Task failed",
       "user_task_running_title": "Task running",
       "user_task_failed_summary": "Open task details for more information",
@@ -620,8 +620,7 @@
       "providers": "Providers",
       "list": "List",
       "health": "Health",
-      "alerts": "Alerts",
-      "tasks": "System tasks"
+      "alerts": "Alerts"
     },
     "search": "Search channels by identifier...",
     "table": {
@@ -1542,10 +1541,32 @@
         "image_edit_uploaded": "Image uploaded",
         "image_edit_file_failed": "Failed to read image",
         "single": "Test",
-        "task_created": "{{count}} test tasks submitted, {{reused}} active tasks reused.",
+        "task_created": "Submitted {{count}} model tests and reused {{reused}} tests already in progress.",
         "group_count": "{{count}} models",
         "group_type": "Type: {{type}}",
         "history_tasks": "Test History",
+        "history_title": "All Test History",
+        "history_title_filtered": "{{model}} · {{endpoint}} Test History",
+        "history_hint": "This view shows model-test conclusions. Pending and running states stay in the main model-test table instead of becoming separate tasks.",
+        "history_empty": "No model-test history yet",
+        "history_stream": "Streaming",
+        "history_non_stream": "Non-streaming",
+        "history_retest": "Run Test Again",
+        "history_download": "Download Test Artifact",
+        "history_sources": {
+          "manual_test": "Manual Test",
+          "automatic_probe": "Automatic Probe",
+          "channel_recovery": "Recovery Probe",
+          "runtime": "Runtime Probe"
+        },
+        "history_table": {
+          "result": "Conclusion",
+          "mode": "Mode",
+          "source": "Source",
+          "latency": "Latency",
+          "message": "Details",
+          "tested_at": "Tested At"
+        },
         "filters": {
           "all_provider": "All Providers",
           "all_type": "All Types",
@@ -1557,7 +1578,7 @@
         "verify_required": "Please finish the current model tests before continuing.",
         "empty": "No testable models yet. Please select models in step 2 first.",
         "last_tested": "Last tested at: {{time}}",
-        "test_success": "Model test tasks submitted",
+        "test_success": "Model test submitted",
         "test_failed": "Model test failed",
         "download_failed": "Failed to download the test artifact",
         "download_unavailable": "No downloadable artifact is available for this test result",
@@ -1571,9 +1592,9 @@
         "latest_result_from_endpoint": "Current endpoint is untested. Showing latest test result from endpoint: {{endpoint}}.",
         "failure_reason": "Failure reason: {{reason}}",
         "status": {
-          "pending": "Pending",
-          "running": "Running",
-          "failed": "Failed",
+          "pending": "Waiting",
+          "running": "Testing",
+          "failed": "Test Error",
           "success": "Success",
           "untested": "Untested",
           "stale": "Retest Needed",
@@ -1587,7 +1608,7 @@
           "endpoint": "Endpoint",
           "batch_set": "Batch",
           "supported_endpoints": "Supported Endpoints",
-          "status": "Success/Fail",
+          "status": "Passed/Not Passed",
           "recent_test": "Latest Result",
           "latency": "Min/Avg/Max (ms)",
           "tested_at": "Latest Test Time",
@@ -2555,7 +2576,7 @@
     "empty": "No tasks yet",
     "summary": "{{total}} tasks",
     "scopes": {
-      "admin": "System Tasks",
+      "admin": "Background Execution Record",
       "user": "User Tasks"
     },
     "filters": {
@@ -2623,6 +2644,7 @@
     },
     "messages": {
       "load_failed": "Failed to load tasks",
+      "operation_load_failed": "Failed to load the background execution record",
       "retry_success": "Task requeued",
       "retry_failed": "Failed to retry task",
       "cancel_success": "Task canceled",
@@ -3158,7 +3180,7 @@
           "models": "Model runtime",
           "alerts": "Channel alerts",
           "routes": "Route runtime",
-          "tasks": "System tasks",
+          "tasks": "Background executions",
           "finance": "Finance checks",
           "incident_states": "Handling records"
         },
@@ -3173,7 +3195,7 @@
           "affected_models": "Affected models",
           "failures": "Failed requests",
           "fallbacks": "Fallbacks",
-          "failed_tasks": "Failed tasks",
+          "failed_tasks": "Execution failures",
           "finance_issues": "Finance issues",
           "abnormal_objects": "Abnormal objects",
           "unknown_objects": "Unknown state",
@@ -3276,7 +3298,7 @@
             "channels": "Channels",
             "models": "Models",
             "routes": "Routes",
-            "tasks": "System tasks",
+            "tasks": "Background executions",
             "finance": "Finance"
           },
           "empty_title": "No findings match this filter",
@@ -3304,12 +3326,12 @@
           "assignee": "Current owner",
           "last_seen": "Last observed",
           "impact_title": "Impact",
-          "impact_brief": "Failures {{failures}} · tasks {{tasks}} · finance {{finance}}",
+          "impact_brief": "Failures {{failures}} · executions {{tasks}} · finance {{finance}}",
           "channel": "Channel",
           "models": "Models",
           "endpoints": "Endpoints",
           "signals": "Contributing signals",
-          "tasks": "Related tasks",
+          "tasks": "Abnormal executions",
           "finance": "Finance issues",
           "handling": "Response progress",
           "note_placeholder": "Record findings, actions taken, or recovery evidence",
@@ -3328,7 +3350,7 @@
             "failures": "Failed requests",
             "failure_rate": "Failure rate",
             "fallbacks": "Fallbacks",
-            "failed_tasks": "Failed tasks",
+            "failed_tasks": "Execution failures",
             "finance": "Finance issues"
           },
           "actions": {
@@ -3342,7 +3364,7 @@
         "links": {
           "channel": "Channel details",
           "alerts": "Channel alerts",
-          "tasks": "System tasks",
+          "tasks": "Related operation",
           "logs": "Request logs",
           "models": "Model operations",
           "finance": "Finance management"
@@ -3411,8 +3433,8 @@
         "channel_disabled": "Disabled Channels",
         "groups": "Groups",
         "providers": "Providers",
-        "tasks_active": "Active Tasks",
-        "tasks_failed": "Failed Tasks"
+        "tasks_active": "Active Executions",
+        "tasks_failed": "Execution Failures"
       },
       "board": {
         "operations_title": "Operations Board",

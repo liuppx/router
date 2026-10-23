@@ -126,6 +126,22 @@ import {
 
 const CHANNEL_PROCUREMENT_PAGE_SIZE = 20;
 
+const parseDownloadFilename = (contentDisposition, fallbackName) => {
+  const fallback =
+    (fallbackName || 'download.bin').toString().trim() || 'download.bin';
+  const headerValue = (contentDisposition || '').toString();
+  const utf8Match = headerValue.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1]);
+    } catch {
+      return utf8Match[1];
+    }
+  }
+  const plainMatch = headerValue.match(/filename=\"?([^\";]+)\"?/i);
+  return plainMatch?.[1] || fallback;
+};
+
 const ChannelForm = ({ mode = 'auto' } = {}) => {
   const { t } = useTranslation();
   const params = useParams();
@@ -166,6 +182,32 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
     const query = new URLSearchParams(location.search);
     return normalizeDetailTab(query.get('tab'));
   }, [isDetailMode, location.search]);
+  const modelTestHistoryFilter = useMemo(() => {
+    if (!isDetailMode || activeDetailTab !== 'tests') {
+      return { model: '', endpoint: '' };
+    }
+    const query = new URLSearchParams(location.search);
+    return {
+      model: (query.get('model') || '').toString().trim(),
+      endpoint: (query.get('endpoint') || '').toString().trim(),
+    };
+  }, [activeDetailTab, isDetailMode, location.search]);
+  const clearModelTestHistoryFilter = useCallback(() => {
+    const query = new URLSearchParams(location.search);
+    if (!query.has('model') && !query.has('endpoint')) {
+      return;
+    }
+    query.delete('model');
+    query.delete('endpoint');
+    const nextSearch = query.toString();
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true, state: location.state },
+    );
+  }, [location.pathname, location.search, location.state, navigate]);
   const [channelKeySet, setChannelKeySet] = useState(false);
   const handleBackToChannelList = useCallback(() => {
     navigate(returnPath || '/admin/channel');
@@ -282,38 +324,74 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
     },
     [t]
   );
-  const openChannelTaskView = useCallback(
-    (extraParams = {}) => {
+  const handleDownloadModelTestArtifact = useCallback(
+    async (item) => {
       const targetChannelId = (channelId || '').toString().trim();
-      const query = new URLSearchParams();
-      if (targetChannelId !== '') {
-        query.set('channel_id', targetChannelId);
+      const modelName = (item?.model || '').toString().trim();
+      const endpoint = (item?.endpoint || '').toString().trim();
+      if (
+        targetChannelId === '' ||
+        modelName === '' ||
+        endpoint === '' ||
+        !(item?.artifact_name || item?.artifact_path)
+      ) {
+        showError(t('channel.edit.model_tester.download_unavailable'));
+        return;
       }
-      Object.entries(extraParams || {}).forEach(([key, value]) => {
-        const normalizedValue = (value || '').toString().trim();
-        if (normalizedValue !== '') {
-          query.set(key, normalizedValue);
+      try {
+        const response = await API.get(
+          `/api/v1/admin/channel/${targetChannelId}/tests/artifact`,
+          {
+            params: {
+              model: modelName,
+              endpoint,
+              round: Number(item?.round || 0) || undefined,
+            },
+            responseType: 'blob',
+          },
+        );
+        const responseContentType = (
+          response.headers?.['content-type'] || ''
+        ).toString();
+        if (responseContentType.includes('application/json')) {
+          const text = await response.data.text();
+          let parsed = null;
+          try {
+            parsed = JSON.parse(text);
+          } catch {
+            parsed = null;
+          }
+          showError(
+            parsed?.message ||
+              parsed?.error?.message ||
+              t('channel.edit.model_tester.download_failed'),
+          );
+          return;
         }
-      });
-      query.set('tab', 'tasks');
-      const search = query.toString();
-      navigate(`/admin/channel${search ? `?${search}` : ''}`, {
-        state: {
-          from: `${location.pathname}${location.search}${location.hash}`,
-          fromLabel: (inputs.name || channelId || '').toString().trim(),
-          contextType: 'channel_test_history',
-          contextLabel: (inputs.name || channelId || '').toString().trim(),
-        },
-      });
+        const blob = new Blob([response.data], {
+          type:
+            responseContentType ||
+            item?.artifact_content_type ||
+            'application/octet-stream',
+        });
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = parseDownloadFilename(
+          response.headers?.['content-disposition'],
+          item?.artifact_name || `${modelName}.bin`,
+        );
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+      } catch (error) {
+        showError(
+          error?.message || t('channel.edit.model_tester.download_failed'),
+        );
+      }
     },
-    [
-      channelId,
-      inputs.name,
-      location.hash,
-      location.pathname,
-      location.search,
-      navigate,
-    ]
+    [channelId, t],
   );
   const [modelTestedAt, setModelTestedAt] = useState(0);
   const [modelTestedSignature, setModelTestedSignature] = useState('');
@@ -512,6 +590,14 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
       }
       if (
         Number(item.tested_at || 0) === Number(existing.tested_at || 0) &&
+        Number(item.round || 0) > Number(existing.round || 0)
+      ) {
+        index.set(key, item);
+        return;
+      }
+      if (
+        Number(item.tested_at || 0) === Number(existing.tested_at || 0) &&
+        Number(item.round || 0) === Number(existing.round || 0) &&
         Number(item.latency_ms || 0) >= Number(existing.latency_ms || 0)
       ) {
         index.set(key, item);
@@ -4580,7 +4666,10 @@ const ChannelForm = ({ mode = 'auto' } = {}) => {
                 handleRunModelTests={handleRunModelTests}
                 detailTestingReadonly={detailTestingReadonly}
                 modelTestError={modelTestError}
-                openChannelTaskView={openChannelTaskView}
+                onDownloadTestArtifact={handleDownloadModelTestArtifact}
+                initialHistoryModel={modelTestHistoryFilter.model}
+                initialHistoryEndpoint={modelTestHistoryFilter.endpoint}
+                onCloseHistoryFilter={clearModelTestHistoryFilter}
                 selectedModelTestHasActiveTasks={
                   selectedModelTestHasActiveTasks
                 }

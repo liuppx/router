@@ -58,6 +58,30 @@ type versionedMigration struct {
 	Up          func(tx *gorm.DB) error
 }
 
+func restoreCompletedChannelModelTestOperationsWithDB(db *gorm.DB) error {
+	rows := make([]AsyncTask, 0)
+	if err := db.
+		Where("type = ? AND status = ? AND COALESCE(result, '') <> ''", AsyncTaskTypeChannelModelTest, AsyncTaskStatusFailed).
+		Find(&rows).Error; err != nil {
+		return err
+	}
+	for _, row := range rows {
+		status, _, ok := ResolveAsyncTaskBusinessOutcome(row.Type, row.Result)
+		if !ok || status != AsyncTaskStatusSucceeded {
+			continue
+		}
+		if err := db.Model(&AsyncTask{}).
+			Where("id = ?", row.Id).
+			Updates(map[string]any{
+				"status":        AsyncTaskStatusSucceeded,
+				"error_message": "",
+			}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func runMainVersionedMigrations(db *gorm.DB) error {
 	migrations := []versionedMigration{
 		{
@@ -2269,6 +2293,13 @@ func runMainVersionedMigrations(db *gorm.DB) error {
 			Description: "persist duty incident ownership and lifecycle state for the operator workbench",
 			Up: func(tx *gorm.DB) error {
 				return tx.AutoMigrate(&DutyIncidentState{})
+			},
+		},
+		{
+			Version:     "202610231200_restore_completed_channel_model_test_operations",
+			Description: "treat persisted negative channel model test conclusions as completed operations",
+			Up: func(tx *gorm.DB) error {
+				return restoreCompletedChannelModelTestOperationsWithDB(tx)
 			},
 		},
 	}

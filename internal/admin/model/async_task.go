@@ -172,7 +172,6 @@ func normalizeAsyncTaskRow(row *AsyncTask) {
 	if row.Status == "" {
 		row.Status = AsyncTaskStatusPending
 	}
-	applyAsyncTaskBusinessStatus(row)
 }
 
 type channelModelTestTaskResult struct {
@@ -192,38 +191,18 @@ func ResolveAsyncTaskBusinessOutcome(taskType string, result string) (string, st
 		if err := json.Unmarshal([]byte(payload), &parsed); err != nil {
 			return "", "", false
 		}
-		supported := parsed.Supported != nil && *parsed.Supported
-		status := NormalizeChannelTestStatus(parsed.Status)
-		if supported && status == ChannelTestStatusSupported {
-			return AsyncTaskStatusSucceeded, "", true
+		switch strings.TrimSpace(strings.ToLower(parsed.Status)) {
+		case ChannelTestStatusSupported, ChannelTestStatusUnsupported, ChannelTestStatusSkipped:
+		default:
+			return "", "", false
 		}
-		message := strings.TrimSpace(parsed.Message)
-		if message == "" {
-			message = "模型测试未通过"
-		}
-		return AsyncTaskStatusFailed, message, true
+		// A model test that completed and persisted a supported, unsupported, or
+		// skipped result is a successfully executed background operation. The
+		// capability conclusion belongs to channel_tests and must not be folded
+		// into the operation-run status used by workers and the duty station.
+		return AsyncTaskStatusSucceeded, "", true
 	default:
 		return "", "", false
-	}
-}
-
-func applyAsyncTaskBusinessStatus(row *AsyncTask) {
-	if row == nil {
-		return
-	}
-	resolvedStatus, resolvedMessage, ok := ResolveAsyncTaskBusinessOutcome(row.Type, row.Result)
-	if !ok {
-		return
-	}
-	if NormalizeAsyncTaskStatus(row.Status) != AsyncTaskStatusSucceeded {
-		return
-	}
-	if resolvedStatus == AsyncTaskStatusSucceeded {
-		return
-	}
-	row.Status = resolvedStatus
-	if strings.TrimSpace(row.ErrorMessage) == "" {
-		row.ErrorMessage = resolvedMessage
 	}
 }
 

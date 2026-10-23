@@ -2098,6 +2098,7 @@ const normalizeModelTestResults = (results) => {
         channel_id: (item.channel_id || '').toString().trim(),
         model: item.model || '',
         upstream_model: item.upstream_model || '',
+        round: Number(item.round || 0),
         type: normalizeChannelModelType(item.type),
         endpoint: item.endpoint || '',
         is_stream:
@@ -2105,7 +2106,9 @@ const normalizeModelTestResults = (results) => {
         status: item.status || 'unsupported',
         supported: !!item.supported,
         message: item.message || '',
+        source: (item.source || 'manual_test').toString().trim(),
         latency_ms: Number(item.latency_ms || 0),
+        sort_order: Number(item.sort_order || 0),
         tested_at: Number(item.tested_at || 0),
         artifact_path: (item.artifact_path || '').toString().trim(),
         artifact_name: (item.artifact_name || '').toString().trim(),

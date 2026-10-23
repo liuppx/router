@@ -74,10 +74,10 @@
       "channel_model_disabled_source": "渠道模型运行时禁用",
       "channel_model_disabled_no_reason": "请查看模型详情",
       "channel_model_disabled_by": "禁用来源",
-      "task_source_admin": "系统任务",
+      "task_source_admin": "后台执行",
       "task_source_user": "我的任务",
-      "admin_task_failed_title": "渠道任务失败",
-      "admin_task_running_title": "渠道任务进行中",
+      "admin_task_failed_title": "渠道后台执行失败",
+      "admin_task_running_title": "渠道后台执行中",
       "user_task_failed_title": "任务失败",
       "user_task_running_title": "任务进行中",
       "user_task_failed_summary": "请查看任务详情",
@@ -620,8 +620,7 @@
       "providers": "供应商",
       "list": "列表",
       "health": "健康",
-      "alerts": "告警",
-      "tasks": "系统任务"
+      "alerts": "告警"
     },
     "search": "搜索渠道标识...",
     "table": {
@@ -1542,10 +1541,32 @@
         "image_edit_uploaded": "已上传图片",
         "image_edit_file_failed": "读取图片失败",
         "single": "测试",
-        "task_created": "已提交 {{count}} 个测试任务，其中复用 {{reused}} 个运行中任务。",
+        "task_created": "已提交 {{count}} 项模型测试，其中复用 {{reused}} 项正在执行的测试。",
         "group_count": "{{count}} 个模型",
         "group_type": "类型：{{type}}",
         "history_tasks": "历史测试",
+        "history_title": "全部历史测试",
+        "history_title_filtered": "{{model}} · {{endpoint}} 历史测试",
+        "history_hint": "这里展示模型测试结论。等待和执行状态会直接显示在模型测试主表中，不作为独立任务管理。",
+        "history_empty": "暂无历史测试记录",
+        "history_stream": "流式",
+        "history_non_stream": "非流式",
+        "history_retest": "重新测试",
+        "history_download": "下载测试产物",
+        "history_sources": {
+          "manual_test": "手动测试",
+          "automatic_probe": "自动探测",
+          "channel_recovery": "恢复探测",
+          "runtime": "运行时探测"
+        },
+        "history_table": {
+          "result": "测试结论",
+          "mode": "模式",
+          "source": "来源",
+          "latency": "延迟",
+          "message": "说明",
+          "tested_at": "测试时间"
+        },
         "filters": {
           "all_provider": "全部供应商",
           "all_type": "全部类型",
@@ -1557,7 +1578,7 @@
         "verify_required": "请先完成当前模型测试后再继续。",
         "empty": "当前没有可测试的模型，请先在第二步选择模型。",
         "last_tested": "最近测试时间：{{time}}",
-        "test_success": "模型测试任务已提交",
+        "test_success": "模型测试已提交",
         "test_failed": "模型测试失败",
         "download_failed": "下载测试结果文件失败",
         "download_unavailable": "当前测试结果没有可下载文件",
@@ -1571,9 +1592,9 @@
         "latest_result_from_endpoint": "当前端点未测试，展示最近一次测试结果（端点：{{endpoint}}）",
         "failure_reason": "失败原因：{{reason}}",
         "status": {
-          "pending": "排队中",
-          "running": "运行中",
-          "failed": "失败",
+          "pending": "等待测试",
+          "running": "测试中",
+          "failed": "测试异常",
           "success": "成功",
           "untested": "未测试",
           "stale": "待重测",
@@ -1587,7 +1608,7 @@
           "endpoint": "端点",
           "batch_set": "批量设置",
           "supported_endpoints": "已通过端点",
-          "status": "成功/失败",
+          "status": "通过/未通过",
           "recent_test": "最近一次测试",
           "latency": "最小/平均/最大（ms）",
           "tested_at": "最近测试时间点",
@@ -2555,7 +2576,7 @@
     "empty": "暂无任务",
     "summary": "共 {{total}} 条任务",
     "scopes": {
-      "admin": "系统任务",
+      "admin": "后台执行记录",
       "user": "用户任务"
     },
     "filters": {
@@ -2623,6 +2644,7 @@
     },
     "messages": {
       "load_failed": "读取任务失败",
+      "operation_load_failed": "读取后台执行记录失败",
       "retry_success": "任务已重新提交",
       "retry_failed": "任务重试失败",
       "cancel_success": "任务已取消",
@@ -3158,7 +3180,7 @@
           "models": "模型运行",
           "alerts": "渠道告警",
           "routes": "路由运行",
-          "tasks": "系统任务",
+          "tasks": "后台执行",
           "finance": "财务检查",
           "incident_states": "处置记录"
         },
@@ -3173,7 +3195,7 @@
           "affected_models": "影响模型",
           "failures": "失败请求",
           "fallbacks": "回退请求",
-          "failed_tasks": "失败任务",
+          "failed_tasks": "执行失败",
           "finance_issues": "财务问题",
           "abnormal_objects": "异常对象",
           "unknown_objects": "状态未知",
@@ -3276,7 +3298,7 @@
             "channels": "渠道",
             "models": "模型",
             "routes": "路由",
-            "tasks": "系统任务",
+            "tasks": "后台执行",
             "finance": "财务"
           },
           "empty_title": "当前没有匹配的发现",
@@ -3304,12 +3326,12 @@
           "assignee": "当前处理人",
           "last_seen": "最近发生",
           "impact_title": "影响范围",
-          "impact_brief": "失败 {{failures}} · 任务 {{tasks}} · 财务 {{finance}}",
+          "impact_brief": "失败 {{failures}} · 执行 {{tasks}} · 财务 {{finance}}",
           "channel": "渠道",
           "models": "模型",
           "endpoints": "端点",
           "signals": "原因信号",
-          "tasks": "关联任务",
+          "tasks": "异常执行",
           "finance": "财务问题",
           "handling": "处置进展",
           "note_placeholder": "记录判断、处理动作或恢复依据",
@@ -3328,7 +3350,7 @@
             "failures": "失败请求",
             "failure_rate": "失败率",
             "fallbacks": "回退请求",
-            "failed_tasks": "失败任务",
+            "failed_tasks": "执行失败",
             "finance": "财务问题"
           },
           "actions": {
@@ -3342,7 +3364,7 @@
         "links": {
           "channel": "渠道详情",
           "alerts": "渠道告警",
-          "tasks": "系统任务",
+          "tasks": "相关操作",
           "logs": "请求日志",
           "models": "模型运营",
           "finance": "财务管理"
@@ -3411,8 +3433,8 @@
         "channel_disabled": "停用渠道数",
         "groups": "分组数量",
         "providers": "供应商数量",
-        "tasks_active": "运行中任务",
-        "tasks_failed": "失败任务"
+        "tasks_active": "进行中执行",
+        "tasks_failed": "执行失败"
       },
       "board": {
         "operations_title": "经营大盘",

@@ -854,7 +854,7 @@ function App() {
         />
         <Route
           path='/admin/channel/tasks'
-          element={<TabRedirect to='/admin/channel' tab='tasks' />}
+          element={<TabRedirect to='/admin/channel' />}
         />
         <Route
           path='/admin/channel/tasks/:id'

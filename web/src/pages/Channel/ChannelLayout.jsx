@@ -2,7 +2,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import ChannelsTable from '../../components/ChannelsTable';
-import Task, { TASK_PAGE_KIND_ADMIN_SYSTEM } from '../Task';
 import AdminChannelAlertsPanel from '../../components/AdminChannelAlertsPanel';
 import ChannelHealthSection from '../AdminDashboard/sections/ChannelHealthSection';
 import { AppFilterHeader } from '../../router-ui';
@@ -10,7 +9,7 @@ import SectionTabs from '../../components/SectionTabs';
 import '../AdminDashboard/Dashboard.css';
 import '../AdminDashboard/AdminDashboard.css';
 
-// Single channel shell: list / health / alerts / system tasks all live under
+// Single channel shell: list / health / alerts all live under
 // `/admin/channel?tab=...` so switching a tab only changes the query string —
 // the tab strip stays mounted and the body swaps in place instead of tearing
 // down a whole route (the old cross-route SectionTabs behavior).
@@ -18,7 +17,6 @@ const TABS = [
   { key: 'list', labelKey: 'channel.tabs.list' },
   { key: 'health', labelKey: 'channel.tabs.health' },
   { key: 'alerts', labelKey: 'channel.tabs.alerts' },
-  { key: 'tasks', labelKey: 'channel.tabs.tasks' },
 ];
 
 const VALID_TABS = new Set(TABS.map((tab) => tab.key));
@@ -35,8 +33,6 @@ const ChannelLayout = () => {
         return <ChannelHealthSection />;
       case 'alerts':
         return <AdminChannelAlertsPanel />;
-      case 'tasks':
-        return <Task pageKind={TASK_PAGE_KIND_ADMIN_SYSTEM} embedded />;
       case 'list':
       default:
         return <ChannelsTable embedded />;

@@ -28,7 +28,7 @@ export const ADMIN_MENU_GROUPS = [
         icon: 'cubes',
       },
       {
-        // 渠道的「面」:列表 / 健康 / 告警 / 系统任务 现已全部落在 /admin/channel?tab=…,
+        // 渠道的「面」:列表 / 健康 / 告警 现已全部落在 /admin/channel?tab=…,
         // 与 /admin/channel/* 详情路由同前缀,基准 `to` 即可覆盖全部面,无需 matchPaths。
         name: 'header.channel',
         to: '/admin/channel',
