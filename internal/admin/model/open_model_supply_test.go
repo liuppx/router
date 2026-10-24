@@ -67,6 +67,53 @@ func testPublisherServiceInput() PublisherServiceInput {
 	}
 }
 
+func TestListSupplyChannelViewsForAdminGroupsOffersByService(t *testing.T) {
+	db := newOpenModelSupplyTestDB(t)
+	publisher := Publisher{
+		Id: "publisher-1", UserId: "user-1", WalletIdentityDID: "did:yeying:publisher-1",
+		DisplayName: "Publisher One", Level: PublisherLevelVerifiedCommunity, Status: PublisherStatusActive,
+		CreatedAt: 1, UpdatedAt: 2,
+	}
+	if err := db.Create(&publisher).Error; err != nil {
+		t.Fatalf("create publisher: %v", err)
+	}
+	services := []PublisherService{
+		{Id: "service-1", PublisherId: publisher.Id, Name: "multi-model", Protocol: "openai", CredentialEncrypted: "encrypted", Status: PublisherServiceStatusReady, LastCheckedAt: 20, LastCheckOK: true, CreatedAt: 1, UpdatedAt: 30},
+		{Id: "service-2", PublisherId: publisher.Id, Name: "no-offer-yet", Protocol: "openai", CredentialEncrypted: "encrypted", Status: PublisherServiceStatusDraft, CreatedAt: 1, UpdatedAt: 10},
+	}
+	if err := db.Create(&services).Error; err != nil {
+		t.Fatalf("create services: %v", err)
+	}
+	if err := db.Create(&PublisherServiceModel{Id: "service-model-2", ServiceId: "service-2", Model: "text-embedding-3-small", Status: PublisherServiceModelStatusReady, CreatedAt: 2, UpdatedAt: 2}).Error; err != nil {
+		t.Fatalf("create service model: %v", err)
+	}
+	offers := []ServiceOffer{
+		{Id: "offer-1", PublisherId: publisher.Id, ServiceId: "service-1", Model: "gpt-5.4", Scope: ServiceOfferScopePublic, Status: ServiceOfferStatusPublished, CreatedAt: 2, UpdatedAt: 20},
+		{Id: "offer-2", PublisherId: publisher.Id, ServiceId: "service-1", Model: "o3", Scope: ServiceOfferScopeInvite, Status: ServiceOfferStatusReviewing, CreatedAt: 3, UpdatedAt: 21},
+	}
+	if err := db.Create(&offers).Error; err != nil {
+		t.Fatalf("create offers: %v", err)
+	}
+
+	rows, err := ListSupplyChannelViewsForAdmin(10)
+	if err != nil {
+		t.Fatalf("ListSupplyChannelViewsForAdmin: %v", err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("channel rows = %d, want one per service (2)", len(rows))
+	}
+	first := rows[0]
+	if first.ServiceId != "service-1" || first.OfferCount != 2 || len(first.Offers) != 2 {
+		t.Fatalf("first service projection = %#v, want one row with two offers", first)
+	}
+	if len(first.Models) != 2 || first.Models[0] != "gpt-5.4" || first.Models[1] != "o3" {
+		t.Fatalf("first service models = %#v, want stable aggregate", first.Models)
+	}
+	if rows[1].ServiceId != "service-2" || rows[1].OfferCount != 0 || len(rows[1].Offers) != 0 || len(rows[1].Models) != 1 || rows[1].Models[0] != "text-embedding-3-small" {
+		t.Fatalf("service without offers projection = %#v", rows[1])
+	}
+}
+
 func TestEnsurePublisherProfileRequiresWalletIdentityDID(t *testing.T) {
 	db := newOpenModelSupplyTestDB(t)
 	seedOpenModelSupplyUser(t, db, "user-without-did", "")

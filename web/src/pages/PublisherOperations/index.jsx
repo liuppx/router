@@ -341,7 +341,7 @@ function PublisherOperations({ embedded = false }) {
   const serviceColumns = useMemo(
     () => [
       {
-        title: '模型服务',
+        title: '供给渠道',
         dataIndex: 'name',
         render: (value, row) => (
           <div className='publisher-operations-name'>
@@ -381,7 +381,7 @@ function PublisherOperations({ embedded = false }) {
     () => [
       { title: '模型', dataIndex: 'model' },
       { title: '发布者 ID', dataIndex: 'publisher_id' },
-      { title: '模型服务 ID', dataIndex: 'service_id' },
+      { title: '供给渠道 ID', dataIndex: 'service_id' },
       {
         title: '价格',
         render: (_, row) =>
@@ -658,7 +658,7 @@ function PublisherOperations({ embedded = false }) {
                     />
                   </AppField>
                   <p>
-                    社区报价通过独立绑定参与自动路由，不会复制成运营渠道。分组只能由运营管理。
+                    第三方报价通过独立绑定参与自动路由。绑定只决定路由范围，不会把供给渠道变成平台自营渠道；分组只能由运营管理。
                   </p>
                 </div>
                 <AppTable
@@ -701,9 +701,9 @@ function PublisherOperations({ embedded = false }) {
           },
           {
             key: 'services',
-            label: '模型服务',
+            label: '供给渠道',
             children: (
-              <AppSection title='模型服务治理'>
+              <AppSection title='第三方供给渠道治理'>
                 <AppTable
                   rowKey='id'
                   columns={serviceColumns}
@@ -712,7 +712,7 @@ function PublisherOperations({ embedded = false }) {
                   pagination={false}
                   scroll={{ x: 960 }}
                   locale={{
-                    emptyText: <AppEmpty>没有发布者模型服务</AppEmpty>,
+                    emptyText: <AppEmpty>没有第三方供给渠道</AppEmpty>,
                   }}
                 />
               </AppSection>
@@ -745,7 +745,7 @@ function PublisherOperations({ embedded = false }) {
             key: 'settlements',
             label: '结算账本',
             children: (
-              <AppSection title='社区服务结算账本'>
+              <AppSection title='第三方供给结算账本'>
                 <AppTable
                   rowKey='request_log_id'
                   columns={settlementColumns}
@@ -754,7 +754,7 @@ function PublisherOperations({ embedded = false }) {
                   pagination={false}
                   scroll={{ x: 1200 }}
                   locale={{
-                    emptyText: <AppEmpty>还没有社区服务结算记录</AppEmpty>,
+                    emptyText: <AppEmpty>还没有第三方供给结算记录</AppEmpty>,
                   }}
                 />
               </AppSection>

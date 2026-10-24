@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/yeying-community/router/internal/admin/healthtrend"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -53,5 +54,41 @@ func TestLoadChannelRuntimeMetricsUsesRealTrafficAndIsolatesPersonalOwner(t *tes
 	personal := metrics[PersonalProviderChannelPrefix+"personal-1"]
 	if personal.SuccessCount != 1 || personal.RequestCount != 1 || personal.AvgLatencyMs != 80 {
 		t.Fatalf("personal metrics = %#v, want only user-a traffic", personal)
+	}
+}
+
+func TestMergeChannelRuntimeMetricsUsesWeightedLatencyAndMergedBuckets(t *testing.T) {
+	window := ChannelMetricWindow{Period: ChannelMetricPeriodLastHour, StartAt: 100, EndAt: 199, IntervalSeconds: 50}
+	merged := MergeChannelRuntimeMetrics(window,
+		ChannelRuntimeMetrics{
+			PromptTokens: 10, OutputTokens: 5, SpendQuota: 20,
+			Points: []healthtrend.Point{{BucketStart: 100, SuccessCount: 2, TotalCount: 2, AvgLatencyMs: 100, LatencyCount: 2, LastObservedAt: 120}},
+		},
+		ChannelRuntimeMetrics{
+			PromptTokens: 4, OutputTokens: 6, SpendQuota: 30,
+			Points: []healthtrend.Point{
+				{BucketStart: 100, FailureCount: 1, TotalCount: 1, AvgLatencyMs: 400, LatencyCount: 1, LastObservedAt: 130},
+				{BucketStart: 150, SuccessCount: 1, TotalCount: 1, AvgLatencyMs: 200, LatencyCount: 1, LastObservedAt: 170},
+			},
+		},
+	)
+
+	if merged.SuccessCount != 3 || merged.FailureCount != 1 || merged.RequestCount != 4 {
+		t.Fatalf("merged counts = %d/%d/%d, want 3/1/4", merged.SuccessCount, merged.FailureCount, merged.RequestCount)
+	}
+	if math.Abs(merged.SuccessRate-0.75) > 0.0001 {
+		t.Fatalf("merged success rate = %f, want 0.75", merged.SuccessRate)
+	}
+	if merged.AvgLatencyMs != 200 {
+		t.Fatalf("merged avg latency = %d, want weighted average 200", merged.AvgLatencyMs)
+	}
+	if merged.LastObservedAt != 170 {
+		t.Fatalf("merged last observed = %d, want 170", merged.LastObservedAt)
+	}
+	if merged.PromptTokens != 14 || merged.OutputTokens != 11 || merged.TotalTokens != 25 || merged.SpendQuota != 50 {
+		t.Fatalf("merged token/quota metrics = %#v", merged)
+	}
+	if len(merged.Points) != 2 || merged.Points[0].SuccessCount != 2 || merged.Points[0].FailureCount != 1 || merged.Points[0].AvgLatencyMs != 200 {
+		t.Fatalf("merged first point = %#v, want combined weighted bucket", merged.Points)
 	}
 }

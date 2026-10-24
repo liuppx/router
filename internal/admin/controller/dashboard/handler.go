@@ -83,6 +83,9 @@ type trendPoint struct {
 type channelHealthItem struct {
 	ID                       string                              `json:"id"`
 	Name                     string                              `json:"name"`
+	OwnershipType            string                              `json:"ownership_type"`
+	ChannelPurpose           string                              `json:"channel_purpose"`
+	AccessScope              string                              `json:"access_scope"`
 	SourceKind               string                              `json:"source_kind"`
 	OwnerID                  string                              `json:"owner_id,omitempty"`
 	OwnerName                string                              `json:"owner_name,omitempty"`
@@ -128,6 +131,8 @@ type channelHealthItem struct {
 	EarningsAvailable        bool                                `json:"earnings_available"`
 	EarningsMicros           int64                               `json:"earnings_micros,omitempty"`
 	SupplyStatus             string                              `json:"supply_status,omitempty"`
+	OfferCount               int                                 `json:"offer_count,omitempty"`
+	PublishedOfferCount      int                                 `json:"published_offer_count,omitempty"`
 }
 
 type channelHealthSummaryData struct {
@@ -748,7 +753,7 @@ func calcChannelHealth(channel *model.Channel, nowTs int64) channelHealthMetrics
 
 func runtimeChannelHealth(status int, runtime model.ChannelRuntimeMetrics, circuitBreaker *channelCircuitBreakerDashboardItem) (int, string) {
 	if runtime.RequestCount <= 0 {
-		if status == model.ChannelStatusEnabled {
+		if status == model.ChannelStatusEnabled || status == model.ChannelStatusCreating {
 			return 0, channelHealthLevelUnknown
 		}
 		return 30, channelHealthLevelCritical
@@ -1048,6 +1053,101 @@ func loadChannelOwnerNames(userIDs []string) (map[string]string, error) {
 	return result, nil
 }
 
+func supplyChannelAccessScope(offers []model.AdminSupplyOfferView) string {
+	scopes := make(map[string]struct{})
+	for _, offer := range offers {
+		if scope := strings.TrimSpace(offer.OfferScope); scope != "" {
+			scopes[scope] = struct{}{}
+		}
+	}
+	if len(scopes) == 0 {
+		return "unpublished"
+	}
+	if len(scopes) > 1 {
+		return "mixed"
+	}
+	for scope := range scopes {
+		return scope
+	}
+	return "unpublished"
+}
+
+func supplyChannelStatus(offers []model.AdminSupplyOfferView) string {
+	if len(offers) == 0 {
+		return "no_offer"
+	}
+	statusRank := map[string]int{
+		model.ServiceOfferStatusPublished: 0,
+		model.ServiceOfferStatusReviewing: 1,
+		model.ServiceOfferStatusSuspended: 2,
+		model.ServiceOfferStatusRejected:  3,
+		model.ServiceOfferStatusDraft:     4,
+		model.ServiceOfferStatusOffline:   5,
+	}
+	selected := strings.TrimSpace(offers[0].OfferStatus)
+	selectedRank, ok := statusRank[selected]
+	if !ok {
+		selectedRank = len(statusRank) + 1
+	}
+	for _, offer := range offers[1:] {
+		status := strings.TrimSpace(offer.OfferStatus)
+		rank, exists := statusRank[status]
+		if !exists {
+			rank = len(statusRank) + 1
+		}
+		if rank < selectedRank {
+			selected, selectedRank = status, rank
+		}
+	}
+	return selected
+}
+
+func supplyChannelOfferSummary(row model.AdminSupplyChannelView, groupNamesByOffer map[string][]string, earningsByOffer map[string]int64) (offerIDs []string, groupNames []string, earnings int64, publishedCount int, eligible bool) {
+	groupSet := make(map[string]struct{})
+	for _, offer := range row.Offers {
+		offerID := strings.TrimSpace(offer.OfferId)
+		if offerID == "" {
+			continue
+		}
+		offerIDs = append(offerIDs, offerID)
+		earnings += earningsByOffer[offerID]
+		for _, groupName := range groupNamesByOffer[offerID] {
+			if name := strings.TrimSpace(groupName); name != "" {
+				groupSet[name] = struct{}{}
+			}
+		}
+		if offer.OfferStatus == model.ServiceOfferStatusPublished {
+			publishedCount++
+			if offer.OfferScope == model.ServiceOfferScopePublic {
+				eligible = true
+			}
+		}
+	}
+	for groupName := range groupSet {
+		groupNames = append(groupNames, groupName)
+	}
+	sort.Strings(groupNames)
+	eligible = eligible && row.PublisherStatus == model.PublisherStatusActive &&
+		row.ServiceStatus == model.PublisherServiceStatusReady && row.LastCheckOK
+	return offerIDs, groupNames, earnings, publishedCount, eligible
+}
+
+func supplyChannelRuntimeStatus(row model.AdminSupplyChannelView, eligible bool) int {
+	if eligible {
+		return model.ChannelStatusEnabled
+	}
+	switch row.ServiceStatus {
+	case model.PublisherServiceStatusSuspended, model.PublisherServiceStatusOffline:
+		return model.ChannelStatusManuallyDisabled
+	}
+	switch row.PublisherStatus {
+	case model.PublisherStatusRestricted, model.PublisherStatusSuspended, model.PublisherStatusClosed:
+		return model.ChannelStatusManuallyDisabled
+	default:
+		return model.ChannelStatusCreating
+	}
+}
+
 func listDashboardChannelsForWindow(limit int, window model.ChannelMetricWindow) ([]channelHealthItem, channelHealthSummaryData, error) {
 	rows := make([]*model.Channel, 0)
 	err := model.DB.Model(&model.Channel{}).
@@ -1106,9 +1206,15 @@ func listDashboardChannelsForWindow(limit int, window model.ChannelMetricWindow)
 	}
 	offerIDs := make([]string, 0, len(supplyRows))
 	for _, row := range supplyRows {
-		offerIDs = append(offerIDs, row.OfferId)
 		ownerIDs = append(ownerIDs, row.PublisherUserId)
-		channelIDs = append(channelIDs, model.CommunityOfferChannelPrefix+row.OfferId)
+		for _, offer := range row.Offers {
+			offerID := strings.TrimSpace(offer.OfferId)
+			if offerID == "" {
+				continue
+			}
+			offerIDs = append(offerIDs, offerID)
+			channelIDs = append(channelIDs, model.CommunityOfferChannelPrefix+offerID)
+		}
 	}
 	ownerNames, err := loadChannelOwnerNames(ownerIDs)
 	if err != nil {
@@ -1147,6 +1253,9 @@ func listDashboardChannelsForWindow(limit int, window model.ChannelMetricWindow)
 		items = append(items, channelHealthItem{
 			ID:                       channelID,
 			Name:                     strings.TrimSpace(row.Name),
+			OwnershipType:            "platform",
+			ChannelPurpose:           "platform_service",
+			AccessScope:              "platform",
 			SourceKind:               "managed",
 			Visibility:               "managed",
 			Models:                   selectedChannelModelNames(row),
@@ -1197,7 +1306,8 @@ func listDashboardChannelsForWindow(limit int, window model.ChannelMetricWindow)
 		}
 		healthScore, healthLevel := runtimeChannelHealth(status, runtime, nil)
 		items = append(items, channelHealthItem{
-			ID: channelID, Name: row.Name, SourceKind: "personal", OwnerID: row.UserId,
+			ID: channelID, Name: row.Name, OwnershipType: "third_party", ChannelPurpose: "self_use", AccessScope: "private",
+			SourceKind: "personal", OwnerID: row.UserId,
 			OwnerName: ownerNames[row.UserId], Visibility: "private", Models: row.Models,
 			Protocol: row.Protocol, Status: status, Capabilities: []string{"text"}, Priority: row.Priority,
 			SelectedModelCount: len(row.Models), PassRate: runtime.SuccessRate,
@@ -1219,24 +1329,22 @@ func listDashboardChannelsForWindow(limit int, window model.ChannelMetricWindow)
 		})
 	}
 	for _, row := range supplyRows {
-		channelID := model.CommunityOfferChannelPrefix + row.OfferId
-		runtime := runtimeByChannelID[channelID]
-		eligible := row.OfferStatus == model.ServiceOfferStatusPublished &&
-			row.OfferScope == model.ServiceOfferScopePublic &&
-			row.PublisherStatus == model.PublisherStatusActive &&
-			row.ServiceStatus == model.PublisherServiceStatusReady && row.LastCheckOK
-		status := model.ChannelStatusManuallyDisabled
-		if eligible {
-			status = model.ChannelStatusEnabled
+		channelID := model.PublisherServiceChannelPrefix + row.ServiceId
+		serviceOfferIDs, groupNames, earnings, publishedCount, eligible := supplyChannelOfferSummary(row, groupNamesByOffer, earningsByOffer)
+		offerMetrics := make([]model.ChannelRuntimeMetrics, 0, len(serviceOfferIDs))
+		for _, offerID := range serviceOfferIDs {
+			offerMetrics = append(offerMetrics, runtimeByChannelID[model.CommunityOfferChannelPrefix+offerID])
 		}
+		runtime := model.MergeChannelRuntimeMetrics(window, offerMetrics...)
+		status := supplyChannelRuntimeStatus(row, eligible)
 		healthScore, healthLevel := runtimeChannelHealth(status, runtime, nil)
 		items = append(items, channelHealthItem{
-			ID: channelID, Name: strings.TrimSpace(row.ServiceName) + " / " + strings.TrimSpace(row.Model),
-			SourceKind: "published_supply", OwnerID: row.PublisherUserId,
-			OwnerName: row.PublisherDisplayName, Visibility: row.OfferScope,
-			Models: []string{row.Model}, GroupNames: groupNamesByOffer[row.OfferId],
+			ID: channelID, Name: strings.TrimSpace(row.ServiceName), OwnershipType: "third_party", ChannelPurpose: "supply",
+			AccessScope: supplyChannelAccessScope(row.Offers), SourceKind: "published_supply", OwnerID: row.PublisherUserId,
+			OwnerName: row.PublisherDisplayName, Visibility: supplyChannelAccessScope(row.Offers),
+			Models: row.Models, GroupNames: groupNames,
 			Protocol: row.ServiceProtocol, Status: status, Capabilities: []string{"text"},
-			SelectedModelCount: 1, PassRate: runtime.SuccessRate,
+			SelectedModelCount: len(row.Models), PassRate: runtime.SuccessRate,
 			SuccessCount: runtime.SuccessCount, FailureCount: runtime.FailureCount,
 			SuccessRate: runtime.SuccessRate, HasRuntimeData: runtime.RequestCount > 0,
 			LastObservedAt: runtime.LastObservedAt, PromptTokens: runtime.PromptTokens,
@@ -1252,7 +1360,8 @@ func listDashboardChannelsForWindow(limit int, window model.ChannelMetricWindow)
 			VerificationStatus: verificationStatus(row.LastCheckedAt > 0, row.LastCheckOK),
 			VerificationError:  row.LastCheckError, HealthScore: healthScore, HealthLevel: healthLevel,
 			RecentRequestCount: runtime.RequestCount, HealthPoints: runtime.Points,
-			EarningsAvailable: true, EarningsMicros: earningsByOffer[row.OfferId], SupplyStatus: row.OfferStatus,
+			EarningsAvailable: true, EarningsMicros: earnings, SupplyStatus: supplyChannelStatus(row.Offers),
+			OfferCount: row.OfferCount, PublishedOfferCount: publishedCount,
 		})
 	}
 	healthSummary := summarizeChannelHealthItems(items)

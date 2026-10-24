@@ -2384,7 +2384,7 @@
         "failure_summary": "本次请求最终失败，最后尝试渠道为 {{channel}}，请求模型为 {{model}}，经历 {{fallbackCount}} 次 fallback。",
         "user_summary": "本次请求使用发布模型 {{model}}，经历 {{fallbackCount}} 次 fallback，估算来源为 {{source}}，结算模式为 {{settlement}}。",
         "user_failure_summary": "本次请求最终失败，请求模型为 {{model}}，经历 {{fallbackCount}} 次 fallback。",
-        "user_source_summary": "本次请求按 {{policy}} 发起，初始来源为 {{initialSource}}，实际来源为 {{actualSource}}，经历 {{fallbackCount}} 次 fallback。社区服务调用按套餐或余额结算。",
+        "user_source_summary": "本次请求按 {{policy}} 发起，初始来源为 {{initialSource}}，实际来源为 {{actualSource}}，经历 {{fallbackCount}} 次 fallback。第三方供给调用按套餐或余额结算。",
         "attempt_title": "第 {{attempt}} 次尝试",
         "outcome": {
           "succeeded": "成功",
@@ -2425,18 +2425,18 @@
             "source_policy": "生效来源策略",
             "initial_source": "初始来源",
             "actual_source": "实际来源",
-            "personal_provider": "个人供应商"
+            "personal_provider": "第三方自用渠道"
           },
           "policy": {
-            "personal_first": "个人优先，社区服务回退",
-            "personal_only": "仅个人供应商",
-            "community_only": "仅社区服务",
-            "community_first": "社区服务优先",
+            "personal_first": "自用渠道优先，第三方供给回退",
+            "personal_only": "仅自用渠道",
+            "community_only": "仅第三方供给",
+            "community_first": "第三方供给优先",
             "unknown": "未记录"
           },
           "source": {
-            "personal_provider": "个人供应商",
-            "community_package": "社区服务",
+            "personal_provider": "第三方自用渠道",
+            "community_package": "第三方供给",
             "unknown": "未记录"
           }
         },
@@ -3448,8 +3448,49 @@
       },
       "channels": {
         "title": "健康",
-        "page_hint": "统一查看运营渠道、个人渠道和社区供给。健康度来自所选时间范围内的真实调用；模型测试仅作为独立验证信息。",
+        "page_hint": "统一查看平台自营与第三方渠道。渠道类型只由账号、凭据、成本和运行责任归属决定；健康度来自所选时间范围内的真实调用，模型测试仅作为独立验证信息。",
         "open_duty": "打开值班台",
+        "ownership": {
+          "all": "全部渠道",
+          "platform": "平台自营",
+          "third_party": "第三方"
+        },
+        "purpose": {
+          "platform_service": "平台服务",
+          "self_use": "自用",
+          "supply": "供给"
+        },
+        "access_scope": {
+          "platform": "平台授权范围",
+          "private": "仅所有者",
+          "public": "公开报价",
+          "invite": "受邀范围",
+          "mixed": "混合范围",
+          "unpublished": "尚无报价"
+        },
+        "supply_status": {
+          "no_offer": "尚无报价",
+          "draft": "草稿",
+          "reviewing": "审核中",
+          "published": "已发布",
+          "suspended": "已暂停",
+          "offline": "已下线",
+          "rejected": "已驳回"
+        },
+        "metadata": {
+          "owner": "所有者",
+          "access": "访问范围",
+          "offers": "已发布报价 / 全部报价",
+          "supply_status": "供给状态",
+          "groups": "分组",
+          "models": "模型",
+          "verification": "连接验证"
+        },
+        "verification": {
+          "verified": "通过",
+          "failed": "失败",
+          "unverified": "未验证"
+        },
         "insights": {
           "retest": "待重测渠道",
           "retest_hint": "已选模型未覆盖测试，或通过率、覆盖率尚未达到 100% 的渠道。",
@@ -4996,7 +5037,7 @@
     "title": "开放供给"
   },
   "community_services": {
-    "title": "社区模型服务"
+    "title": "第三方模型报价"
   },
   "not_found": {
     "title": "页面不存在",

@@ -291,7 +291,9 @@ function PublisherWorkspace({
       }
       if (!response.data?.success) throw new Error(response.data?.message);
       showSuccess(
-        editingService ? '模型服务已更新，需要重新验证' : '模型服务已创建'
+        editingService
+          ? '第三方供给渠道已更新，需要重新验证'
+          : '第三方供给渠道已创建'
       );
       setServiceModal(false);
       setSourceConnectionForService(null);
@@ -302,7 +304,7 @@ function PublisherWorkspace({
       showError(
         error instanceof SyntaxError
           ? '数据规则必须是有效 JSON'
-          : error?.message || '保存模型服务失败'
+          : error?.message || '保存第三方供给渠道失败'
       );
     } finally {
       setSaving(false);
@@ -316,9 +318,9 @@ function PublisherWorkspace({
         `/api/v1/public/publisher/services/${row.id}/verify`
       );
       if (!response.data?.success) throw new Error(response.data?.message);
-      showSuccess('模型服务验证通过');
+      showSuccess('第三方供给渠道验证通过');
     } catch (error) {
-      showError(error?.message || '模型服务验证失败');
+      showError(error?.message || '第三方供给渠道验证失败');
     } finally {
       setVerifyingID('');
       load().then();
@@ -331,10 +333,10 @@ function PublisherWorkspace({
         `/api/v1/public/publisher/services/${row.id}`
       );
       if (!response.data?.success) throw new Error(response.data?.message);
-      showSuccess('模型服务已删除');
+      showSuccess('第三方供给渠道已删除');
       load().then();
     } catch (error) {
-      showError(error?.message || '删除模型服务失败');
+      showError(error?.message || '删除第三方供给渠道失败');
     }
   };
 
@@ -405,7 +407,7 @@ function PublisherWorkspace({
 
   const serviceColumns = [
     {
-      title: '模型服务',
+      title: '供给渠道',
       dataIndex: 'name',
       render: (value, row) => (
         <div className='publisher-service-name'>
@@ -469,7 +471,7 @@ function PublisherWorkspace({
   const offerColumns = [
     { title: '模型', dataIndex: 'model' },
     {
-      title: '模型服务',
+      title: '供给渠道',
       dataIndex: 'service_id',
       render: (value) =>
         services.find((item) => item.id === value)?.name || value,
@@ -571,7 +573,7 @@ function PublisherWorkspace({
         <AppAlert
           type='info'
           message='可信发布试点'
-          description='个人渠道始终仅供本人使用。参与供给会创建独立模型服务，只复制连接名称、协议、地址和模型范围；API Key 必须重新录入。运营审核报价并决定分组，成功调用进入结算。'
+          description='第三方自用渠道始终仅供本人使用。参与供给会创建独立的第三方供给渠道，只复制连接名称、协议、地址和模型范围；API Key 必须重新录入。报价审核和分组绑定不会改变渠道类型，成功调用进入结算。'
         />
       ) : null}
       <AppTabs
@@ -650,22 +652,22 @@ function PublisherWorkspace({
           },
           {
             key: 'services',
-            label: '模型服务',
+            label: '供给渠道',
             children: (
               <AppSection
-                title='模型服务'
+                title='第三方供给渠道'
                 extra={
                   <AppButton
                     color='blue'
                     icon={<AppIcon name='plus' />}
                     onClick={() => openService()}
                   >
-                    创建模型服务
+                    创建供给渠道
                   </AppButton>
                 }
               >
                 <p className='publisher-hint'>
-                  模型服务与个人渠道相互独立。测试连接仅验证地址和凭据，不会生成异步任务，也不会发起模型推理。
+                  供给渠道与自用渠道都是第三方渠道，但属于两个凭据独立的渠道实例。测试连接仅验证地址和凭据，不会生成异步任务，也不会发起模型推理。
                 </p>
                 <AppTable
                   rowKey='id'
@@ -674,7 +676,9 @@ function PublisherWorkspace({
                   loading={loading}
                   scroll={{ x: 1100 }}
                   pagination={false}
-                  locale={{ emptyText: <AppEmpty>还没有模型服务</AppEmpty> }}
+                  locale={{
+                    emptyText: <AppEmpty>还没有第三方供给渠道</AppEmpty>,
+                  }}
                 />
               </AppSection>
             ),
@@ -697,7 +701,7 @@ function PublisherWorkspace({
                 }
               >
                 <p className='publisher-hint'>
-                  报价是公开服务的商业声明。提交前，发布者必须已通过审核，关联模型服务必须完成验证。价格使用微美元
+                  报价是供给渠道下的商业声明，不是独立渠道。提交前，发布者必须已通过审核，关联供给渠道必须完成验证。价格使用微美元
                   / 百万 Token，避免浮点金额误差。
                 </p>
                 <AppTable
@@ -738,7 +742,7 @@ function PublisherWorkspace({
             children: (
               <AppSection title='发布者结算'>
                 <p className='publisher-hint'>
-                  每条记录对应一次社区供给的成功调用，保留成交价、平台服务费和发布者应收的不可变快照。
+                  每条记录对应一次第三方供给渠道的成功调用，保留成交价、平台服务费和发布者应收的不可变快照。
                 </p>
                 <AppTable
                   rowKey='request_log_id'
@@ -765,10 +769,10 @@ function PublisherWorkspace({
         }}
         title={
           editingService
-            ? '编辑模型服务'
+            ? '编辑第三方供给渠道'
             : sourceConnectionForService
             ? '申请参与供给'
-            : '创建模型服务'
+            : '创建第三方供给渠道'
         }
         size='small'
         footer={
@@ -792,7 +796,7 @@ function PublisherWorkspace({
           <AppAlert
             type='info'
             message='将创建独立供给服务'
-            description='只复制非敏感连接信息。个人渠道的 API Key 不会共享，请为供给服务重新输入凭据。'
+            description='只复制非敏感连接信息。第三方自用渠道的 API Key 不会共享，请为供给渠道重新输入凭据。'
           />
         ) : null}
         <AppForm
@@ -829,7 +833,7 @@ function PublisherWorkspace({
             hint={
               editingService
                 ? '留空则保留当前凭据'
-                : '凭据会加密保存，之后不会再显示；从个人渠道申请供给时也必须重新输入'
+                : '凭据会加密保存，之后不会再显示；从自用渠道申请供给时也必须重新输入'
             }
           >
             <AppForm.Item
@@ -902,7 +906,7 @@ function PublisherWorkspace({
         }
       >
         <AppForm form={offerForm} layout='vertical' initialValues={emptyOffer}>
-          <AppField label='模型服务和模型' required>
+          <AppField label='供给渠道和模型' required>
             <AppForm.Item
               name='service_model'
               initialValue={
@@ -911,7 +915,7 @@ function PublisherWorkspace({
                   : undefined
               }
               rules={[
-                { required: !editingOffer, message: '请选择模型服务和模型' },
+                { required: !editingOffer, message: '请选择供给渠道和模型' },
               ]}
               noStyle
             >

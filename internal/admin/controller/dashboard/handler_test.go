@@ -67,6 +67,60 @@ func TestSummarizeChannelHealthItemsUsesAllItems(t *testing.T) {
 	}
 }
 
+func TestSupplyChannelProjectionKeepsStableIdentityAcrossOfferAndGroupChanges(t *testing.T) {
+	row := model.AdminSupplyChannelView{
+		PublisherStatus: model.PublisherStatusActive,
+		ServiceId:       "service-1",
+		ServiceStatus:   model.PublisherServiceStatusReady,
+		LastCheckOK:     true,
+		Offers: []model.AdminSupplyOfferView{
+			{OfferId: "offer-1", OfferStatus: model.ServiceOfferStatusPublished, OfferScope: model.ServiceOfferScopePublic, Model: "gpt-5.4"},
+			{OfferId: "offer-2", OfferStatus: model.ServiceOfferStatusReviewing, OfferScope: model.ServiceOfferScopeInvite, Model: "o3"},
+		},
+	}
+	channelID := model.PublisherServiceChannelPrefix + row.ServiceId
+	offerIDs, groups, earnings, publishedCount, eligible := supplyChannelOfferSummary(
+		row,
+		map[string][]string{"offer-1": {"default", "premium"}, "offer-2": {"premium"}},
+		map[string]int64{"offer-1": 70, "offer-2": 30},
+	)
+	if channelID != "publisher-service:service-1" {
+		t.Fatalf("stable channel id = %q", channelID)
+	}
+	if len(offerIDs) != 2 || len(groups) != 2 || groups[0] != "default" || groups[1] != "premium" {
+		t.Fatalf("offer/group aggregate = %#v/%#v", offerIDs, groups)
+	}
+	if earnings != 100 || publishedCount != 1 || !eligible {
+		t.Fatalf("supply aggregate earnings/published/eligible = %d/%d/%v", earnings, publishedCount, eligible)
+	}
+	if supplyChannelAccessScope(row.Offers) != "mixed" || supplyChannelStatus(row.Offers) != model.ServiceOfferStatusPublished {
+		t.Fatalf("supply access/status = %q/%q", supplyChannelAccessScope(row.Offers), supplyChannelStatus(row.Offers))
+	}
+	if supplyChannelRuntimeStatus(row, eligible) != model.ChannelStatusEnabled {
+		t.Fatalf("eligible service runtime status should be enabled")
+	}
+
+	_, groupsAfterRemoval, _, _, eligibleAfterRemoval := supplyChannelOfferSummary(row, map[string][]string{}, nil)
+	if len(groupsAfterRemoval) != 0 || !eligibleAfterRemoval || channelID != model.PublisherServiceChannelPrefix+row.ServiceId {
+		t.Fatalf("group removal changed channel identity or type: groups=%#v eligible=%v id=%q", groupsAfterRemoval, eligibleAfterRemoval, channelID)
+	}
+	row.Offers = nil
+	if status := supplyChannelRuntimeStatus(row, false); status != model.ChannelStatusCreating {
+		t.Fatalf("draft supply status = %d, want creating", status)
+	}
+	row.ServiceStatus = model.PublisherServiceStatusSuspended
+	if status := supplyChannelRuntimeStatus(row, false); status != model.ChannelStatusManuallyDisabled {
+		t.Fatalf("suspended supply status = %d, want disabled", status)
+	}
+}
+
+func TestRuntimeChannelHealthTreatsCreatingWithoutTrafficAsUnknown(t *testing.T) {
+	score, level := runtimeChannelHealth(model.ChannelStatusCreating, model.ChannelRuntimeMetrics{}, nil)
+	if score != 0 || level != channelHealthLevelUnknown {
+		t.Fatalf("creating channel health = %d/%q, want 0/%q", score, level, channelHealthLevelUnknown)
+	}
+}
+
 func TestBuildUserGrowthDashboardWithDBCountsWeeklyGrowth(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open("file:"+t.Name()+"?mode=memory&cache=private"), &gorm.Config{})
 	if err != nil {

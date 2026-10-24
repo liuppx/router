@@ -38,11 +38,16 @@ const PERIOD_OPTIONS = [
   { value: 'last_30_days', label: '30 天' },
 ];
 
-const SOURCE_OPTIONS = [
-  { value: 'all', label: '全部来源' },
-  { value: 'managed', label: '运营渠道' },
-  { value: 'personal', label: '个人渠道' },
-  { value: 'published_supply', label: '社区供给' },
+const OWNERSHIP_OPTION_DEFINITIONS = [
+  { value: 'all', labelKey: 'dashboard.admin.channels.ownership.all' },
+  {
+    value: 'platform',
+    labelKey: 'dashboard.admin.channels.ownership.platform',
+  },
+  {
+    value: 'third_party',
+    labelKey: 'dashboard.admin.channels.ownership.third_party',
+  },
 ];
 
 const compareRiskFirst = (left, right) => {
@@ -77,7 +82,7 @@ const ChannelHealthSection = ({ injectedData = null }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [period, setPeriod] = useState('last_24_hours');
-  const [sourceFilter, setSourceFilter] = useState('all');
+  const [ownershipFilter, setOwnershipFilter] = useState('all');
 
   const self = useAdminDashboardData(
     'channels',
@@ -87,6 +92,15 @@ const ChannelHealthSection = ({ injectedData = null }) => {
     }
   );
   const { dashboard, loading, error, reload } = injectedData || self;
+
+  const ownershipOptions = useMemo(
+    () =>
+      OWNERSHIP_OPTION_DEFINITIONS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
+    [t]
+  );
 
   const renderCapabilities = useCallback(
     (raw) => {
@@ -117,8 +131,18 @@ const ChannelHealthSection = ({ injectedData = null }) => {
         const activeCircuit = isActiveCircuitBreaker(row.circuit_breaker);
         const sourceKind =
           String(row.source_kind || 'managed').trim() || 'managed';
+        const ownershipType =
+          String(row.ownership_type || '').trim() ||
+          (sourceKind === 'managed' ? 'platform' : 'third_party');
+        const channelPurpose =
+          String(row.channel_purpose || '').trim() ||
+          (sourceKind === 'managed'
+            ? 'platform_service'
+            : sourceKind === 'personal'
+            ? 'self_use'
+            : 'supply');
         const needsRetest =
-          sourceKind === 'managed'
+          channelPurpose === 'platform_service'
             ? !hasTestData ||
               testedModelCount < selectedModelCount ||
               coverageRatePercent < 100 ||
@@ -134,10 +158,16 @@ const ChannelHealthSection = ({ injectedData = null }) => {
           id: row.id || `channel-${index}`,
           channel_id: row.id || '',
           source_kind: sourceKind,
+          ownership_type: ownershipType,
+          channel_purpose: channelPurpose,
+          access_scope: row.access_scope || row.visibility || '',
           owner_name: row.owner_name || row.owner_id || '',
           visibility: row.visibility || '',
           group_names: Array.isArray(row.group_names) ? row.group_names : [],
           models: Array.isArray(row.models) ? row.models : [],
+          offer_count: Number(row.offer_count || 0),
+          published_offer_count: Number(row.published_offer_count || 0),
+          supply_status: row.supply_status || '',
           name: row.name || row.id || '-',
           status: Number(row.status || 0),
           capabilities: renderCapabilities(row.capabilities),
@@ -174,10 +204,11 @@ const ChannelHealthSection = ({ injectedData = null }) => {
     () =>
       channelHealthData
         .filter(
-          (item) => sourceFilter === 'all' || item.source_kind === sourceFilter
+          (item) =>
+            ownershipFilter === 'all' || item.ownership_type === ownershipFilter
         )
         .sort(compareRiskFirst),
-    [channelHealthData, sourceFilter]
+    [channelHealthData, ownershipFilter]
   );
 
   const renderHealthTag = useCallback(
@@ -281,9 +312,9 @@ const ChannelHealthSection = ({ injectedData = null }) => {
                   onChange={(_, detail) => setPeriod(detail.value)}
                 />
                 <AppSelect
-                  value={sourceFilter}
-                  options={SOURCE_OPTIONS}
-                  onChange={(_, detail) => setSourceFilter(detail.value)}
+                  value={ownershipFilter}
+                  options={ownershipOptions}
+                  onChange={(_, detail) => setOwnershipFilter(detail.value)}
                 />
               </div>
             }
@@ -363,11 +394,31 @@ const ChannelHealthSection = ({ injectedData = null }) => {
                 ? formatUpdatedAt(item.last_tested_at)
                 : '-';
               const canOpenDetail =
-                item.source_kind === 'managed' && Boolean(item.channel_id);
-              const sourceLabel =
-                SOURCE_OPTIONS.find(
-                  (option) => option.value === item.source_kind
-                )?.label || item.source_kind;
+                item.ownership_type === 'platform' &&
+                item.source_kind === 'managed' &&
+                Boolean(item.channel_id);
+              const ownershipLabel = t(
+                `dashboard.admin.channels.ownership.${item.ownership_type}`,
+                { defaultValue: item.ownership_type }
+              );
+              const purposeLabel = t(
+                `dashboard.admin.channels.purpose.${item.channel_purpose}`,
+                { defaultValue: item.channel_purpose }
+              );
+              const accessScopeLabel = t(
+                `dashboard.admin.channels.access_scope.${item.access_scope}`,
+                { defaultValue: item.access_scope }
+              );
+              const supplyStatusLabel = t(
+                `dashboard.admin.channels.supply_status.${item.supply_status}`,
+                { defaultValue: item.supply_status }
+              );
+              const modelSummary =
+                item.models.length > 3
+                  ? `${item.models.slice(0, 3).join(' / ')} +${
+                      item.models.length - 3
+                    }`
+                  : item.models.join(' / ');
               const historyCounts = item.health_history.reduce(
                 (counts, point) => ({
                   ...counts,
@@ -427,21 +478,54 @@ const ChannelHealthSection = ({ injectedData = null }) => {
                     </div>
                     <div className='admin-dashboard-channel-health-subtitle'>
                       <span>{statusText}</span>
-                      <span>{sourceLabel}</span>
+                      <span>{ownershipLabel}</span>
+                      <span>{purposeLabel}</span>
                       {item.owner_name ? (
-                        <span>归属：{item.owner_name}</span>
+                        <span>
+                          {t('dashboard.admin.channels.metadata.owner')}：
+                          {item.owner_name}
+                        </span>
+                      ) : null}
+                      {item.channel_purpose === 'supply' ? (
+                        <>
+                          <span>
+                            {t('dashboard.admin.channels.metadata.access')}：
+                            {accessScopeLabel}
+                          </span>
+                          <span>
+                            {t('dashboard.admin.channels.metadata.offers')}：
+                            {item.published_offer_count} / {item.offer_count}
+                          </span>
+                          <span>
+                            {t(
+                              'dashboard.admin.channels.metadata.supply_status'
+                            )}
+                            ：{supplyStatusLabel}
+                          </span>
+                        </>
                       ) : null}
                       {item.group_names.length ? (
-                        <span>分组：{item.group_names.join(' / ')}</span>
+                        <span>
+                          {t('dashboard.admin.channels.metadata.groups')}：
+                          {item.group_names.join(' / ')}
+                        </span>
+                      ) : null}
+                      {item.models.length ? (
+                        <span>
+                          {t('dashboard.admin.channels.metadata.models')}：
+                          {modelSummary}
+                        </span>
                       ) : null}
                       <span>{item.capabilities}</span>
                       <span>
-                        验证：
+                        {t('dashboard.admin.channels.metadata.verification')}：
                         {item.verification_status === 'verified'
-                          ? '通过'
+                          ? t('dashboard.admin.channels.verification.verified')
                           : item.verification_status === 'failed'
-                          ? '失败'
-                          : '未验证'}{' '}
+                          ? t('dashboard.admin.channels.verification.failed')
+                          : t(
+                              'dashboard.admin.channels.verification.unverified'
+                            )}{' '}
                         · {lastTested}
                       </span>
                     </div>

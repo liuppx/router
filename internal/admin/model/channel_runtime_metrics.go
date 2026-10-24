@@ -209,6 +209,41 @@ func LoadChannelRuntimeMetrics(query ChannelRuntimeMetricQuery) (map[string]Chan
 	return result, nil
 }
 
+// MergeChannelRuntimeMetrics combines offer-level runtime observations into a
+// stable product channel. Logs keep their original channel ids for routing and
+// settlement attribution; only the read projection is merged here.
+func MergeChannelRuntimeMetrics(window ChannelMetricWindow, values ...ChannelRuntimeMetrics) ChannelRuntimeMetrics {
+	result := emptyChannelRuntimeMetrics(window)
+	aggregates := make([]healthtrend.Aggregate, 0)
+	for _, metrics := range values {
+		result.PromptTokens += metrics.PromptTokens
+		result.OutputTokens += metrics.OutputTokens
+		result.SpendQuota += metrics.SpendQuota
+		for _, point := range metrics.Points {
+			aggregates = append(aggregates, healthtrend.Aggregate{
+				BucketStart:    point.BucketStart,
+				SuccessCount:   point.SuccessCount,
+				FailureCount:   point.FailureCount,
+				LatencyTotal:   point.AvgLatencyMs * point.LatencyCount,
+				LatencyCount:   point.LatencyCount,
+				LastObservedAt: point.LastObservedAt,
+			})
+		}
+	}
+	result.Points = healthtrend.BuildPointsForWindow(window.StartAt, window.EndAt, window.IntervalSeconds, aggregates)
+	summary := healthtrend.Summarize(result.Points)
+	result.SuccessCount = summary.SuccessCount
+	result.FailureCount = summary.FailureCount
+	result.RequestCount = summary.TotalCount
+	result.AvgLatencyMs = summary.AvgLatencyMs
+	result.LastObservedAt = summary.LastObservedAt
+	result.TotalTokens = result.PromptTokens + result.OutputTokens
+	if result.RequestCount > 0 {
+		result.SuccessRate = float64(result.SuccessCount) / float64(result.RequestCount)
+	}
+	return result
+}
+
 func emptyChannelRuntimeMetrics(window ChannelMetricWindow) ChannelRuntimeMetrics {
 	return ChannelRuntimeMetrics{
 		Points: healthtrend.BuildPointsForWindow(window.StartAt, window.EndAt, window.IntervalSeconds, nil),

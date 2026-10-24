@@ -1,10 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  useLocation,
-  useNavigate,
-  useParams,
-} from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   API,
   copy,
@@ -95,7 +91,9 @@ const EditToken = ({ admin = false } = {}) => {
   };
   const [inputs, setInputs] = useState(originInputs);
   const [persistedInputs, setPersistedInputs] = useState(originInputs);
-  const [quotaInputValue, setQuotaInputValue] = useState(`${originInputs.remain_quota}`);
+  const [quotaInputValue, setQuotaInputValue] = useState(
+    `${originInputs.remain_quota}`
+  );
   const {
     name,
     expired_time,
@@ -106,10 +104,10 @@ const EditToken = ({ admin = false } = {}) => {
   const allModelValues = modelOptions.map((option) => option.value);
 
   const routePolicyOptions = [
-    { value: 'personal_first', label: '个人优先，社区服务回退' },
-    { value: 'personal_only', label: '仅个人供应商' },
-    { value: 'community_only', label: '仅社区服务' },
-    { value: 'community_first', label: '社区服务优先' },
+    { value: 'personal_first', label: '自用渠道优先，第三方供给回退' },
+    { value: 'personal_only', label: '仅自用渠道' },
+    { value: 'community_only', label: '仅第三方供给' },
+    { value: 'community_first', label: '第三方供给优先' },
   ];
   const hasAvailableModels = allModelValues.length > 0;
   const formatEntitlementSourceLabel = useCallback(
@@ -121,8 +119,8 @@ const EditToken = ({ admin = false } = {}) => {
         typeLabel = t('token.edit.model_source_package');
       } else if (sourceType === 'topup' || sourceType === 'redemption') {
         typeLabel = t('token.edit.model_source_balance');
-	    } else if (sourceType === 'personal_provider') {
-	      typeLabel = t('token.edit.model_source_personal_provider');
+      } else if (sourceType === 'personal_provider') {
+        typeLabel = t('token.edit.model_source_personal_provider');
       } else {
         return '';
       }
@@ -130,11 +128,12 @@ const EditToken = ({ admin = false } = {}) => {
     },
     [t]
   );
-  const getSourceFilterValue = (source) => [
-    source?.source_type || '',
-    source?.source_id || '',
-    source?.group_id || '',
-  ].join('::');
+  const getSourceFilterValue = (source) =>
+    [
+      source?.source_type || '',
+      source?.source_id || '',
+      source?.group_id || '',
+    ].join('::');
   const providerFilterOptions = useMemo(() => {
     const optionByValue = new Map();
     modelOptions.forEach((option) => {
@@ -158,21 +157,23 @@ const EditToken = ({ admin = false } = {}) => {
   const sourceFilterOptions = useMemo(() => {
     const optionByValue = new Map();
     modelOptions.forEach((option) => {
-      (Array.isArray(option.sources) ? option.sources : []).forEach((source) => {
-        const label = formatEntitlementSourceLabel(source);
-        if (label === '') {
-          return;
+      (Array.isArray(option.sources) ? option.sources : []).forEach(
+        (source) => {
+          const label = formatEntitlementSourceLabel(source);
+          if (label === '') {
+            return;
+          }
+          const value = getSourceFilterValue(source);
+          if (value === '::::') {
+            return;
+          }
+          optionByValue.set(value, {
+            key: value,
+            value,
+            text: label,
+          });
         }
-        const value = getSourceFilterValue(source);
-        if (value === '::::') {
-          return;
-        }
-        optionByValue.set(value, {
-          key: value,
-          value,
-          text: label,
-        });
-      });
+      );
     });
     return [
       { key: 'all', value: 'all', text: t('token.edit.filters.all_sources') },
@@ -186,20 +187,25 @@ const EditToken = ({ admin = false } = {}) => {
     if (keyword !== '' && !option.value.toLowerCase().includes(keyword)) {
       return false;
     }
-    if (modelProviderFilter !== 'all' && option.provider !== modelProviderFilter) {
+    if (
+      modelProviderFilter !== 'all' &&
+      option.provider !== modelProviderFilter
+    ) {
       return false;
     }
     if (modelSourceFilter !== 'all') {
-      const matchedSource = (Array.isArray(option.sources) ? option.sources : []).some(
-        (source) => getSourceFilterValue(source) === modelSourceFilter
-      );
+      const matchedSource = (
+        Array.isArray(option.sources) ? option.sources : []
+      ).some((source) => getSourceFilterValue(source) === modelSourceFilter);
       if (!matchedSource) {
         return false;
       }
     }
     return true;
   });
-  const filteredModelValues = filteredModelOptions.map((option) => option.value);
+  const filteredModelValues = filteredModelOptions.map(
+    (option) => option.value
+  );
   const selectedModels = unrestrictedModels ? allModelValues : inputs.models;
   const selectedModelSet = new Set(selectedModels);
   const hasFilteredModels = filteredModelValues.length > 0;
@@ -207,12 +213,15 @@ const EditToken = ({ admin = false } = {}) => {
     selectedModelSet.has(value)
   ).length;
   const isFilteredModelsSelected =
-    hasFilteredModels && selectedFilteredModelCount === filteredModelValues.length;
+    hasFilteredModels &&
+    selectedFilteredModelCount === filteredModelValues.length;
   const isFilteredModelsIndeterminate =
     hasFilteredModels &&
     selectedFilteredModelCount > 0 &&
     selectedFilteredModelCount < filteredModelValues.length;
-  const selectedModelCount = unrestrictedModels ? allModelValues.length : inputs.models.length;
+  const selectedModelCount = unrestrictedModels
+    ? allModelValues.length
+    : inputs.models.length;
   const selectedModelSummary = t('token.edit.models_selected_summary', {
     selected: selectedModelCount,
     total: allModelValues.length,
@@ -221,8 +230,8 @@ const EditToken = ({ admin = false } = {}) => {
   const modelsNotice = !hasAvailableModels
     ? t('token.edit.models_no_available_notice')
     : unrestrictedModels
-      ? t('token.edit.models_unrestricted_notice')
-      : t('token.edit.models_manual_notice');
+    ? t('token.edit.models_unrestricted_notice')
+    : t('token.edit.models_manual_notice');
   const createTokenDisabled = isCreateMode && !hasAvailableModels;
   const quotaUnitOptions = useMemo(
     () => buildBillingUnitOptions(billingCurrencyIndex),
@@ -309,52 +318,59 @@ const EditToken = ({ admin = false } = {}) => {
     return raw.startsWith('sk-') ? raw : `sk-${raw}`;
   };
 
-  const syncTokenState = useCallback((data) => {
-    const normalizedData = {
-      ...originInputs,
-      ...data,
-    };
-    normalizedData.remain_quota = Number(
-      data?.remaining_amount ?? normalizedData.remain_quota ?? 0
-    ) || 0;
-    normalizedData.used_quota = Number(
-      data?.used_amount ?? normalizedData.used_quota ?? 0
-    ) || 0;
-    normalizedData.remain_request_count = Number(
-      data?.remaining_request_count ?? normalizedData.remain_request_count ?? 0
-    ) || 0;
-    normalizedData.used_request_count = Number(
-      data?.used_request_count ?? normalizedData.used_request_count ?? 0
-    ) || 0;
-    normalizedData.unlimited_request_count =
-      normalizedData.unlimited_request_count !== false;
-    if (normalizedData.expired_time !== -1) {
-      normalizedData.expired_time = timestamp2string(normalizedData.expired_time);
-    } else {
-      normalizedData.expired_time = '';
-    }
-    if (
-      normalizedData.models === '' ||
-      normalizedData.models === null ||
-      normalizedData.models === undefined
-    ) {
-      normalizedData.models = [];
-      setUnrestrictedModels(true);
-    } else {
-      normalizedData.models = normalizedData.models.split(',');
-      setUnrestrictedModels(false);
-    }
-    setInputs(normalizedData);
-    setPersistedInputs(normalizedData);
-    setExpireTimeMode('custom');
-    setQuotaInputValue(
-      chargeAmountToBillingInputValue(
-        normalizedData.remain_quota,
-        quotaDisplayUnit,
-        billingCurrencyIndex
-      )
-    );
-  }, [billingCurrencyIndex, quotaDisplayUnit]);
+  const syncTokenState = useCallback(
+    (data) => {
+      const normalizedData = {
+        ...originInputs,
+        ...data,
+      };
+      normalizedData.remain_quota =
+        Number(data?.remaining_amount ?? normalizedData.remain_quota ?? 0) || 0;
+      normalizedData.used_quota =
+        Number(data?.used_amount ?? normalizedData.used_quota ?? 0) || 0;
+      normalizedData.remain_request_count =
+        Number(
+          data?.remaining_request_count ??
+            normalizedData.remain_request_count ??
+            0
+        ) || 0;
+      normalizedData.used_request_count =
+        Number(
+          data?.used_request_count ?? normalizedData.used_request_count ?? 0
+        ) || 0;
+      normalizedData.unlimited_request_count =
+        normalizedData.unlimited_request_count !== false;
+      if (normalizedData.expired_time !== -1) {
+        normalizedData.expired_time = timestamp2string(
+          normalizedData.expired_time
+        );
+      } else {
+        normalizedData.expired_time = '';
+      }
+      if (
+        normalizedData.models === '' ||
+        normalizedData.models === null ||
+        normalizedData.models === undefined
+      ) {
+        normalizedData.models = [];
+        setUnrestrictedModels(true);
+      } else {
+        normalizedData.models = normalizedData.models.split(',');
+        setUnrestrictedModels(false);
+      }
+      setInputs(normalizedData);
+      setPersistedInputs(normalizedData);
+      setExpireTimeMode('custom');
+      setQuotaInputValue(
+        chargeAmountToBillingInputValue(
+          normalizedData.remain_quota,
+          quotaDisplayUnit,
+          billingCurrencyIndex
+        )
+      );
+    },
+    [billingCurrencyIndex, quotaDisplayUnit]
+  );
 
   const handleInputChange = (e, { name, value }) => {
     setInputs((inputs) => ({ ...inputs, [name]: value }));
@@ -368,12 +384,15 @@ const EditToken = ({ admin = false } = {}) => {
     return normalizedValue.replace(' ', 'T').slice(0, 16);
   };
 
-  const startDetailSectionEdit = useCallback((section) => {
-    if (!isDetailMode) {
-      return;
-    }
-    setDetailEditingSection(section);
-  }, [isDetailMode]);
+  const startDetailSectionEdit = useCallback(
+    (section) => {
+      if (!isDetailMode) {
+        return;
+      }
+      setDetailEditingSection(section);
+    },
+    [isDetailMode]
+  );
 
   const cancelDetailSectionEdit = useCallback(() => {
     setInputs(persistedInputs);
@@ -422,7 +441,10 @@ const EditToken = ({ admin = false } = {}) => {
     seconds += minute * 60;
     if (seconds !== 0) {
       timestamp += seconds;
-      setInputs((prev) => ({ ...prev, expired_time: timestamp2string(timestamp) }));
+      setInputs((prev) => ({
+        ...prev,
+        expired_time: timestamp2string(timestamp),
+      }));
     } else {
       setInputs((prev) => ({ ...prev, expired_time: '' }));
     }
@@ -530,7 +552,9 @@ const EditToken = ({ admin = false } = {}) => {
           const normalizedModel = (model || '').toString().trim();
           const item = itemByModel.get(normalizedModel) || {};
           const provider = (item?.provider || '').toString().trim();
-          const providerLabel = (item?.provider_label || provider).toString().trim();
+          const providerLabel = (item?.provider_label || provider)
+            .toString()
+            .trim();
           return {
             key: normalizedModel,
             text: normalizedModel,
@@ -578,7 +602,11 @@ const EditToken = ({ admin = false } = {}) => {
       setBillingCurrencyIndex(nextIndex);
       setQuotaDisplayUnit(nextUnit);
       setQuotaInputValue(
-        chargeAmountToBillingInputValue(inputs.remain_quota, nextUnit, nextIndex)
+        chargeAmountToBillingInputValue(
+          inputs.remain_quota,
+          nextUnit,
+          nextIndex
+        )
       );
     });
     return () => {
@@ -626,7 +654,11 @@ const EditToken = ({ admin = false } = {}) => {
     } else {
       localInputs.expired_time = -1;
     }
-    if (!unrestrictedModels && localInputs.models.length === 0 && modelOptions.length > 0) {
+    if (
+      !unrestrictedModels &&
+      localInputs.models.length === 0 &&
+      modelOptions.length > 0
+    ) {
       showError(t('token.edit.messages.models_required'));
       return;
     }
@@ -649,12 +681,14 @@ const EditToken = ({ admin = false } = {}) => {
     if (success) {
       if (isDetailMode) {
         showSuccess(t('token.edit.messages.update_success'));
-        syncTokenState(data || {
-          ...inputs,
-          id: tokenId,
-          models: localInputs.models,
-          expired_time: localInputs.expired_time,
-        });
+        syncTokenState(
+          data || {
+            ...inputs,
+            id: tokenId,
+            models: localInputs.models,
+            expired_time: localInputs.expired_time,
+          }
+        );
         setDetailEditingSection('');
       } else {
         showSuccess(t('token.edit.messages.create_success'));
@@ -769,9 +803,7 @@ const EditToken = ({ admin = false } = {}) => {
         <span className='router-token-model-selection-summary'>
           {selectedModelSummary}
         </span>
-        <span className='router-token-model-mode-hint'>
-          {modelsNotice}
-        </span>
+        <span className='router-token-model-mode-hint'>{modelsNotice}</span>
       </div>
       {!hasAvailableModels ? (
         <div className='router-section-message router-token-model-empty-notice'>
@@ -869,17 +901,19 @@ const EditToken = ({ admin = false } = {}) => {
               }
               return (
                 <div className='router-token-model-source-list'>
-                  {normalizedSources.slice(0, 3).map(({ source, label }, index) => (
-                    <AppTag
-                      key={[
-                        source?.source_type || 'source',
-                        source?.source_id || source?.group_id || index,
-                      ].join('-')}
-                      className='router-tag'
-                    >
-                      {label}
-                    </AppTag>
-                  ))}
+                  {normalizedSources
+                    .slice(0, 3)
+                    .map(({ source, label }, index) => (
+                      <AppTag
+                        key={[
+                          source?.source_type || 'source',
+                          source?.source_id || source?.group_id || index,
+                        ].join('-')}
+                        className='router-tag'
+                      >
+                        {label}
+                      </AppTag>
+                    ))}
                   {normalizedSources.length > 3 ? (
                     <AppTag className='router-tag'>
                       +{normalizedSources.length - 3}
@@ -898,12 +932,19 @@ const EditToken = ({ admin = false } = {}) => {
   // /v1, so derive the base URL from where the console is served rather than
   // hardcoding a domain. Pair it with the just-created key to give the user a
   // copy-paste first request instead of leaving them with a bare token.
-  const apiBaseUrl = `${String(window.location.origin || '').replace(/\/$/, '')}/v1`;
-  const createdTokenValue = createdToken ? renderFullToken(createdToken.key) : '';
+  const apiBaseUrl = `${String(window.location.origin || '').replace(
+    /\/$/,
+    ''
+  )}/v1`;
+  const createdTokenValue = createdToken
+    ? renderFullToken(createdToken.key)
+    : '';
   // Prefer the token's own first allowed model so the example is runnable as-is;
   // fall back to a placeholder when the token is unrestricted / has none picked.
   const exampleModel =
-    Array.isArray(selectedModels) && selectedModels.length > 0 && selectedModels[0]
+    Array.isArray(selectedModels) &&
+    selectedModels.length > 0 &&
+    selectedModels[0]
       ? selectedModels[0]
       : '<model>';
   const buildTokenCurl = (bearer) =>
@@ -913,7 +954,9 @@ const EditToken = ({ admin = false } = {}) => {
       '  -H "Content-Type: application/json" \\',
       `  -d '{"model": "${exampleModel}", "messages": [{"role": "user", "content": "Hello"}]}'`,
     ].join('\n');
-  const createdTokenCurl = createdToken ? buildTokenCurl(createdTokenValue) : '';
+  const createdTokenCurl = createdToken
+    ? buildTokenCurl(createdTokenValue)
+    : '';
   // Detail mode never has the raw key (shown once at creation), so the example
   // uses a placeholder the user swaps for their own token.
   const detailTokenCurl = buildTokenCurl('$ROUTER_API_KEY');
@@ -957,261 +1000,271 @@ const EditToken = ({ admin = false } = {}) => {
           title={t('token.edit.title_create')}
           className='router-block-gap-sm'
           actions={
-            <AppButton
-              className='router-page-button'
-              onClick={handleCancel}
-            >
+            <AppButton className='router-page-button' onClick={handleCancel}>
               {t('token.edit.buttons.cancel')}
             </AppButton>
           }
           end={
-            createdToken ? null :
-            <AppButton
-              className='router-page-button'
-              color='blue'
-              disabled={createTokenDisabled}
-              onClick={submit}
-            >
-              {t('token.edit.buttons.submit')}
-            </AppButton>
+            createdToken ? null : (
+              <AppButton
+                className='router-page-button'
+                color='blue'
+                disabled={createTokenDisabled}
+                onClick={submit}
+              >
+                {t('token.edit.buttons.submit')}
+              </AppButton>
+            )
           }
         />
       )}
       {isCreateMode && createdToken ? (
-            <div className='router-page-stack'>
-              <AppDetailSection title={t('token.created.title')}>
-                <div className='router-section-message'>
-                  {t('token.created.hint')}
-                </div>
-                <AppFormRow className='router-token-basic-info-row'>
-                  <AppField label={t('token.table.token')} readOnly>
-                    <AppTextarea
-                      className='router-section-input'
-                      value={createdTokenValue}
-                      readOnly
-                      autoSize={{ minRows: 2, maxRows: 5 }}
-                    />
-                  </AppField>
-                </AppFormRow>
-                <AppFormActions>
-                  <AppButton
-                    className='router-page-button'
-                    onClick={async () => {
-                      if (await copy(createdTokenValue)) {
-                        showSuccess(t('token.messages.copy_success'));
-                        return;
-                      }
-                      showError(t('token.messages.copy_failed'));
-                    }}
-                  >
-                    {t('token.copy_options.raw')}
-                  </AppButton>
-                </AppFormActions>
-              </AppDetailSection>
-
-              <AppDetailSection title={t('token.created.usage_title')}>
-                <div className='router-section-message'>
-                  {t('token.created.usage_desc')}
-                </div>
-                <AppFormRow className='router-token-basic-info-row'>
-                  <AppField label={t('token.created.base_url_label')} readOnly>
-                    <AppInput
-                      className='router-section-input'
-                      value={apiBaseUrl}
-                      readOnly
-                    />
-                  </AppField>
-                </AppFormRow>
-                <AppFormRow className='router-token-basic-info-row'>
-                  <AppField label={t('token.created.example_label')} readOnly>
-                    <AppTextarea
-                      className='router-section-input'
-                      value={createdTokenCurl}
-                      readOnly
-                      autoSize={{ minRows: 4, maxRows: 10 }}
-                    />
-                  </AppField>
-                </AppFormRow>
-                <div className='router-form-hint'>
-                  {t('token.created.example_note')}
-                </div>
-                <AppFormActions>
-                  <AppButton
-                    className='router-page-button'
-                    onClick={async () => {
-                      if (await copy(apiBaseUrl)) {
-                        showSuccess(t('token.messages.copy_success'));
-                        return;
-                      }
-                      showError(t('token.messages.copy_failed'));
-                    }}
-                  >
-                    {t('token.created.copy_base_url')}
-                  </AppButton>
-                  <AppButton
-                    className='router-page-button'
-                    onClick={async () => {
-                      if (await copy(createdTokenCurl)) {
-                        showSuccess(t('token.messages.copy_success'));
-                        return;
-                      }
-                      showError(t('token.messages.copy_failed'));
-                    }}
-                  >
-                    {t('token.created.copy_curl')}
-                  </AppButton>
-                  <AppButton
-                    className='router-page-button'
-                    onClick={() => navigate('/workspace/service/cli-guide')}
-                  >
-                    {t('token.created.view_guide')}
-                  </AppButton>
-                </AppFormActions>
-              </AppDetailSection>
-
-              <AppFormActions>
-                <AppButton
-                  className='router-page-button'
-                  color='blue'
-                  onClick={() => navigate('/workspace/token')}
-                >
-                  {t('common.back')}
-                </AppButton>
-              </AppFormActions>
+        <div className='router-page-stack'>
+          <AppDetailSection title={t('token.created.title')}>
+            <div className='router-section-message'>
+              {t('token.created.hint')}
             </div>
+            <AppFormRow className='router-token-basic-info-row'>
+              <AppField label={t('token.table.token')} readOnly>
+                <AppTextarea
+                  className='router-section-input'
+                  value={createdTokenValue}
+                  readOnly
+                  autoSize={{ minRows: 2, maxRows: 5 }}
+                />
+              </AppField>
+            </AppFormRow>
+            <AppFormActions>
+              <AppButton
+                className='router-page-button'
+                onClick={async () => {
+                  if (await copy(createdTokenValue)) {
+                    showSuccess(t('token.messages.copy_success'));
+                    return;
+                  }
+                  showError(t('token.messages.copy_failed'));
+                }}
+              >
+                {t('token.copy_options.raw')}
+              </AppButton>
+            </AppFormActions>
+          </AppDetailSection>
+
+          <AppDetailSection title={t('token.created.usage_title')}>
+            <div className='router-section-message'>
+              {t('token.created.usage_desc')}
+            </div>
+            <AppFormRow className='router-token-basic-info-row'>
+              <AppField label={t('token.created.base_url_label')} readOnly>
+                <AppInput
+                  className='router-section-input'
+                  value={apiBaseUrl}
+                  readOnly
+                />
+              </AppField>
+            </AppFormRow>
+            <AppFormRow className='router-token-basic-info-row'>
+              <AppField label={t('token.created.example_label')} readOnly>
+                <AppTextarea
+                  className='router-section-input'
+                  value={createdTokenCurl}
+                  readOnly
+                  autoSize={{ minRows: 4, maxRows: 10 }}
+                />
+              </AppField>
+            </AppFormRow>
+            <div className='router-form-hint'>
+              {t('token.created.example_note')}
+            </div>
+            <AppFormActions>
+              <AppButton
+                className='router-page-button'
+                onClick={async () => {
+                  if (await copy(apiBaseUrl)) {
+                    showSuccess(t('token.messages.copy_success'));
+                    return;
+                  }
+                  showError(t('token.messages.copy_failed'));
+                }}
+              >
+                {t('token.created.copy_base_url')}
+              </AppButton>
+              <AppButton
+                className='router-page-button'
+                onClick={async () => {
+                  if (await copy(createdTokenCurl)) {
+                    showSuccess(t('token.messages.copy_success'));
+                    return;
+                  }
+                  showError(t('token.messages.copy_failed'));
+                }}
+              >
+                {t('token.created.copy_curl')}
+              </AppButton>
+              <AppButton
+                className='router-page-button'
+                onClick={() => navigate('/workspace/service/cli-guide')}
+              >
+                {t('token.created.view_guide')}
+              </AppButton>
+            </AppFormActions>
+          </AppDetailSection>
+
+          <AppFormActions>
+            <AppButton
+              className='router-page-button'
+              color='blue'
+              onClick={() => navigate('/workspace/token')}
+            >
+              {t('common.back')}
+            </AppButton>
+          </AppFormActions>
+        </div>
       ) : isCreateMode ? (
-            <div className='router-page-stack'>
-                <AppFormRow>
-                  <AppField label={t('token.edit.name')} required={isCreateMode}>
-                    <AppInput
-                      className='router-section-input'
-                      name='name'
-                      placeholder={t('token.edit.name_placeholder')}
-                      onChange={handleInputChange}
-                      value={name}
-                      autoComplete='new-password'
-                      required={isCreateMode}
-                      readOnly={false}
-                    />
-                  </AppField>
-                </AppFormRow>
-                <div>
-                  <label>{t('token.edit.models')}</label>
-                  {renderModelScopeControls(false)}
-                </div>
-                <AppFormRow>
-                  <AppField label='默认模型路由' hint='模型规则可调整优先级；仅个人或仅社区不会被模型规则放宽'>
-                    <AppSelect
-                      className='router-section-dropdown'
-                      name='route_policy'
-                      options={routePolicyOptions}
-                      value={inputs.route_policy}
-                      onChange={handleInputChange}
-                    />
-                  </AppField>
-                </AppFormRow>
-                <AppFormRow>
-                  <AppField label={t('token.edit.ip_limit')}>
-                    <AppInput
-                      className='router-section-input'
-                      name='subnet'
-                      placeholder={t('token.edit.ip_limit_placeholder')}
-                      onChange={handleInputChange}
-                      value={inputs.subnet}
-                      autoComplete='new-password'
-                      readOnly={false}
-                    />
-                  </AppField>
-                </AppFormRow>
-                <AppFormRow className='router-token-expire-row'>
-                  <AppField label={t('token.edit.expire_time')}>
-                    <AppSelect
-                      className='router-section-dropdown router-token-expire-mode-select'
-                      options={expireTimeModeOptions}
-                      value={expireTimeMode}
-                      onChange={handleExpireTimeModeChange}
-                    />
-                  </AppField>
-                  <AppField label={t('token.edit.expire_time_options.custom')}>
-                    <AppInput
-                      className='router-section-input'
-                      name='expired_time'
-                      placeholder={t('token.edit.expire_time_placeholder')}
-                      onChange={handleExpiredTimeChange}
-                      value={formatDateTimeLocalInputValue(expired_time)}
-                      autoComplete='new-password'
-                      type='datetime-local'
-                      disabled={expireTimeMode !== 'custom'}
-                      readOnly={false}
-                    />
-                  </AppField>
-                </AppFormRow>
-                <AppFormRow className='router-token-quota-row'>
-                  <AppField
-                    className='router-token-quota-field'
-                    label={t('token.edit.quota')}
-                    hint={t('token.edit.quota_notice')}
-                  >
-                    <AppCompact className='router-section-input-with-unit' block>
-                      <AppInputNumber
-                        className='router-section-input router-section-input-with-unit-field'
-                        name='remain_quota'
-                        placeholder={t('token.edit.quota_placeholder')}
-                        onChange={handleQuotaInputChange}
-                        value={quotaInputValue}
-                        min={0}
-                        step={resolveBillingInputStep(quotaDisplayUnit, billingCurrencyIndex)}
-                        precision={6}
-                        fluid
-                        disabled={hasUnlimitedLimitAmount}
-                      />
-                      <UnitDropdown
-                        variant='inputUnit'
-                        options={quotaUnitOptions}
-                        value={quotaDisplayUnit}
-                        onChange={handleQuotaUnitChange}
-                        aria-label={t('token.edit.quota')}
-                      />
-                    </AppCompact>
-                  </AppField>
-                  <AppField className='router-token-unlimited-field' label={t('token.edit.buttons.unlimited_quota')}>
-                    <AppSwitch
-                      checked={hasUnlimitedLimitAmount}
-                      onChange={() => {
-                        toggleUnlimitedLimitAmount();
-                      }}
-                    />
-                  </AppField>
-                </AppFormRow>
-                <AppFormRow className='router-token-quota-row'>
-                  <AppField
-                    className='router-token-quota-field'
-                    label={t('token.edit.request_count')}
-                    hint={t('token.edit.request_count_notice')}
-                  >
-                    <AppInputNumber
-                      className='router-section-input'
-                      name='remain_request_count'
-                      placeholder={t('token.edit.request_count_placeholder')}
-                      onChange={handleRequestCountInputChange}
-                      value={inputs.remain_request_count}
-                      min={1}
-                      step={1}
-                      precision={0}
-                      fluid
-                      disabled={hasUnlimitedRequestCount}
-                    />
-                  </AppField>
-                  <AppField className='router-token-unlimited-field' label={t('token.edit.buttons.unlimited_request_count')}>
-                    <AppSwitch
-                      checked={hasUnlimitedRequestCount}
-                      onChange={() => {
-                        toggleUnlimitedRequestCount();
-                      }}
-                    />
-                  </AppField>
-                </AppFormRow>
-              </div>
+        <div className='router-page-stack'>
+          <AppFormRow>
+            <AppField label={t('token.edit.name')} required={isCreateMode}>
+              <AppInput
+                className='router-section-input'
+                name='name'
+                placeholder={t('token.edit.name_placeholder')}
+                onChange={handleInputChange}
+                value={name}
+                autoComplete='new-password'
+                required={isCreateMode}
+                readOnly={false}
+              />
+            </AppField>
+          </AppFormRow>
+          <div>
+            <label>{t('token.edit.models')}</label>
+            {renderModelScopeControls(false)}
+          </div>
+          <AppFormRow>
+            <AppField
+              label='默认模型路由'
+              hint='模型规则可调整优先级；仅个人或仅社区不会被模型规则放宽'
+            >
+              <AppSelect
+                className='router-section-dropdown'
+                name='route_policy'
+                options={routePolicyOptions}
+                value={inputs.route_policy}
+                onChange={handleInputChange}
+              />
+            </AppField>
+          </AppFormRow>
+          <AppFormRow>
+            <AppField label={t('token.edit.ip_limit')}>
+              <AppInput
+                className='router-section-input'
+                name='subnet'
+                placeholder={t('token.edit.ip_limit_placeholder')}
+                onChange={handleInputChange}
+                value={inputs.subnet}
+                autoComplete='new-password'
+                readOnly={false}
+              />
+            </AppField>
+          </AppFormRow>
+          <AppFormRow className='router-token-expire-row'>
+            <AppField label={t('token.edit.expire_time')}>
+              <AppSelect
+                className='router-section-dropdown router-token-expire-mode-select'
+                options={expireTimeModeOptions}
+                value={expireTimeMode}
+                onChange={handleExpireTimeModeChange}
+              />
+            </AppField>
+            <AppField label={t('token.edit.expire_time_options.custom')}>
+              <AppInput
+                className='router-section-input'
+                name='expired_time'
+                placeholder={t('token.edit.expire_time_placeholder')}
+                onChange={handleExpiredTimeChange}
+                value={formatDateTimeLocalInputValue(expired_time)}
+                autoComplete='new-password'
+                type='datetime-local'
+                disabled={expireTimeMode !== 'custom'}
+                readOnly={false}
+              />
+            </AppField>
+          </AppFormRow>
+          <AppFormRow className='router-token-quota-row'>
+            <AppField
+              className='router-token-quota-field'
+              label={t('token.edit.quota')}
+              hint={t('token.edit.quota_notice')}
+            >
+              <AppCompact className='router-section-input-with-unit' block>
+                <AppInputNumber
+                  className='router-section-input router-section-input-with-unit-field'
+                  name='remain_quota'
+                  placeholder={t('token.edit.quota_placeholder')}
+                  onChange={handleQuotaInputChange}
+                  value={quotaInputValue}
+                  min={0}
+                  step={resolveBillingInputStep(
+                    quotaDisplayUnit,
+                    billingCurrencyIndex
+                  )}
+                  precision={6}
+                  fluid
+                  disabled={hasUnlimitedLimitAmount}
+                />
+                <UnitDropdown
+                  variant='inputUnit'
+                  options={quotaUnitOptions}
+                  value={quotaDisplayUnit}
+                  onChange={handleQuotaUnitChange}
+                  aria-label={t('token.edit.quota')}
+                />
+              </AppCompact>
+            </AppField>
+            <AppField
+              className='router-token-unlimited-field'
+              label={t('token.edit.buttons.unlimited_quota')}
+            >
+              <AppSwitch
+                checked={hasUnlimitedLimitAmount}
+                onChange={() => {
+                  toggleUnlimitedLimitAmount();
+                }}
+              />
+            </AppField>
+          </AppFormRow>
+          <AppFormRow className='router-token-quota-row'>
+            <AppField
+              className='router-token-quota-field'
+              label={t('token.edit.request_count')}
+              hint={t('token.edit.request_count_notice')}
+            >
+              <AppInputNumber
+                className='router-section-input'
+                name='remain_request_count'
+                placeholder={t('token.edit.request_count_placeholder')}
+                onChange={handleRequestCountInputChange}
+                value={inputs.remain_request_count}
+                min={1}
+                step={1}
+                precision={0}
+                fluid
+                disabled={hasUnlimitedRequestCount}
+              />
+            </AppField>
+            <AppField
+              className='router-token-unlimited-field'
+              label={t('token.edit.buttons.unlimited_request_count')}
+            >
+              <AppSwitch
+                checked={hasUnlimitedRequestCount}
+                onChange={() => {
+                  toggleUnlimitedRequestCount();
+                }}
+              />
+            </AppField>
+          </AppFormRow>
+        </div>
       ) : (
         <div className='router-tab-detail-page router-entity-detail-page'>
           <div className='router-entity-detail-tabs router-block-gap-sm'>
@@ -1234,10 +1287,17 @@ const EditToken = ({ admin = false } = {}) => {
                 headerEnd={
                   detailEditingSection === 'basic' ? (
                     <>
-                      <AppButton className='router-page-button' onClick={cancelDetailSectionEdit}>
+                      <AppButton
+                        className='router-page-button'
+                        onClick={cancelDetailSectionEdit}
+                      >
                         {t('token.edit.buttons.cancel')}
                       </AppButton>
-                      <AppButton className='router-page-button' color='blue' onClick={submit}>
+                      <AppButton
+                        className='router-page-button'
+                        color='blue'
+                        onClick={submit}
+                      >
                         {t('token.edit.buttons.submit')}
                       </AppButton>
                     </>
@@ -1254,174 +1314,198 @@ const EditToken = ({ admin = false } = {}) => {
                 }
                 bodyClassName='router-page-stack'
               >
-                  <AppFormRow className='router-token-basic-info-row'>
-                    <AppField label={t('token.edit.name')}>
-                      <AppInput
-                        className='router-section-input'
-                        name='name'
-                        placeholder={t('token.edit.name_placeholder')}
-                        onChange={handleInputChange}
-                        value={name}
-                        autoComplete='new-password'
-                        readOnly={basicReadonly}
-                      />
-                    </AppField>
-                  </AppFormRow>
-                  <AppFormRow className='router-token-basic-info-row'>
-                    <AppField label={t('token.table.created_time')} readOnly>
-                      <AppInput
-                        className='router-section-input'
-                        value={
-                          inputs.created_time
-                            ? timestamp2string(inputs.created_time)
-                            : ''
-                        }
-                        readOnly
-                      />
-                    </AppField>
-                  </AppFormRow>
-                  <AppFormRow className='router-token-basic-info-row'>
-                    <AppField label={t('token.table.updated_time')} readOnly>
-                      <AppInput
-                        className='router-section-input'
-                        value={
-                          inputs.updated_time || inputs.created_time
-                            ? timestamp2string(inputs.updated_time || inputs.created_time)
-                            : ''
-                        }
-                        readOnly
-                      />
-                    </AppField>
-                  </AppFormRow>
-                  <AppFormRow>
-                    <AppField label={t('token.edit.ip_limit')}>
-                      <AppInput
-                        className='router-section-input'
-                        name='subnet'
-                        placeholder={t('token.edit.ip_limit_placeholder')}
-                        onChange={handleInputChange}
-                        value={inputs.subnet}
-                        autoComplete='new-password'
-                        readOnly={basicReadonly}
-                      />
-                    </AppField>
-                  </AppFormRow>
-                  <AppFormRow>
-                    <AppField label='默认模型路由' hint='模型规则可调整优先级；仅个人或仅社区不会被模型规则放宽'>
-                      <AppSelect
-                        className='router-section-dropdown'
-                        name='route_policy'
-                        options={routePolicyOptions}
-                        value={inputs.route_policy}
-                        onChange={handleInputChange}
-                        disabled={basicReadonly}
-                      />
-                    </AppField>
-                  </AppFormRow>
-                  <AppFormRow className='router-token-expire-row'>
-                    <AppField label={t('token.edit.expire_time')}>
-                      <AppSelect
-                        className='router-section-dropdown router-token-expire-mode-select'
-                        options={expireTimeModeOptions}
-                        value={expireTimeMode}
-                        onChange={handleExpireTimeModeChange}
-                        disabled={basicReadonly}
-                      />
-                    </AppField>
-                    <AppField label={t('token.edit.expire_time_options.custom')}>
-                      <AppInput
-                        className='router-section-input'
-                        name='expired_time'
-                        placeholder={t('token.edit.expire_time_placeholder')}
-                        onChange={handleExpiredTimeChange}
-                        value={formatDateTimeLocalInputValue(expired_time)}
-                        autoComplete='new-password'
-                        type='datetime-local'
-                        disabled={basicReadonly || expireTimeMode !== 'custom'}
-                        readOnly={basicReadonly}
-                      />
-                    </AppField>
-                  </AppFormRow>
-                  <AppFormRow className='router-token-quota-row'>
-                    <AppField
-                      className='router-token-quota-field'
-                      label={t('token.edit.quota')}
-                      hint={t('token.edit.quota_notice')}
-                    >
-                      <AppCompact className='router-section-input-with-unit' block>
-                        <AppInputNumber
-                          className='router-section-input router-section-input-with-unit-field'
-                          name='remain_quota'
-                          placeholder={t('token.edit.quota_placeholder')}
-                          onChange={handleQuotaInputChange}
-                          value={quotaInputValue}
-                          min={0}
-                          step={resolveBillingInputStep(quotaDisplayUnit, billingCurrencyIndex)}
-                          precision={6}
-                          fluid
-                          disabled={hasUnlimitedLimitAmount || basicReadonly}
-                        />
-                        <UnitDropdown
-                          variant='inputUnit'
-                          options={quotaUnitOptions}
-                          value={quotaDisplayUnit}
-                          onChange={handleQuotaUnitChange}
-                          disabled={basicReadonly}
-                          aria-label={t('token.edit.quota')}
-                        />
-                      </AppCompact>
-                    </AppField>
-                    <AppField className='router-token-unlimited-field' label={t('token.edit.buttons.unlimited_quota')}>
-                      <AppSwitch
-                        checked={hasUnlimitedLimitAmount}
-                        disabled={basicReadonly}
-                        onChange={() => {
-                          toggleUnlimitedLimitAmount();
-                        }}
-                      />
-                    </AppField>
-                  </AppFormRow>
-                  <AppFormRow className='router-token-quota-row'>
-                    <AppField
-                      className='router-token-quota-field'
-                      label={t('token.edit.request_count')}
-                      hint={t('token.edit.request_count_notice')}
+                <AppFormRow className='router-token-basic-info-row'>
+                  <AppField label={t('token.edit.name')}>
+                    <AppInput
+                      className='router-section-input'
+                      name='name'
+                      placeholder={t('token.edit.name_placeholder')}
+                      onChange={handleInputChange}
+                      value={name}
+                      autoComplete='new-password'
+                      readOnly={basicReadonly}
+                    />
+                  </AppField>
+                </AppFormRow>
+                <AppFormRow className='router-token-basic-info-row'>
+                  <AppField label={t('token.table.created_time')} readOnly>
+                    <AppInput
+                      className='router-section-input'
+                      value={
+                        inputs.created_time
+                          ? timestamp2string(inputs.created_time)
+                          : ''
+                      }
+                      readOnly
+                    />
+                  </AppField>
+                </AppFormRow>
+                <AppFormRow className='router-token-basic-info-row'>
+                  <AppField label={t('token.table.updated_time')} readOnly>
+                    <AppInput
+                      className='router-section-input'
+                      value={
+                        inputs.updated_time || inputs.created_time
+                          ? timestamp2string(
+                              inputs.updated_time || inputs.created_time
+                            )
+                          : ''
+                      }
+                      readOnly
+                    />
+                  </AppField>
+                </AppFormRow>
+                <AppFormRow>
+                  <AppField label={t('token.edit.ip_limit')}>
+                    <AppInput
+                      className='router-section-input'
+                      name='subnet'
+                      placeholder={t('token.edit.ip_limit_placeholder')}
+                      onChange={handleInputChange}
+                      value={inputs.subnet}
+                      autoComplete='new-password'
+                      readOnly={basicReadonly}
+                    />
+                  </AppField>
+                </AppFormRow>
+                <AppFormRow>
+                  <AppField
+                    label='默认模型路由'
+                    hint='模型规则可调整优先级；仅个人或仅社区不会被模型规则放宽'
+                  >
+                    <AppSelect
+                      className='router-section-dropdown'
+                      name='route_policy'
+                      options={routePolicyOptions}
+                      value={inputs.route_policy}
+                      onChange={handleInputChange}
+                      disabled={basicReadonly}
+                    />
+                  </AppField>
+                </AppFormRow>
+                <AppFormRow className='router-token-expire-row'>
+                  <AppField label={t('token.edit.expire_time')}>
+                    <AppSelect
+                      className='router-section-dropdown router-token-expire-mode-select'
+                      options={expireTimeModeOptions}
+                      value={expireTimeMode}
+                      onChange={handleExpireTimeModeChange}
+                      disabled={basicReadonly}
+                    />
+                  </AppField>
+                  <AppField label={t('token.edit.expire_time_options.custom')}>
+                    <AppInput
+                      className='router-section-input'
+                      name='expired_time'
+                      placeholder={t('token.edit.expire_time_placeholder')}
+                      onChange={handleExpiredTimeChange}
+                      value={formatDateTimeLocalInputValue(expired_time)}
+                      autoComplete='new-password'
+                      type='datetime-local'
+                      disabled={basicReadonly || expireTimeMode !== 'custom'}
+                      readOnly={basicReadonly}
+                    />
+                  </AppField>
+                </AppFormRow>
+                <AppFormRow className='router-token-quota-row'>
+                  <AppField
+                    className='router-token-quota-field'
+                    label={t('token.edit.quota')}
+                    hint={t('token.edit.quota_notice')}
+                  >
+                    <AppCompact
+                      className='router-section-input-with-unit'
+                      block
                     >
                       <AppInputNumber
-                        className='router-section-input'
-                        name='remain_request_count'
-                        placeholder={t('token.edit.request_count_placeholder')}
-                        onChange={handleRequestCountInputChange}
-                        value={inputs.remain_request_count}
-                        min={1}
-                        step={1}
-                        precision={0}
+                        className='router-section-input router-section-input-with-unit-field'
+                        name='remain_quota'
+                        placeholder={t('token.edit.quota_placeholder')}
+                        onChange={handleQuotaInputChange}
+                        value={quotaInputValue}
+                        min={0}
+                        step={resolveBillingInputStep(
+                          quotaDisplayUnit,
+                          billingCurrencyIndex
+                        )}
+                        precision={6}
                         fluid
-                        disabled={hasUnlimitedRequestCount || basicReadonly}
+                        disabled={hasUnlimitedLimitAmount || basicReadonly}
                       />
-                    </AppField>
-                    <AppField className='router-token-unlimited-field' label={t('token.edit.buttons.unlimited_request_count')}>
-                      <AppSwitch
-                        checked={hasUnlimitedRequestCount}
+                      <UnitDropdown
+                        variant='inputUnit'
+                        options={quotaUnitOptions}
+                        value={quotaDisplayUnit}
+                        onChange={handleQuotaUnitChange}
                         disabled={basicReadonly}
-                        onChange={() => {
-                          toggleUnlimitedRequestCount();
-                        }}
+                        aria-label={t('token.edit.quota')}
                       />
-                    </AppField>
-                  </AppFormRow>
+                    </AppCompact>
+                  </AppField>
+                  <AppField
+                    className='router-token-unlimited-field'
+                    label={t('token.edit.buttons.unlimited_quota')}
+                  >
+                    <AppSwitch
+                      checked={hasUnlimitedLimitAmount}
+                      disabled={basicReadonly}
+                      onChange={() => {
+                        toggleUnlimitedLimitAmount();
+                      }}
+                    />
+                  </AppField>
+                </AppFormRow>
+                <AppFormRow className='router-token-quota-row'>
+                  <AppField
+                    className='router-token-quota-field'
+                    label={t('token.edit.request_count')}
+                    hint={t('token.edit.request_count_notice')}
+                  >
+                    <AppInputNumber
+                      className='router-section-input'
+                      name='remain_request_count'
+                      placeholder={t('token.edit.request_count_placeholder')}
+                      onChange={handleRequestCountInputChange}
+                      value={inputs.remain_request_count}
+                      min={1}
+                      step={1}
+                      precision={0}
+                      fluid
+                      disabled={hasUnlimitedRequestCount || basicReadonly}
+                    />
+                  </AppField>
+                  <AppField
+                    className='router-token-unlimited-field'
+                    label={t('token.edit.buttons.unlimited_request_count')}
+                  >
+                    <AppSwitch
+                      checked={hasUnlimitedRequestCount}
+                      disabled={basicReadonly}
+                      onChange={() => {
+                        toggleUnlimitedRequestCount();
+                      }}
+                    />
+                  </AppField>
+                </AppFormRow>
               </AppDetailSection>
             ) : null}
             {activeDetailTab === 'models' ? (
-            <AppDetailSection
+              <AppDetailSection
                 title={t('token.detail.sections.models')}
                 headerEnd={
                   detailEditingSection === 'models' ? (
                     <>
-                      <AppButton className='router-page-button' onClick={cancelDetailSectionEdit}>
+                      <AppButton
+                        className='router-page-button'
+                        onClick={cancelDetailSectionEdit}
+                      >
                         {t('token.edit.buttons.cancel')}
                       </AppButton>
-                      <AppButton className='router-page-button' color='blue' onClick={submit}>
+                      <AppButton
+                        className='router-page-button'
+                        color='blue'
+                        onClick={submit}
+                      >
                         {t('token.edit.buttons.submit')}
                       </AppButton>
                     </>
@@ -1438,8 +1522,8 @@ const EditToken = ({ admin = false } = {}) => {
                 }
                 bodyClassName='router-page-stack'
               >
-                  {renderModelScopeControls(modelsReadonly)}
-            </AppDetailSection>
+                {renderModelScopeControls(modelsReadonly)}
+              </AppDetailSection>
             ) : null}
             {activeDetailTab === 'usage' ? (
               <AppDetailSection title={t('token.created.usage_title')}>
