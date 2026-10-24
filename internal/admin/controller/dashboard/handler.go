@@ -83,6 +83,7 @@ type trendPoint struct {
 type channelHealthItem struct {
 	ID                       string                              `json:"id"`
 	Name                     string                              `json:"name"`
+	OperatorType             string                              `json:"operator_type"`
 	OwnershipType            string                              `json:"ownership_type"`
 	ChannelPurpose           string                              `json:"channel_purpose"`
 	AccessScope              string                              `json:"access_scope"`
@@ -1053,6 +1054,19 @@ func loadChannelOwnerNames(userIDs []string) (map[string]string, error) {
 	return result, nil
 }
 
+func channelClassification(sourceKind string) (operatorType string, ownershipType string, purpose string) {
+	switch strings.TrimSpace(sourceKind) {
+	case "managed":
+		return "platform", "platform", "platform_service"
+	case "personal":
+		return "independent", "third_party", "self_use"
+	case "published_supply":
+		return "independent", "third_party", "supply"
+	default:
+		return "", "", ""
+	}
+}
+
 func supplyChannelAccessScope(offers []model.AdminSupplyOfferView) string {
 	scopes := make(map[string]struct{})
 	for _, offer := range offers {
@@ -1250,11 +1264,13 @@ func listDashboardChannelsForWindow(limit int, window model.ChannelMetricWindow)
 		}
 		runtime := runtimeByChannelID[channelID]
 		healthScore, healthLevel := runtimeChannelHealth(row.Status, runtime, circuitBreaker)
+		operatorType, ownershipType, channelPurpose := channelClassification("managed")
 		items = append(items, channelHealthItem{
 			ID:                       channelID,
 			Name:                     strings.TrimSpace(row.Name),
-			OwnershipType:            "platform",
-			ChannelPurpose:           "platform_service",
+			OperatorType:             operatorType,
+			OwnershipType:            ownershipType,
+			ChannelPurpose:           channelPurpose,
 			AccessScope:              "platform",
 			SourceKind:               "managed",
 			Visibility:               "managed",
@@ -1305,8 +1321,9 @@ func listDashboardChannelsForWindow(limit int, window model.ChannelMetricWindow)
 			status = model.ChannelStatusEnabled
 		}
 		healthScore, healthLevel := runtimeChannelHealth(status, runtime, nil)
+		operatorType, ownershipType, channelPurpose := channelClassification("personal")
 		items = append(items, channelHealthItem{
-			ID: channelID, Name: row.Name, OwnershipType: "third_party", ChannelPurpose: "self_use", AccessScope: "private",
+			ID: channelID, Name: row.Name, OperatorType: operatorType, OwnershipType: ownershipType, ChannelPurpose: channelPurpose, AccessScope: "private",
 			SourceKind: "personal", OwnerID: row.UserId,
 			OwnerName: ownerNames[row.UserId], Visibility: "private", Models: row.Models,
 			Protocol: row.Protocol, Status: status, Capabilities: []string{"text"}, Priority: row.Priority,
@@ -1338,8 +1355,9 @@ func listDashboardChannelsForWindow(limit int, window model.ChannelMetricWindow)
 		runtime := model.MergeChannelRuntimeMetrics(window, offerMetrics...)
 		status := supplyChannelRuntimeStatus(row, eligible)
 		healthScore, healthLevel := runtimeChannelHealth(status, runtime, nil)
+		operatorType, ownershipType, channelPurpose := channelClassification("published_supply")
 		items = append(items, channelHealthItem{
-			ID: channelID, Name: strings.TrimSpace(row.ServiceName), OwnershipType: "third_party", ChannelPurpose: "supply",
+			ID: channelID, Name: strings.TrimSpace(row.ServiceName), OperatorType: operatorType, OwnershipType: ownershipType, ChannelPurpose: channelPurpose,
 			AccessScope: supplyChannelAccessScope(row.Offers), SourceKind: "published_supply", OwnerID: row.PublisherUserId,
 			OwnerName: row.PublisherDisplayName, Visibility: supplyChannelAccessScope(row.Offers),
 			Models: row.Models, GroupNames: groupNames,

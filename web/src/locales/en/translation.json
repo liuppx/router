@@ -2384,7 +2384,7 @@
         "failure_summary": "This request ultimately failed. The last attempted channel was {{channel}}, requested model {{model}}, after {{fallbackCount}} fallback(s).",
         "user_summary": "This request used published model {{model}}, after {{fallbackCount}} fallback(s), using estimate source {{source}} and settlement mode {{settlement}}.",
         "user_failure_summary": "This request ultimately failed. Requested model {{model}}, after {{fallbackCount}} fallback(s).",
-        "user_source_summary": "This request started with {{policy}}. The initial source was {{initialSource}}, the actual source was {{actualSource}}, with {{fallbackCount}} fallback(s). Third-party supply calls are billed through the package or balance.",
+        "user_source_summary": "This request started with {{policy}}. The initial source was {{initialSource}}, the actual source was {{actualSource}}, with {{fallbackCount}} fallback(s). Supply-channel calls are billed through the package or balance.",
         "attempt_title": "Attempt {{attempt}}",
         "outcome": {
           "succeeded": "Succeeded",
@@ -2425,18 +2425,18 @@
             "source_policy": "Effective source policy",
             "initial_source": "Initial source",
             "actual_source": "Actual source",
-            "personal_provider": "Third-party self-use channel"
+            "personal_provider": "Self-use channel"
           },
           "policy": {
-            "personal_first": "Self-use first, third-party supply fallback",
+            "personal_first": "Self-use first, supply-channel fallback",
             "personal_only": "Self-use channel only",
-            "community_only": "Third-party supply only",
-            "community_first": "Third-party supply first",
+            "community_only": "Supply channels only",
+            "community_first": "Supply channels first",
             "unknown": "Not recorded"
           },
           "source": {
-            "personal_provider": "Third-party self-use channel",
-            "community_package": "Third-party supply",
+            "personal_provider": "Self-use channel",
+            "community_package": "Supply channel",
             "unknown": "Not recorded"
           }
         },
@@ -3448,12 +3448,17 @@
       },
       "channels": {
         "title": "Health",
-        "page_hint": "View platform-operated and third-party channels together. Channel type is determined only by who owns the account, credentials, cost, and operational responsibility. Health comes from real calls in the selected range; model tests remain separate verification data.",
+        "page_hint": "View platform-operated and independently operated channels together. Operator type is determined only by who owns the account, credentials, cost, and operational responsibility. Health comes from real calls in the selected range; model tests remain separate verification data.",
         "open_duty": "Open duty station",
+        "operator": {
+          "all": "All channels",
+          "platform": "Platform-operated",
+          "independent": "Independently operated"
+        },
         "ownership": {
           "all": "All channels",
           "platform": "Platform-operated",
-          "third_party": "Third-party"
+          "third_party": "Independently operated"
         },
         "purpose": {
           "platform_service": "Platform service",
@@ -5037,7 +5042,7 @@
     "title": "Open supply"
   },
   "community_services": {
-    "title": "Third-party model offers"
+    "title": "Model offers"
   },
   "not_found": {
     "title": "Page not found",

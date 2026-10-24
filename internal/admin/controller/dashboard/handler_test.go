@@ -79,6 +79,10 @@ func TestSupplyChannelProjectionKeepsStableIdentityAcrossOfferAndGroupChanges(t 
 		},
 	}
 	channelID := model.PublisherServiceChannelPrefix + row.ServiceId
+	operatorType, ownershipType, purpose := channelClassification("published_supply")
+	if operatorType != "independent" || ownershipType != "third_party" || purpose != "supply" {
+		t.Fatalf("supply classification = %q/%q/%q", operatorType, ownershipType, purpose)
+	}
 	offerIDs, groups, earnings, publishedCount, eligible := supplyChannelOfferSummary(
 		row,
 		map[string][]string{"offer-1": {"default", "premium"}, "offer-2": {"premium"}},
@@ -101,16 +105,43 @@ func TestSupplyChannelProjectionKeepsStableIdentityAcrossOfferAndGroupChanges(t 
 	}
 
 	_, groupsAfterRemoval, _, _, eligibleAfterRemoval := supplyChannelOfferSummary(row, map[string][]string{}, nil)
-	if len(groupsAfterRemoval) != 0 || !eligibleAfterRemoval || channelID != model.PublisherServiceChannelPrefix+row.ServiceId {
-		t.Fatalf("group removal changed channel identity or type: groups=%#v eligible=%v id=%q", groupsAfterRemoval, eligibleAfterRemoval, channelID)
+	operatorTypeAfterRemoval, ownershipTypeAfterRemoval, purposeAfterRemoval := channelClassification("published_supply")
+	if len(groupsAfterRemoval) != 0 || !eligibleAfterRemoval || channelID != model.PublisherServiceChannelPrefix+row.ServiceId || operatorTypeAfterRemoval != operatorType || ownershipTypeAfterRemoval != ownershipType || purposeAfterRemoval != purpose {
+		t.Fatalf("group removal changed channel identity or classification: groups=%#v eligible=%v id=%q classification=%q/%q/%q", groupsAfterRemoval, eligibleAfterRemoval, channelID, operatorTypeAfterRemoval, ownershipTypeAfterRemoval, purposeAfterRemoval)
 	}
 	row.Offers = nil
 	if status := supplyChannelRuntimeStatus(row, false); status != model.ChannelStatusCreating {
 		t.Fatalf("draft supply status = %d, want creating", status)
 	}
+	operatorTypeWithoutOffers, ownershipTypeWithoutOffers, purposeWithoutOffers := channelClassification("published_supply")
+	if operatorTypeWithoutOffers != operatorType || ownershipTypeWithoutOffers != ownershipType || purposeWithoutOffers != purpose {
+		t.Fatalf("offer removal changed classification = %q/%q/%q", operatorTypeWithoutOffers, ownershipTypeWithoutOffers, purposeWithoutOffers)
+	}
 	row.ServiceStatus = model.PublisherServiceStatusSuspended
 	if status := supplyChannelRuntimeStatus(row, false); status != model.ChannelStatusManuallyDisabled {
 		t.Fatalf("suspended supply status = %d, want disabled", status)
+	}
+}
+
+func TestChannelClassificationPreservesCompatibility(t *testing.T) {
+	tests := []struct {
+		name          string
+		sourceKind    string
+		operatorType  string
+		ownershipType string
+		purpose       string
+	}{
+		{name: "platform service", sourceKind: "managed", operatorType: "platform", ownershipType: "platform", purpose: "platform_service"},
+		{name: "self-use channel", sourceKind: "personal", operatorType: "independent", ownershipType: "third_party", purpose: "self_use"},
+		{name: "supply channel", sourceKind: "published_supply", operatorType: "independent", ownershipType: "third_party", purpose: "supply"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			operatorType, ownershipType, purpose := channelClassification(tt.sourceKind)
+			if operatorType != tt.operatorType || ownershipType != tt.ownershipType || purpose != tt.purpose {
+				t.Fatalf("classification = %q/%q/%q, want %q/%q/%q", operatorType, ownershipType, purpose, tt.operatorType, tt.ownershipType, tt.purpose)
+			}
+		})
 	}
 }
 

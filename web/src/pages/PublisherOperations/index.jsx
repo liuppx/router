@@ -658,7 +658,7 @@ function PublisherOperations({ embedded = false }) {
                     />
                   </AppField>
                   <p>
-                    第三方报价通过独立绑定参与自动路由。绑定只决定路由范围，不会把供给渠道变成平台自营渠道；分组只能由运营管理。
+                    模型报价通过独立绑定参与自动路由。绑定只决定路由范围，不会把供给渠道变成平台自营渠道；分组只能由运营管理。
                   </p>
                 </div>
                 <AppTable
@@ -703,7 +703,7 @@ function PublisherOperations({ embedded = false }) {
             key: 'services',
             label: '供给渠道',
             children: (
-              <AppSection title='第三方供给渠道治理'>
+              <AppSection title='独立运营供给渠道治理'>
                 <AppTable
                   rowKey='id'
                   columns={serviceColumns}
@@ -712,7 +712,7 @@ function PublisherOperations({ embedded = false }) {
                   pagination={false}
                   scroll={{ x: 960 }}
                   locale={{
-                    emptyText: <AppEmpty>没有第三方供给渠道</AppEmpty>,
+                    emptyText: <AppEmpty>没有独立运营供给渠道</AppEmpty>,
                   }}
                 />
               </AppSection>
@@ -745,7 +745,7 @@ function PublisherOperations({ embedded = false }) {
             key: 'settlements',
             label: '结算账本',
             children: (
-              <AppSection title='第三方供给结算账本'>
+              <AppSection title='供给结算账本'>
                 <AppTable
                   rowKey='request_log_id'
                   columns={settlementColumns}
@@ -754,7 +754,7 @@ function PublisherOperations({ embedded = false }) {
                   pagination={false}
                   scroll={{ x: 1200 }}
                   locale={{
-                    emptyText: <AppEmpty>还没有第三方供给结算记录</AppEmpty>,
+                    emptyText: <AppEmpty>还没有供给结算记录</AppEmpty>,
                   }}
                 />
               </AppSection>

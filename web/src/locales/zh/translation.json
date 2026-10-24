@@ -2384,7 +2384,7 @@
         "failure_summary": "本次请求最终失败，最后尝试渠道为 {{channel}}，请求模型为 {{model}}，经历 {{fallbackCount}} 次 fallback。",
         "user_summary": "本次请求使用发布模型 {{model}}，经历 {{fallbackCount}} 次 fallback，估算来源为 {{source}}，结算模式为 {{settlement}}。",
         "user_failure_summary": "本次请求最终失败，请求模型为 {{model}}，经历 {{fallbackCount}} 次 fallback。",
-        "user_source_summary": "本次请求按 {{policy}} 发起，初始来源为 {{initialSource}}，实际来源为 {{actualSource}}，经历 {{fallbackCount}} 次 fallback。第三方供给调用按套餐或余额结算。",
+        "user_source_summary": "本次请求按 {{policy}} 发起，初始来源为 {{initialSource}}，实际来源为 {{actualSource}}，经历 {{fallbackCount}} 次 fallback。供给渠道调用按套餐或余额结算。",
         "attempt_title": "第 {{attempt}} 次尝试",
         "outcome": {
           "succeeded": "成功",
@@ -2425,18 +2425,18 @@
             "source_policy": "生效来源策略",
             "initial_source": "初始来源",
             "actual_source": "实际来源",
-            "personal_provider": "第三方自用渠道"
+            "personal_provider": "自用渠道"
           },
           "policy": {
-            "personal_first": "自用渠道优先，第三方供给回退",
+            "personal_first": "自用渠道优先，供给渠道回退",
             "personal_only": "仅自用渠道",
-            "community_only": "仅第三方供给",
-            "community_first": "第三方供给优先",
+            "community_only": "仅供给渠道",
+            "community_first": "供给渠道优先",
             "unknown": "未记录"
           },
           "source": {
-            "personal_provider": "第三方自用渠道",
-            "community_package": "第三方供给",
+            "personal_provider": "自用渠道",
+            "community_package": "供给渠道",
             "unknown": "未记录"
           }
         },
@@ -3448,12 +3448,17 @@
       },
       "channels": {
         "title": "健康",
-        "page_hint": "统一查看平台自营与第三方渠道。渠道类型只由账号、凭据、成本和运行责任归属决定；健康度来自所选时间范围内的真实调用，模型测试仅作为独立验证信息。",
+        "page_hint": "统一查看平台自营与独立运营渠道。运营类型只由账号、凭据、成本和运行责任归属决定；健康度来自所选时间范围内的真实调用，模型测试仅作为独立验证信息。",
         "open_duty": "打开值班台",
+        "operator": {
+          "all": "全部渠道",
+          "platform": "平台自营",
+          "independent": "独立运营"
+        },
         "ownership": {
           "all": "全部渠道",
           "platform": "平台自营",
-          "third_party": "第三方"
+          "third_party": "独立运营"
         },
         "purpose": {
           "platform_service": "平台服务",
@@ -5037,7 +5042,7 @@
     "title": "开放供给"
   },
   "community_services": {
-    "title": "第三方模型报价"
+    "title": "模型报价"
   },
   "not_found": {
     "title": "页面不存在",

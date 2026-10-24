@@ -292,8 +292,8 @@ function PublisherWorkspace({
       if (!response.data?.success) throw new Error(response.data?.message);
       showSuccess(
         editingService
-          ? '第三方供给渠道已更新，需要重新验证'
-          : '第三方供给渠道已创建'
+          ? '供给渠道已更新，需要重新验证'
+          : '供给渠道已创建'
       );
       setServiceModal(false);
       setSourceConnectionForService(null);
@@ -304,7 +304,7 @@ function PublisherWorkspace({
       showError(
         error instanceof SyntaxError
           ? '数据规则必须是有效 JSON'
-          : error?.message || '保存第三方供给渠道失败'
+          : error?.message || '保存供给渠道失败'
       );
     } finally {
       setSaving(false);
@@ -318,9 +318,9 @@ function PublisherWorkspace({
         `/api/v1/public/publisher/services/${row.id}/verify`
       );
       if (!response.data?.success) throw new Error(response.data?.message);
-      showSuccess('第三方供给渠道验证通过');
+      showSuccess('供给渠道验证通过');
     } catch (error) {
-      showError(error?.message || '第三方供给渠道验证失败');
+      showError(error?.message || '供给渠道验证失败');
     } finally {
       setVerifyingID('');
       load().then();
@@ -333,10 +333,10 @@ function PublisherWorkspace({
         `/api/v1/public/publisher/services/${row.id}`
       );
       if (!response.data?.success) throw new Error(response.data?.message);
-      showSuccess('第三方供给渠道已删除');
+      showSuccess('供给渠道已删除');
       load().then();
     } catch (error) {
-      showError(error?.message || '删除第三方供给渠道失败');
+      showError(error?.message || '删除供给渠道失败');
     }
   };
 
@@ -573,7 +573,7 @@ function PublisherWorkspace({
         <AppAlert
           type='info'
           message='可信发布试点'
-          description='第三方自用渠道始终仅供本人使用。参与供给会创建独立的第三方供给渠道，只复制连接名称、协议、地址和模型范围；API Key 必须重新录入。报价审核和分组绑定不会改变渠道类型，成功调用进入结算。'
+          description='自用渠道始终仅供本人使用。参与供给会创建独立的供给渠道，只复制连接名称、协议、地址和模型范围；API Key 必须重新录入。报价审核和分组绑定不会改变渠道类型，成功调用进入结算。'
         />
       ) : null}
       <AppTabs
@@ -655,7 +655,7 @@ function PublisherWorkspace({
             label: '供给渠道',
             children: (
               <AppSection
-                title='第三方供给渠道'
+                title='供给渠道'
                 extra={
                   <AppButton
                     color='blue'
@@ -667,7 +667,7 @@ function PublisherWorkspace({
                 }
               >
                 <p className='publisher-hint'>
-                  供给渠道与自用渠道都是第三方渠道，但属于两个凭据独立的渠道实例。测试连接仅验证地址和凭据，不会生成异步任务，也不会发起模型推理。
+                  供给渠道与自用渠道都由你独立运营，但属于两个凭据独立的渠道实例。测试连接仅验证地址和凭据，不会生成异步任务，也不会发起模型推理。
                 </p>
                 <AppTable
                   rowKey='id'
@@ -677,7 +677,7 @@ function PublisherWorkspace({
                   scroll={{ x: 1100 }}
                   pagination={false}
                   locale={{
-                    emptyText: <AppEmpty>还没有第三方供给渠道</AppEmpty>,
+                    emptyText: <AppEmpty>还没有供给渠道</AppEmpty>,
                   }}
                 />
               </AppSection>
@@ -742,7 +742,7 @@ function PublisherWorkspace({
             children: (
               <AppSection title='发布者结算'>
                 <p className='publisher-hint'>
-                  每条记录对应一次第三方供给渠道的成功调用，保留成交价、平台服务费和发布者应收的不可变快照。
+                  每条记录对应一次供给渠道的成功调用，保留成交价、平台服务费和发布者应收的不可变快照。
                 </p>
                 <AppTable
                   rowKey='request_log_id'
@@ -769,10 +769,10 @@ function PublisherWorkspace({
         }}
         title={
           editingService
-            ? '编辑第三方供给渠道'
+            ? '编辑供给渠道'
             : sourceConnectionForService
             ? '申请参与供给'
-            : '创建第三方供给渠道'
+            : '创建供给渠道'
         }
         size='small'
         footer={
@@ -796,7 +796,7 @@ function PublisherWorkspace({
           <AppAlert
             type='info'
             message='将创建独立供给服务'
-            description='只复制非敏感连接信息。第三方自用渠道的 API Key 不会共享，请为供给渠道重新输入凭据。'
+            description='只复制非敏感连接信息。自用渠道的 API Key 不会共享，请为供给渠道重新输入凭据。'
           />
         ) : null}
         <AppForm

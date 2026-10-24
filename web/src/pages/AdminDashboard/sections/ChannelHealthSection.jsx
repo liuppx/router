@@ -38,17 +38,38 @@ const PERIOD_OPTIONS = [
   { value: 'last_30_days', label: '30 天' },
 ];
 
-const OWNERSHIP_OPTION_DEFINITIONS = [
-  { value: 'all', labelKey: 'dashboard.admin.channels.ownership.all' },
+const OPERATOR_OPTION_DEFINITIONS = [
+  { value: 'all', labelKey: 'dashboard.admin.channels.operator.all' },
   {
     value: 'platform',
-    labelKey: 'dashboard.admin.channels.ownership.platform',
+    labelKey: 'dashboard.admin.channels.operator.platform',
   },
   {
-    value: 'third_party',
-    labelKey: 'dashboard.admin.channels.ownership.third_party',
+    value: 'independent',
+    labelKey: 'dashboard.admin.channels.operator.independent',
   },
 ];
+
+const normalizeOperatorType = (operatorType, ownershipType, sourceKind) => {
+  const normalizedOperatorType = String(operatorType || '').trim();
+  if (normalizedOperatorType === 'platform') return 'platform';
+  if (
+    normalizedOperatorType === 'independent' ||
+    normalizedOperatorType === 'third_party'
+  ) {
+    return 'independent';
+  }
+
+  const normalizedOwnershipType = String(ownershipType || '').trim();
+  if (normalizedOwnershipType === 'platform') return 'platform';
+  if (
+    normalizedOwnershipType === 'independent' ||
+    normalizedOwnershipType === 'third_party'
+  ) {
+    return 'independent';
+  }
+  return sourceKind === 'managed' ? 'platform' : 'independent';
+};
 
 const compareRiskFirst = (left, right) => {
   if (left.is_active_circuit !== right.is_active_circuit) {
@@ -82,7 +103,7 @@ const ChannelHealthSection = ({ injectedData = null }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [period, setPeriod] = useState('last_24_hours');
-  const [ownershipFilter, setOwnershipFilter] = useState('all');
+  const [operatorFilter, setOperatorFilter] = useState('all');
 
   const self = useAdminDashboardData(
     'channels',
@@ -93,9 +114,9 @@ const ChannelHealthSection = ({ injectedData = null }) => {
   );
   const { dashboard, loading, error, reload } = injectedData || self;
 
-  const ownershipOptions = useMemo(
+  const operatorOptions = useMemo(
     () =>
-      OWNERSHIP_OPTION_DEFINITIONS.map((option) => ({
+      OPERATOR_OPTION_DEFINITIONS.map((option) => ({
         value: option.value,
         label: t(option.labelKey),
       })),
@@ -134,6 +155,11 @@ const ChannelHealthSection = ({ injectedData = null }) => {
         const ownershipType =
           String(row.ownership_type || '').trim() ||
           (sourceKind === 'managed' ? 'platform' : 'third_party');
+        const operatorType = normalizeOperatorType(
+          row.operator_type,
+          ownershipType,
+          sourceKind
+        );
         const channelPurpose =
           String(row.channel_purpose || '').trim() ||
           (sourceKind === 'managed'
@@ -158,6 +184,7 @@ const ChannelHealthSection = ({ injectedData = null }) => {
           id: row.id || `channel-${index}`,
           channel_id: row.id || '',
           source_kind: sourceKind,
+          operator_type: operatorType,
           ownership_type: ownershipType,
           channel_purpose: channelPurpose,
           access_scope: row.access_scope || row.visibility || '',
@@ -205,10 +232,10 @@ const ChannelHealthSection = ({ injectedData = null }) => {
       channelHealthData
         .filter(
           (item) =>
-            ownershipFilter === 'all' || item.ownership_type === ownershipFilter
+            operatorFilter === 'all' || item.operator_type === operatorFilter
         )
         .sort(compareRiskFirst),
-    [channelHealthData, ownershipFilter]
+    [channelHealthData, operatorFilter]
   );
 
   const renderHealthTag = useCallback(
@@ -312,9 +339,9 @@ const ChannelHealthSection = ({ injectedData = null }) => {
                   onChange={(_, detail) => setPeriod(detail.value)}
                 />
                 <AppSelect
-                  value={ownershipFilter}
-                  options={ownershipOptions}
-                  onChange={(_, detail) => setOwnershipFilter(detail.value)}
+                  value={operatorFilter}
+                  options={operatorOptions}
+                  onChange={(_, detail) => setOperatorFilter(detail.value)}
                 />
               </div>
             }
@@ -394,12 +421,12 @@ const ChannelHealthSection = ({ injectedData = null }) => {
                 ? formatUpdatedAt(item.last_tested_at)
                 : '-';
               const canOpenDetail =
-                item.ownership_type === 'platform' &&
+                item.operator_type === 'platform' &&
                 item.source_kind === 'managed' &&
                 Boolean(item.channel_id);
-              const ownershipLabel = t(
-                `dashboard.admin.channels.ownership.${item.ownership_type}`,
-                { defaultValue: item.ownership_type }
+              const operatorLabel = t(
+                `dashboard.admin.channels.operator.${item.operator_type}`,
+                { defaultValue: item.operator_type }
               );
               const purposeLabel = t(
                 `dashboard.admin.channels.purpose.${item.channel_purpose}`,
@@ -478,7 +505,7 @@ const ChannelHealthSection = ({ injectedData = null }) => {
                     </div>
                     <div className='admin-dashboard-channel-health-subtitle'>
                       <span>{statusText}</span>
-                      <span>{ownershipLabel}</span>
+                      <span>{operatorLabel}</span>
                       <span>{purposeLabel}</span>
                       {item.owner_name ? (
                         <span>

@@ -24,10 +24,10 @@ import PublisherWorkspace from '../PublisherWorkspace';
 import './index.css';
 
 const POLICY_OPTIONS = [
-  { value: 'personal_first', label: '自用渠道优先，第三方供给回退' },
+  { value: 'personal_first', label: '自用渠道优先，供给渠道回退' },
   { value: 'personal_only', label: '仅自用渠道' },
-  { value: 'community_only', label: '仅第三方供给' },
-  { value: 'community_first', label: '第三方供给优先' },
+  { value: 'community_only', label: '仅供给渠道' },
+  { value: 'community_first', label: '供给渠道优先' },
 ];
 
 const PROTOCOL_OPTIONS = [
@@ -213,12 +213,12 @@ function PersonalRouting() {
             payload
           );
       if (!response.data?.success) throw new Error(response.data?.message);
-      showSuccess(editing ? '第三方自用渠道已更新' : '第三方自用渠道已添加');
+      showSuccess(editing ? '自用渠道已更新' : '自用渠道已添加');
       setModalOpen(false);
       load().then();
     } catch (error) {
       if (error?.errorFields) return;
-      showError(error?.message || '保存第三方自用渠道失败');
+      showError(error?.message || '保存自用渠道失败');
     } finally {
       setSaving(false);
     }
@@ -250,10 +250,10 @@ function PersonalRouting() {
         `/api/v1/public/personal-provider/connections/${row.id}`
       );
       if (!response.data?.success) throw new Error(response.data?.message);
-      showSuccess('第三方自用渠道已移除');
+      showSuccess('自用渠道已移除');
       load().then();
     } catch (error) {
-      showError(error?.message || '移除第三方自用渠道失败');
+      showError(error?.message || '移除自用渠道失败');
     }
   };
 
@@ -267,7 +267,7 @@ function PersonalRouting() {
       showSuccess('连接和 API Key 验证通过');
       load().then();
     } catch (error) {
-      showError(error?.message || '验证第三方自用渠道失败');
+      showError(error?.message || '验证自用渠道失败');
       load().then();
     } finally {
       setVerifyingConnectionID('');
@@ -415,7 +415,7 @@ function PersonalRouting() {
   const providers = (
     <AppSection
       className='personal-routing-section personal-channel-section'
-      title='第三方自用渠道诊断'
+      title='自用渠道诊断'
       extra={
         <div className='personal-channel-section-actions'>
           <AppSegmented
@@ -439,7 +439,7 @@ function PersonalRouting() {
       {loading ? (
         <div className='personal-channel-loading'>正在加载渠道运行数据…</div>
       ) : connections.length === 0 ? (
-        <AppEmpty>还没有第三方自用渠道</AppEmpty>
+        <AppEmpty>还没有自用渠道</AppEmpty>
       ) : (
         <div className='personal-channel-diagnostic-list'>
           {connections.map((row) => {
@@ -580,7 +580,7 @@ function PersonalRouting() {
       <AppSection title='模型路由规则'>
         <p className='personal-routing-section-hint'>
           模型规则可指定来源优先级或收紧来源范围；API Token
-          设置为“仅自用渠道”或“仅第三方供给”时，模型规则不能放宽该限制。
+          设置为“仅自用渠道”或“仅供给渠道”时，模型规则不能放宽该限制。
         </p>
         <AppForm
           form={routeForm}
@@ -628,9 +628,9 @@ function PersonalRouting() {
           }}
         />
       </AppSection>
-      <AppSection title='固定第三方报价'>
+      <AppSection title='固定模型报价'>
         <p className='personal-routing-section-hint'>
-          在“第三方模型报价”中选择报价后，会在这里固定到对应模型。报价属于供给渠道，不是新的渠道类型；固定报价不会自动切换到其他发布者，移除后恢复
+          在“模型报价”中选择报价后，会在这里固定到对应模型。报价属于供给渠道，不是新的渠道类型；固定报价不会自动切换到其他发布者，移除后恢复
           API Token 和模型规则定义的来源策略。
         </p>
         <AppTable
@@ -640,7 +640,7 @@ function PersonalRouting() {
           loading={loading}
           pagination={false}
           locale={{
-            emptyText: <AppEmpty>尚未为任何模型选择第三方报价</AppEmpty>,
+            emptyText: <AppEmpty>尚未为任何模型选择报价</AppEmpty>,
           }}
         />
       </AppSection>
@@ -661,7 +661,7 @@ function PersonalRouting() {
         <div>
           <h1>我的渠道</h1>
           <p>
-            这里管理第三方渠道：自用连接仅供本人调用；参与供给时会创建凭据独立的供给渠道。平台自营渠道由平台统一运营。
+            这里管理你的自用渠道：连接仅供本人调用；参与供给时会创建凭据独立的供给渠道。平台自营渠道由平台统一运营。
           </p>
         </div>
       </header>
@@ -677,7 +677,7 @@ function PersonalRouting() {
       <AppModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editing ? '编辑第三方自用渠道' : '添加第三方自用渠道'}
+        title={editing ? '编辑自用渠道' : '添加自用渠道'}
         size='small'
         footer={
           <AppFormActions>
