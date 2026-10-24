@@ -3447,6 +3447,9 @@
         "models": "Models"
       },
       "channels": {
+        "title": "Health",
+        "page_hint": "Fixed to the last 5 hours. Prioritizes circuit, risky, retest-needed, and high request-volume channels. Each cell is a 5-minute call window; gray means that window has no call sample.",
+        "open_duty": "Open duty station",
         "insights": {
           "retest": "Channels Pending Retest",
           "retest_hint": "Channels whose selected models are not fully covered by tests, or whose pass rate or coverage has not reached 100%.",
@@ -3457,16 +3460,12 @@
           "latency": "High-Latency Channels",
           "latency_hint": "Channels whose current average latency is 8 seconds or higher."
         },
-        "sort": {
-          "label": "Sort",
-          "health": "Health first",
-          "pass_rate": "Pass rate first",
-          "latency": "Latency first",
-          "requests": "Volume first"
+        "columns": {
+          "channel": "Channel",
+          "history": "Last five hours"
         },
         "history": {
-          "title": "Recent Call Health",
-          "hint": "Fixed to the last 5 hours. Prioritizes circuit, risky, retest-needed, and high request-volume channels. Each cell is a 5-minute call window; gray means that window has no call sample.",
+          "accessible_summary": "{{channel}} over the last five hours: {{success}} successful windows, {{warning}} partially degraded, {{failure}} failed, and {{unknown}} without data.",
           "no_data": "No call sample",
           "window": "Time Window",
           "success_count": "Successes",
@@ -3831,6 +3830,7 @@
           "pass_rate": "Pass Rate",
           "coverage_rate": "Coverage Rate",
           "avg_latency": "Average Latency",
+          "request_count": "Request Volume",
           "last_tested": "Last Tested",
           "legend_health": "Bar: Health Score",
           "legend_pass": "Line: Pass Rate",

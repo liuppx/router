@@ -870,7 +870,7 @@ func buildDutyIncidentResponse(window string, startAt int64, endAt int64) dutyIn
 			Title:         alert.Title,
 			Summary:       strings.TrimSpace(strings.Join([]string{alert.Summary, alert.Detail}, " ")),
 			CreatedAt:     alert.CreatedAt,
-			Link:          "/admin/channel?tab=alerts",
+			Link:          "/admin/dashboard?view=incidents&domain=channels&incident=" + url.QueryEscape(incident.ID),
 			ReferenceType: alert.Type,
 			ReferenceKey:  alert.ID,
 			ChannelID:     alert.ChannelID,
@@ -1080,7 +1080,6 @@ func configureIncidentLinks(incident *dutyIncident, startAt int64, endAt int64) 
 	}
 	if incident.ChannelID != "" {
 		incident.Links.Channel = "/admin/channel/detail/" + incident.ChannelID + "?tab=tests"
-		incident.Links.Alerts = "/admin/channel?tab=alerts&q=" + incident.ChannelID
 		incident.Links.Logs = fmt.Sprintf("/admin/log?channel=%s&start_timestamp=%d&end_timestamp=%d", incident.ChannelID, startAt, endAt)
 		incident.Links.Finance = "/admin/finance?tab=overview&channel_id=" + incident.ChannelID
 	}

@@ -1,6 +1,7 @@
 package duty
 
 import (
+	"strings"
 	"testing"
 
 	channelcontroller "github.com/yeying-community/router/internal/admin/controller/channel"
@@ -36,6 +37,28 @@ func TestParseDutyWindow(t *testing.T) {
 		window, seconds := parseDutyWindow(test.input)
 		if window != test.wantWindow || seconds != test.wantSeconds {
 			t.Fatalf("parseDutyWindow(%q) = (%q, %d), want (%q, %d)", test.input, window, seconds, test.wantWindow, test.wantSeconds)
+		}
+	}
+}
+
+func TestConfigureIncidentLinksDoesNotExposeLegacyAlertPage(t *testing.T) {
+	incident := newDutyIncident("channel:channel-1", "channel", "Channel issue", "", "warning", 100)
+	incident.ChannelID = "channel-1"
+
+	configureIncidentLinks(incident, 100, 200)
+
+	if incident.Links.Alerts != "" {
+		t.Fatalf("configureIncidentLinks() alerts = %q, want empty", incident.Links.Alerts)
+	}
+	for _, link := range []string{
+		incident.Links.Channel,
+		incident.Links.Tasks,
+		incident.Links.Logs,
+		incident.Links.Models,
+		incident.Links.Finance,
+	} {
+		if strings.Contains(link, "tab=alerts") {
+			t.Fatalf("configureIncidentLinks() exposed legacy alert link %q", link)
 		}
 	}
 }

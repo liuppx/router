@@ -269,8 +269,7 @@ function TopUpTabRedirect() {
 }
 
 // Redirect a legacy standalone route onto a shell tab, merging the incoming
-// query (e.g. /admin/alerts?type=circuit -> /admin/channel?tab=alerts&type=circuit)
-// so deep-link params survive the move to `?tab=`.
+// query so deep-link params survive the move to `?tab=`.
 function TabRedirect({ to, tab }) {
   const location = useLocation();
   const nextSearchParams = new URLSearchParams(location.search);
@@ -281,6 +280,30 @@ function TabRedirect({ to, tab }) {
   return (
     <Navigate
       to={`${to}${search ? `?${search}` : ''}${location.hash}`}
+      state={location.state}
+      replace
+    />
+  );
+}
+
+// Channel alerts are now operational signals inside the duty station rather
+// than a second acknowledgement surface. Preserve old bookmarks and filters,
+// but scope the destination to channel incidents explicitly.
+function DutyAlertsRedirect() {
+  const location = useLocation();
+  const nextSearchParams = new URLSearchParams(location.search);
+  const legacyStatus = (nextSearchParams.get('status') || '')
+    .trim()
+    .toLowerCase();
+  nextSearchParams.delete('tab');
+  nextSearchParams.set(
+    'view',
+    legacyStatus === 'resolved' ? 'resolved' : 'incidents',
+  );
+  nextSearchParams.set('domain', 'channels');
+  return (
+    <Navigate
+      to={`/admin/dashboard?${nextSearchParams.toString()}${location.hash}`}
       state={location.state}
       replace
     />
@@ -970,7 +993,7 @@ function App() {
         />
         <Route
           path='/admin/alerts'
-          element={<TabRedirect to='/admin/channel' tab='alerts' />}
+          element={<DutyAlertsRedirect />}
         />
         <Route path='/admin/finance' element={<FinanceLayout />} />
         <Route path='/admin/finance/*' element={<FinanceTabRedirect />} />

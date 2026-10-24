@@ -3447,6 +3447,9 @@
         "models": "模型"
       },
       "channels": {
+        "title": "健康",
+        "page_hint": "固定展示过去 5 小时。优先展示熔断、风险、待补测和高调用量渠道；每个格子代表 5 分钟调用窗口，灰色表示该窗口没有调用样本。",
+        "open_duty": "打开值班台",
         "insights": {
           "retest": "待重测渠道",
           "retest_hint": "已选模型未覆盖测试，或通过率、覆盖率尚未达到 100% 的渠道。",
@@ -3457,16 +3460,12 @@
           "latency": "延迟异常渠道",
           "latency_hint": "当前平均延迟达到 8 秒及以上的渠道。"
         },
-        "sort": {
-          "label": "排序",
-          "health": "健康优先",
-          "pass_rate": "通过率优先",
-          "latency": "延迟优先",
-          "requests": "调用量优先"
+        "columns": {
+          "channel": "渠道",
+          "history": "过去五小时"
         },
         "history": {
-          "title": "最近调用健康",
-          "hint": "固定展示过去 5 小时。优先展示熔断、风险、待补测和高调用量渠道；每个格子代表 5 分钟调用窗口，灰色表示该窗口没有调用样本。",
+          "accessible_summary": "{{channel}} 过去五小时：成功 {{success}} 个窗口，部分异常 {{warning}} 个，失败 {{failure}} 个，无数据 {{unknown}} 个。",
           "no_data": "无调用样本",
           "window": "时间窗口",
           "success_count": "成功数",
@@ -3831,6 +3830,7 @@
           "pass_rate": "测试通过率",
           "coverage_rate": "测试覆盖率",
           "avg_latency": "平均延迟",
+          "request_count": "调用量",
           "last_tested": "最近测试",
           "legend_health": "柱：健康分",
           "legend_pass": "线：通过率",
