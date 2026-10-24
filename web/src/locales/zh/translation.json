@@ -1541,7 +1541,7 @@
         "image_edit_uploaded": "已上传图片",
         "image_edit_file_failed": "读取图片失败",
         "single": "测试",
-        "task_created": "已提交 {{count}} 项模型测试，其中复用 {{reused}} 项正在执行的测试。",
+        "task_created": "模型测试已完成。",
         "group_count": "{{count}} 个模型",
         "group_type": "类型：{{type}}",
         "history_tasks": "历史测试",
@@ -1578,7 +1578,7 @@
         "verify_required": "请先完成当前模型测试后再继续。",
         "empty": "当前没有可测试的模型，请先在第二步选择模型。",
         "last_tested": "最近测试时间：{{time}}",
-        "test_success": "模型测试已提交",
+        "test_success": "模型测试已完成",
         "test_failed": "模型测试失败",
         "download_failed": "下载测试结果文件失败",
         "download_unavailable": "当前测试结果没有可下载文件",
@@ -3448,13 +3448,13 @@
       },
       "channels": {
         "title": "健康",
-        "page_hint": "固定展示过去 5 小时。优先展示熔断、风险、待补测和高调用量渠道；每个格子代表 5 分钟调用窗口，灰色表示该窗口没有调用样本。",
+        "page_hint": "统一查看运营渠道、个人渠道和社区供给。健康度来自所选时间范围内的真实调用；模型测试仅作为独立验证信息。",
         "open_duty": "打开值班台",
         "insights": {
           "retest": "待重测渠道",
           "retest_hint": "已选模型未覆盖测试，或通过率、覆盖率尚未达到 100% 的渠道。",
           "risk": "风险渠道",
-          "risk_hint": "健康度已落入风险，或当前测试通过率低于 80% 的渠道。",
+          "risk_hint": "健康度已落入风险，或真实调用成功率低于 80% 的渠道。",
           "circuit": "熔断中",
           "circuit_hint": "当前处于熔断或半开恢复状态的渠道。",
           "latency": "延迟异常渠道",
@@ -3462,10 +3462,10 @@
         },
         "columns": {
           "channel": "渠道",
-          "history": "过去五小时"
+          "history": "运行时间带"
         },
         "history": {
-          "accessible_summary": "{{channel}} 过去五小时：成功 {{success}} 个窗口，部分异常 {{warning}} 个，失败 {{failure}} 个，无数据 {{unknown}} 个。",
+          "accessible_summary": "{{channel}} 所选时间范围：成功 {{success}} 个窗口，部分异常 {{warning}} 个，失败 {{failure}} 个，无数据 {{unknown}} 个。",
           "no_data": "无调用样本",
           "window": "时间窗口",
           "success_count": "成功数",
@@ -4987,7 +4987,7 @@
     "bind_success": "绑定成功！"
   },
   "personal_routing": {
-    "title": "我的供应商"
+    "title": "我的渠道"
   },
   "publisher_workspace": {
     "title": "模型发布"

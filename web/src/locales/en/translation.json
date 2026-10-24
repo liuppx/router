@@ -1541,7 +1541,7 @@
         "image_edit_uploaded": "Image uploaded",
         "image_edit_file_failed": "Failed to read image",
         "single": "Test",
-        "task_created": "Submitted {{count}} model tests and reused {{reused}} tests already in progress.",
+        "task_created": "Model verification completed.",
         "group_count": "{{count}} models",
         "group_type": "Type: {{type}}",
         "history_tasks": "Test History",
@@ -1578,7 +1578,7 @@
         "verify_required": "Please finish the current model tests before continuing.",
         "empty": "No testable models yet. Please select models in step 2 first.",
         "last_tested": "Last tested at: {{time}}",
-        "test_success": "Model test submitted",
+        "test_success": "Model verification completed",
         "test_failed": "Model test failed",
         "download_failed": "Failed to download the test artifact",
         "download_unavailable": "No downloadable artifact is available for this test result",
@@ -3448,13 +3448,13 @@
       },
       "channels": {
         "title": "Health",
-        "page_hint": "Fixed to the last 5 hours. Prioritizes circuit, risky, retest-needed, and high request-volume channels. Each cell is a 5-minute call window; gray means that window has no call sample.",
+        "page_hint": "View managed channels, personal channels, and community supply together. Health comes from real calls in the selected range; model tests remain separate verification data.",
         "open_duty": "Open duty station",
         "insights": {
           "retest": "Channels Pending Retest",
           "retest_hint": "Channels whose selected models are not fully covered by tests, or whose pass rate or coverage has not reached 100%.",
           "risk": "Risky Channels",
-          "risk_hint": "Channels already in critical health, or whose current test pass rate is below 80%.",
+          "risk_hint": "Channels already in critical health, or whose real-call success rate is below 80%.",
           "circuit": "Circuit Open",
           "circuit_hint": "Channels currently in open or half-open recovery state.",
           "latency": "High-Latency Channels",
@@ -3462,10 +3462,10 @@
         },
         "columns": {
           "channel": "Channel",
-          "history": "Last five hours"
+          "history": "Runtime timeline"
         },
         "history": {
-          "accessible_summary": "{{channel}} over the last five hours: {{success}} successful windows, {{warning}} partially degraded, {{failure}} failed, and {{unknown}} without data.",
+          "accessible_summary": "{{channel}} in the selected range: {{success}} successful windows, {{warning}} partially degraded, {{failure}} failed, and {{unknown}} without data.",
           "no_data": "No call sample",
           "window": "Time Window",
           "success_count": "Successes",
@@ -4987,7 +4987,7 @@
     "bind_success": "Bound successfully!"
   },
   "personal_routing": {
-    "title": "My providers"
+    "title": "My channels"
   },
   "publisher_workspace": {
     "title": "Model publishing"

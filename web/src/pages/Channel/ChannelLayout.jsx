@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import ChannelsTable from '../../components/ChannelsTable';
 import ChannelHealthSection from '../AdminDashboard/sections/ChannelHealthSection';
+import PublisherOperations from '../PublisherOperations';
 import { AppFilterHeader } from '../../router-ui';
 import SectionTabs from '../../components/SectionTabs';
 import '../AdminDashboard/Dashboard.css';
@@ -15,6 +16,7 @@ import '../AdminDashboard/AdminDashboard.css';
 const TABS = [
   { key: 'list', labelKey: 'channel.tabs.list' },
   { key: 'health', labelKey: 'channel.tabs.health' },
+  { key: 'supply', labelKey: 'publisher_operations.title' },
 ];
 
 const VALID_TABS = new Set(TABS.map((tab) => tab.key));
@@ -34,7 +36,7 @@ const ChannelLayout = () => {
     nextSearchParams.delete('tab');
     nextSearchParams.set(
       'view',
-      legacyStatus === 'resolved' ? 'resolved' : 'incidents',
+      legacyStatus === 'resolved' ? 'resolved' : 'incidents'
     );
     nextSearchParams.set('domain', 'channels');
     return (
@@ -50,6 +52,8 @@ const ChannelLayout = () => {
     switch (activeTab) {
       case 'health':
         return <ChannelHealthSection />;
+      case 'supply':
+        return <PublisherOperations embedded />;
       case 'list':
       default:
         return <ChannelsTable embedded />;

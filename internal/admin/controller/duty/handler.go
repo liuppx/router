@@ -833,11 +833,15 @@ func buildDutyIncidentResponse(window string, startAt int64, endAt int64) dutyIn
 	filteredAlerts := filterDutyChannelAlerts(alerts, startAt, endAt)
 	filteredTasks := make([]model.AsyncTask, 0, len(tasks))
 	for _, task := range tasks {
+		if model.NormalizeAsyncTaskType(task.Type) == model.AsyncTaskTypeChannelModelTest {
+			continue
+		}
 		if !taskNeedsDutyAttention(task, endAt) {
 			continue
 		}
 		filteredTasks = append(filteredTasks, task)
 	}
+	taskTotal = int64(len(filteredTasks))
 
 	incidents := make(map[string]*dutyIncident)
 	ensure := func(key string, scopeType string, title string, summary string, severity string, observedAt int64) *dutyIncident {

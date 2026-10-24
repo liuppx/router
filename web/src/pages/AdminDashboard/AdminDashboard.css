@@ -59,7 +59,9 @@
 }
 
 .admin-dashboard-period-control .router-ui-select.router-section-dropdown,
-.admin-dashboard-period-control .router-ui-select.router-section-dropdown .ant-select-selector,
+.admin-dashboard-period-control
+  .router-ui-select.router-section-dropdown
+  .ant-select-selector,
 .admin-dashboard-refresh-controls .router-ui-button.router-inline-button {
   min-height: 32px !important;
   height: 32px !important;
@@ -69,7 +71,9 @@
   min-width: 132px;
 }
 
-.admin-dashboard-period-control .router-ui-select.router-section-dropdown .ant-select-selector {
+.admin-dashboard-period-control
+  .router-ui-select.router-section-dropdown
+  .ant-select-selector {
   align-items: center;
 }
 
@@ -160,7 +164,8 @@
 .admin-dashboard-board-divider {
   margin: 24px 0 8px;
   padding-top: 18px;
-  border-top: 1px dashed var(--router-border-color, var(--router-border-color, #e5e7eb));
+  border-top: 1px dashed
+    var(--router-border-color, var(--router-border-color, #e5e7eb));
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -268,7 +273,8 @@
   background: rgba(220, 38, 38, 0.06);
 }
 
-.admin-dashboard-channel-bell.is-critical.is-active .admin-dashboard-channel-bell-value {
+.admin-dashboard-channel-bell.is-critical.is-active
+  .admin-dashboard-channel-bell-value {
   color: var(--router-status-danger, var(--router-status-danger, #dc2626));
 }
 
@@ -277,7 +283,8 @@
   background: rgba(245, 158, 11, 0.06);
 }
 
-.admin-dashboard-channel-bell.is-warning.is-active .admin-dashboard-channel-bell-value {
+.admin-dashboard-channel-bell.is-warning.is-active
+  .admin-dashboard-channel-bell-value {
   color: var(--router-status-warning, var(--router-status-warning, #b45309));
 }
 
@@ -555,6 +562,14 @@
   gap: 16px;
   margin-bottom: 2px;
 }
+.admin-dashboard-channel-health-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.admin-dashboard-channel-health-filters .router-ui-select {
+  min-width: 132px;
+}
 
 .admin-dashboard-health-strip-legend {
   display: flex;
@@ -581,7 +596,10 @@
 
 .admin-dashboard-channel-health-row {
   display: grid;
-  grid-template-columns: minmax(190px, 0.9fr) minmax(280px, 1.5fr) minmax(220px, 0.9fr);
+  grid-template-columns: minmax(190px, 0.9fr) minmax(280px, 1.5fr) minmax(
+      220px,
+      0.9fr
+    );
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
@@ -592,7 +610,7 @@
 
 .admin-dashboard-channel-health-row-circuit {
   border-color: rgba(220, 38, 38, 0.36);
-  background: var(--router-surface, var(--router-surface, #fff))afa;
+  background: var(--router-surface, var(--router-surface, #fff)) afa;
 }
 
 .admin-dashboard-channel-health-info {
@@ -849,7 +867,6 @@
   }
 }
 
-
 .admin-dashboard-alert-filters {
   display: flex;
   align-items: center;
@@ -884,12 +901,15 @@
 }
 
 .admin-dashboard-alert-filter-selects .router-ui-select.router-section-dropdown,
-.admin-dashboard-alert-filter-selects .router-ui-select.router-section-dropdown .ant-select-selector {
+.admin-dashboard-alert-filter-selects
+  .router-ui-select.router-section-dropdown
+  .ant-select-selector {
   min-height: 32px !important;
   height: 32px !important;
 }
 
-.admin-dashboard-alert-filter-selects .router-ui-select.router-section-dropdown {
+.admin-dashboard-alert-filter-selects
+  .router-ui-select.router-section-dropdown {
   min-width: 132px;
 }
 
@@ -1091,7 +1111,9 @@
   flex-wrap: nowrap;
 }
 
-.admin-dashboard-usage-rank-filters .router-list-toolbar-query .router-ui-button,
+.admin-dashboard-usage-rank-filters
+  .router-list-toolbar-query
+  .router-ui-button,
 .admin-dashboard-usage-rank-filters .admin-dashboard-period-control,
 .admin-dashboard-usage-rank-title-row .admin-dashboard-refresh-controls {
   flex-shrink: 0;
@@ -1178,7 +1200,11 @@
   inset: 0 auto 0 0;
   width: var(--admin-dashboard-share-width, 4%);
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--router-link, var(--router-link, #2563eb)) 0%, #0ea5e9 100%);
+  background: linear-gradient(
+    90deg,
+    var(--router-link, var(--router-link, #2563eb)) 0%,
+    #0ea5e9 100%
+  );
 }
 
 .admin-dashboard-rank-table .ant-table {
@@ -1325,6 +1351,11 @@
 }
 
 @media (max-width: 768px) {
+  .admin-dashboard-channel-health-filters {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
   .admin-dashboard-toolbar.router-log-toolbar {
     align-items: stretch;
   }
@@ -1391,8 +1422,20 @@
     grid-template-columns: 1fr;
   }
 }
-.admin-dashboard-spending-flow { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 0 0 14px; padding: 10px 12px; border-left: 3px solid var(--router-link, var(--router-link, #2563eb)); background: var(--router-surface-muted, var(--router-surface-muted, #f8fafc)); color: var(--router-text-muted, var(--router-text-muted, #64748b)); font-size: 13px; }
-.admin-dashboard-spending-flow strong { color: var(--router-text-primary, var(--router-text-primary, #0f172a)); }
+.admin-dashboard-spending-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--router-link, var(--router-link, #2563eb));
+  background: var(--router-surface-muted, var(--router-surface-muted, #f8fafc));
+  color: var(--router-text-muted, var(--router-text-muted, #64748b));
+  font-size: 13px;
+}
+.admin-dashboard-spending-flow strong {
+  color: var(--router-text-primary, var(--router-text-primary, #0f172a));
+}
 
 /* Channel health is a flat diagnostic matrix. The five-hour heatmap carries
    the visual weight; row metrics use type and separators only. */
@@ -1475,7 +1518,10 @@
 .admin-dashboard-channel-health-matrix-header,
 .admin-dashboard-channel-health-row {
   display: grid;
-  grid-template-columns: minmax(210px, 0.95fr) minmax(300px, 1.5fr) minmax(320px, 1fr);
+  grid-template-columns: minmax(210px, 0.95fr) minmax(300px, 1.5fr) minmax(
+      320px,
+      1fr
+    );
   align-items: center;
   gap: 18px;
 }
@@ -1583,7 +1629,8 @@
   .admin-dashboard-channel-health-page-header .admin-dashboard-section-toolbar,
   .admin-dashboard-channel-health-page-header .router-filter-toolbar,
   .admin-dashboard-channel-health-page-header .router-list-toolbar,
-  .admin-dashboard-channel-health-page-header .admin-dashboard-section-controls {
+  .admin-dashboard-channel-health-page-header
+    .admin-dashboard-section-controls {
     width: 100%;
   }
 

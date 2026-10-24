@@ -85,6 +85,29 @@ func restoreCompletedChannelModelTestOperationsWithDB(db *gorm.DB) error {
 func runMainVersionedMigrations(db *gorm.DB) error {
 	migrations := []versionedMigration{
 		{
+			Version:     "202610241330_channel_model_tests_are_verifications",
+			Description: "stop treating channel model verification as an asynchronous system task",
+			Up: func(tx *gorm.DB) error {
+				if !tx.Migrator().HasTable(&AsyncTask{}) {
+					return nil
+				}
+				return tx.Model(&AsyncTask{}).
+					Where("type = ? AND status IN ?", AsyncTaskTypeChannelModelTest, []string{AsyncTaskStatusPending, AsyncTaskStatusRunning}).
+					Updates(map[string]any{
+						"status":        AsyncTaskStatusCanceled,
+						"finished_at":   helper.GetTimestamp(),
+						"error_message": "已迁移到渠道验证记录，不再作为系统任务执行",
+					}).Error
+			},
+		},
+		{
+			Version:     "202610241300_channel_supply_bindings",
+			Description: "link publisher services to personal channels and add operator-managed community supply group bindings",
+			Up: func(tx *gorm.DB) error {
+				return tx.AutoMigrate(&PublisherService{}, &GroupSupplyBinding{})
+			},
+		},
+		{
 			Version:     "202609231030_personal_provider_routing",
 			Description: "add encrypted personal provider connections, model route rules, and token route policy",
 			Up: func(tx *gorm.DB) error {

@@ -1,7 +1,15 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AppErrorState, AppSpin, AppTag, AppToolbar, AppTooltip } from '../../../router-ui';
+import {
+  AppErrorState,
+  AppSegmented,
+  AppSelect,
+  AppSpin,
+  AppTag,
+  AppToolbar,
+  AppTooltip,
+} from '../../../router-ui';
 import {
   CHANNEL_HEALTH_POINT_COLORS,
   buildChannelHealthHistory,
@@ -22,6 +30,20 @@ const HEALTH_LEVEL_RANK = {
   unknown: 2,
   healthy: 3,
 };
+
+const PERIOD_OPTIONS = [
+  { value: 'last_hour', label: '1 小时' },
+  { value: 'last_24_hours', label: '24 小时' },
+  { value: 'last_7_days', label: '7 天' },
+  { value: 'last_30_days', label: '30 天' },
+];
+
+const SOURCE_OPTIONS = [
+  { value: 'all', label: '全部来源' },
+  { value: 'managed', label: '运营渠道' },
+  { value: 'personal', label: '个人渠道' },
+  { value: 'published_supply', label: '社区供给' },
+];
 
 const compareRiskFirst = (left, right) => {
   if (left.is_active_circuit !== right.is_active_circuit) {
@@ -54,18 +76,28 @@ const ChannelHealthSection = ({ injectedData = null }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const [period, setPeriod] = useState('last_24_hours');
+  const [sourceFilter, setSourceFilter] = useState('all');
 
-  const self = useAdminDashboardData('channels', undefined, {
-    enabled: !injectedData,
-  });
+  const self = useAdminDashboardData(
+    'channels',
+    { period },
+    {
+      enabled: !injectedData,
+    }
+  );
   const { dashboard, loading, error, reload } = injectedData || self;
 
   const renderCapabilities = useCallback(
     (raw) => {
       if (!Array.isArray(raw) || raw.length === 0) return '-';
-      return raw.map((item) => t(`dashboard.admin.capabilities.${item}`, { defaultValue: item })).join(' / ');
+      return raw
+        .map((item) =>
+          t(`dashboard.admin.capabilities.${item}`, { defaultValue: item })
+        )
+        .join(' / ');
     },
-    [t],
+    [t]
   );
 
   const channelHealthData = useMemo(
@@ -74,27 +106,48 @@ const ChannelHealthSection = ({ injectedData = null }) => {
         const healthLevel = String(row.health_level || 'unknown')
           .trim()
           .toLowerCase();
-        const passRatePercent = toPercent(row.pass_rate);
+        const successRatePercent = toPercent(row.success_rate);
+        const verificationPassRatePercent = toPercent(
+          row.verification_pass_rate
+        );
         const coverageRatePercent = toPercent(row.coverage_rate);
         const selectedModelCount = Number(row.selected_model_count || 0);
         const testedModelCount = Number(row.tested_model_count || 0);
         const hasTestData = Boolean(row.has_test_data);
         const activeCircuit = isActiveCircuitBreaker(row.circuit_breaker);
+        const sourceKind =
+          String(row.source_kind || 'managed').trim() || 'managed';
         const needsRetest =
-          !hasTestData || testedModelCount < selectedModelCount || coverageRatePercent < 100 || passRatePercent < 100;
-        const isRisk = ['critical', 'warning'].includes(healthLevel) || (hasTestData && passRatePercent < 80);
+          sourceKind === 'managed'
+            ? !hasTestData ||
+              testedModelCount < selectedModelCount ||
+              coverageRatePercent < 100 ||
+              verificationPassRatePercent < 100
+            : String(row.verification_status || '') !== 'verified';
+        const hasRuntimeData = Boolean(row.has_runtime_data);
+        const isRisk =
+          ['critical', 'warning'].includes(healthLevel) ||
+          (hasRuntimeData && successRatePercent < 80);
         const isHighLatency = Number(row.avg_latency_ms || 0) >= 8000;
 
         return {
           id: row.id || `channel-${index}`,
           channel_id: row.id || '',
+          source_kind: sourceKind,
+          owner_name: row.owner_name || row.owner_id || '',
+          visibility: row.visibility || '',
+          group_names: Array.isArray(row.group_names) ? row.group_names : [],
+          models: Array.isArray(row.models) ? row.models : [],
           name: row.name || row.id || '-',
           status: Number(row.status || 0),
           capabilities: renderCapabilities(row.capabilities),
           health_score: Number(row.health_score || 0),
           request_count: Number(row.recent_request_count || 0),
           health_level: healthLevel,
-          pass_rate_percent: passRatePercent,
+          success_rate_percent: successRatePercent,
+          has_runtime_data: hasRuntimeData,
+          verification_status: row.verification_status || 'unverified',
+          verification_pass_rate_percent: verificationPassRatePercent,
           coverage_rate_percent: coverageRatePercent,
           avg_latency_ms: Number(row.avg_latency_ms || 0),
           selected_model_count: selectedModelCount,
@@ -110,15 +163,21 @@ const ChannelHealthSection = ({ injectedData = null }) => {
           needs_retest: needsRetest,
           is_risk: isRisk,
           is_high_latency: isHighLatency,
-          needs_attention: activeCircuit || needsRetest || isRisk || isHighLatency,
+          needs_attention:
+            activeCircuit || needsRetest || isRisk || isHighLatency,
         };
       }),
-    [dashboard.top_channels, renderCapabilities],
+    [dashboard.top_channels, renderCapabilities]
   );
 
   const sortedChannelHealthData = useMemo(
-    () => [...channelHealthData].sort(compareRiskFirst),
-    [channelHealthData],
+    () =>
+      channelHealthData
+        .filter(
+          (item) => sourceFilter === 'all' || item.source_kind === sourceFilter
+        )
+        .sort(compareRiskFirst),
+    [channelHealthData, sourceFilter]
   );
 
   const renderHealthTag = useCallback(
@@ -142,7 +201,7 @@ const ChannelHealthSection = ({ injectedData = null }) => {
         </AppTag>
       );
     },
-    [t],
+    [t]
   );
 
   const renderCircuitBreakerTag = useCallback(
@@ -150,20 +209,32 @@ const ChannelHealthSection = ({ injectedData = null }) => {
       const state = normalizeCircuitBreakerState(circuitBreaker?.state);
       if (!state || state === 'recovered') return null;
 
-      const color = state === 'open' ? 'red' : state === 'half_open' ? 'orange' : 'grey';
+      const color =
+        state === 'open' ? 'red' : state === 'half_open' ? 'orange' : 'grey';
       const details = [
         t(`dashboard.admin.channels.circuit.state.${state}`, {
           defaultValue: t('dashboard.admin.channels.circuit.state.unknown'),
         }),
-        circuitBreaker?.reason ? `${t('dashboard.admin.channels.circuit.reason')}: ${circuitBreaker.reason}` : null,
-        circuitBreaker?.success_rate !== null && circuitBreaker?.success_rate !== undefined
-          ? `${t('dashboard.admin.channels.circuit.success_rate')}: ${formatPercent(circuitBreaker.success_rate)}`
+        circuitBreaker?.reason
+          ? `${t('dashboard.admin.channels.circuit.reason')}: ${
+              circuitBreaker.reason
+            }`
+          : null,
+        circuitBreaker?.success_rate !== null &&
+        circuitBreaker?.success_rate !== undefined
+          ? `${t(
+              'dashboard.admin.channels.circuit.success_rate'
+            )}: ${formatPercent(circuitBreaker.success_rate)}`
           : null,
         circuitBreaker?.disabled_at
-          ? `${t('dashboard.admin.channels.circuit.disabled_at')}: ${formatUpdatedAt(circuitBreaker.disabled_at)}`
+          ? `${t(
+              'dashboard.admin.channels.circuit.disabled_at'
+            )}: ${formatUpdatedAt(circuitBreaker.disabled_at)}`
           : null,
         circuitBreaker?.recover_after
-          ? `${t('dashboard.admin.channels.circuit.recover_after')}: ${formatUpdatedAt(circuitBreaker.recover_after)}`
+          ? `${t(
+              'dashboard.admin.channels.circuit.recover_after'
+            )}: ${formatUpdatedAt(circuitBreaker.recover_after)}`
           : null,
       ].filter(Boolean);
 
@@ -177,7 +248,7 @@ const ChannelHealthSection = ({ injectedData = null }) => {
         </AppTooltip>
       );
     },
-    [t],
+    [t]
   );
 
   if (error && !loading) {
@@ -202,6 +273,20 @@ const ChannelHealthSection = ({ injectedData = null }) => {
           </div>
           <AppToolbar
             className='admin-dashboard-section-toolbar'
+            start={
+              <div className='admin-dashboard-channel-health-filters'>
+                <AppSegmented
+                  options={PERIOD_OPTIONS}
+                  value={period}
+                  onChange={(_, detail) => setPeriod(detail.value)}
+                />
+                <AppSelect
+                  value={sourceFilter}
+                  options={SOURCE_OPTIONS}
+                  onChange={(_, detail) => setSourceFilter(detail.value)}
+                />
+              </div>
+            }
             end={
               <DashboardSectionControls
                 generatedAt={dashboard.generated_at}
@@ -211,7 +296,11 @@ const ChannelHealthSection = ({ injectedData = null }) => {
                   <button
                     type='button'
                     className='admin-dashboard-channel-duty-link'
-                    onClick={() => navigate('/admin/dashboard?view=incidents&domain=channels')}
+                    onClick={() =>
+                      navigate(
+                        '/admin/dashboard?view=incidents&domain=channels'
+                      )
+                    }
                   >
                     {t('dashboard.admin.channels.open_duty')}
                   </button>
@@ -224,12 +313,17 @@ const ChannelHealthSection = ({ injectedData = null }) => {
         <div className='admin-dashboard-channel-health-list-header'>
           <div className='admin-dashboard-health-strip-legend'>
             {['success', 'warning', 'failure', 'unknown'].map((state) => (
-              <span key={state} className='admin-dashboard-health-strip-legend-item'>
+              <span
+                key={state}
+                className='admin-dashboard-health-strip-legend-item'
+              >
                 <span
                   aria-hidden='true'
                   className='admin-dashboard-health-strip-legend-dot'
                   style={{
-                    background: CHANNEL_HEALTH_POINT_COLORS[state] || CHANNEL_HEALTH_POINT_COLORS.unknown,
+                    background:
+                      CHANNEL_HEALTH_POINT_COLORS[state] ||
+                      CHANNEL_HEALTH_POINT_COLORS.unknown,
                   }}
                 />
                 {t(`dashboard.admin.channels.history.state.${state}`)}
@@ -238,13 +332,16 @@ const ChannelHealthSection = ({ injectedData = null }) => {
           </div>
         </div>
 
-        {channelHealthData.length === 0 ? (
+        {sortedChannelHealthData.length === 0 ? (
           <div className='admin-dashboard-channel-health-empty'>
             <strong>{t('dashboard.admin.empty.channels')}</strong>
           </div>
         ) : (
           <div className='admin-dashboard-channel-health-matrix'>
-            <div className='admin-dashboard-channel-health-matrix-header' aria-hidden='true'>
+            <div
+              className='admin-dashboard-channel-health-matrix-header'
+              aria-hidden='true'
+            >
               <span>{t('dashboard.admin.channels.columns.channel')}</span>
               <span>{t('dashboard.admin.channels.columns.history')}</span>
               <div>
@@ -256,32 +353,51 @@ const ChannelHealthSection = ({ injectedData = null }) => {
             </div>
 
             {sortedChannelHealthData.map((item) => {
-              const statusText = t(`dashboard.admin.channel_status.${Number(item.status)}`, {
-                defaultValue: t('dashboard.admin.channel_status.default'),
-              });
-              const lastTested = item.last_tested_at ? formatUpdatedAt(item.last_tested_at) : '-';
-              const canOpenDetail = Boolean(item.channel_id);
+              const statusText = t(
+                `dashboard.admin.channel_status.${Number(item.status)}`,
+                {
+                  defaultValue: t('dashboard.admin.channel_status.default'),
+                }
+              );
+              const lastTested = item.last_tested_at
+                ? formatUpdatedAt(item.last_tested_at)
+                : '-';
+              const canOpenDetail =
+                item.source_kind === 'managed' && Boolean(item.channel_id);
+              const sourceLabel =
+                SOURCE_OPTIONS.find(
+                  (option) => option.value === item.source_kind
+                )?.label || item.source_kind;
               const historyCounts = item.health_history.reduce(
                 (counts, point) => ({
                   ...counts,
                   [point.state]: (counts[point.state] || 0) + 1,
                 }),
-                { success: 0, warning: 0, failure: 0, unknown: 0 },
+                { success: 0, warning: 0, failure: 0, unknown: 0 }
               );
-              const historyLabel = t('dashboard.admin.channels.history.accessible_summary', {
-                channel: item.name,
-                success: historyCounts.success,
-                warning: historyCounts.warning,
-                failure: historyCounts.failure,
-                unknown: historyCounts.unknown,
-              });
+              const historyLabel = t(
+                'dashboard.admin.channels.history.accessible_summary',
+                {
+                  channel: item.name,
+                  success: historyCounts.success,
+                  warning: historyCounts.warning,
+                  failure: historyCounts.failure,
+                  unknown: historyCounts.unknown,
+                }
+              );
 
               return (
                 <div
                   key={item.id}
                   className={`admin-dashboard-channel-health-row${
-                    item.is_active_circuit ? ' admin-dashboard-channel-health-row-circuit' : ''
-                  }${item.needs_attention ? ' admin-dashboard-channel-health-row-attention' : ''}`}
+                    item.is_active_circuit
+                      ? ' admin-dashboard-channel-health-row-circuit'
+                      : ''
+                  }${
+                    item.needs_attention
+                      ? ' admin-dashboard-channel-health-row-attention'
+                      : ''
+                  }`}
                 >
                   <div className='admin-dashboard-channel-health-info'>
                     <div className='admin-dashboard-channel-health-title-row'>
@@ -290,14 +406,14 @@ const ChannelHealthSection = ({ injectedData = null }) => {
                         onClick={() => {
                           if (!canOpenDetail) return;
                           navigate(
-                            `/admin/channel/detail/${encodeURIComponent(item.channel_id)}${
-                              item.needs_attention ? '?tab=tests' : ''
-                            }`,
+                            `/admin/channel/detail/${encodeURIComponent(
+                              item.channel_id
+                            )}${item.needs_retest ? '?tab=tests' : ''}`,
                             {
                               state: {
                                 from: `${location.pathname}${location.search}`,
                               },
-                            },
+                            }
                           );
                         }}
                         className='admin-dashboard-channel-health-name'
@@ -311,42 +427,69 @@ const ChannelHealthSection = ({ injectedData = null }) => {
                     </div>
                     <div className='admin-dashboard-channel-health-subtitle'>
                       <span>{statusText}</span>
+                      <span>{sourceLabel}</span>
+                      {item.owner_name ? (
+                        <span>归属：{item.owner_name}</span>
+                      ) : null}
+                      {item.group_names.length ? (
+                        <span>分组：{item.group_names.join(' / ')}</span>
+                      ) : null}
                       <span>{item.capabilities}</span>
                       <span>
-                        {t('dashboard.admin.health.chart.last_tested')}: {lastTested}
+                        验证：
+                        {item.verification_status === 'verified'
+                          ? '通过'
+                          : item.verification_status === 'failed'
+                          ? '失败'
+                          : '未验证'}{' '}
+                        · {lastTested}
                       </span>
                     </div>
                   </div>
 
                   <div className='admin-dashboard-channel-health-strip-wrap'>
-                    <div className='admin-dashboard-health-strip' role='img' aria-label={historyLabel}>
+                    <div
+                      className='admin-dashboard-health-strip'
+                      role='img'
+                      aria-label={historyLabel}
+                    >
                       {item.health_history.map((point) => {
-                        const stateLabel = t(`dashboard.admin.channels.history.state.${point.state}`);
+                        const stateLabel = t(
+                          `dashboard.admin.channels.history.state.${point.state}`
+                        );
                         const title = point.observed ? (
                           <div>
                             <div>{`${item.name}: ${stateLabel}`}</div>
-                            <div>{`${t('dashboard.admin.channels.history.window')}: ${formatTimeRange(
+                            <div>{`${t(
+                              'dashboard.admin.channels.history.window'
+                            )}: ${formatTimeRange(
                               point.bucket_start,
-                              point.bucket_end,
+                              point.bucket_end
                             )}`}</div>
-                            <div>{`${t('dashboard.admin.channels.history.success_count')}: ${formatCount(
-                              point.success_count,
-                            )}`}</div>
-                            <div>{`${t('dashboard.admin.channels.history.failure_count')}: ${formatCount(
-                              point.failure_count,
-                            )}`}</div>
-                            <div>{`${t('dashboard.admin.channels.history.total_count')}: ${formatCount(
-                              point.total_count,
-                            )}`}</div>
-                            <div>{`${t('dashboard.admin.channels.history.pass_rate')}: ${formatPercent(
-                              point.pass_rate,
-                            )}`}</div>
-                            <div>{`${t('dashboard.admin.channels.history.avg_latency')}: ${
-                              point.avg_latency_ms > 0 ? `${formatCount(point.avg_latency_ms)} ms` : '-'
+                            <div>{`${t(
+                              'dashboard.admin.channels.history.success_count'
+                            )}: ${formatCount(point.success_count)}`}</div>
+                            <div>{`${t(
+                              'dashboard.admin.channels.history.failure_count'
+                            )}: ${formatCount(point.failure_count)}`}</div>
+                            <div>{`${t(
+                              'dashboard.admin.channels.history.total_count'
+                            )}: ${formatCount(point.total_count)}`}</div>
+                            <div>{`${t(
+                              'dashboard.admin.channels.history.pass_rate'
+                            )}: ${formatPercent(point.pass_rate)}`}</div>
+                            <div>{`${t(
+                              'dashboard.admin.channels.history.avg_latency'
+                            )}: ${
+                              point.avg_latency_ms > 0
+                                ? `${formatCount(point.avg_latency_ms)} ms`
+                                : '-'
                             }`}</div>
                           </div>
                         ) : (
-                          `${item.name}: ${t('dashboard.admin.channels.history.no_data')}`
+                          `${item.name}: ${t(
+                            'dashboard.admin.channels.history.no_data'
+                          )}`
                         );
 
                         return (
@@ -356,7 +499,8 @@ const ChannelHealthSection = ({ injectedData = null }) => {
                               className={`admin-dashboard-health-cell admin-dashboard-health-cell-${point.state}`}
                               style={{
                                 background:
-                                  CHANNEL_HEALTH_POINT_COLORS[point.state] || CHANNEL_HEALTH_POINT_COLORS.unknown,
+                                  CHANNEL_HEALTH_POINT_COLORS[point.state] ||
+                                  CHANNEL_HEALTH_POINT_COLORS.unknown,
                               }}
                             />
                           </AppTooltip>
@@ -367,19 +511,33 @@ const ChannelHealthSection = ({ injectedData = null }) => {
 
                   <div className='admin-dashboard-channel-health-metrics'>
                     <div className='admin-dashboard-channel-health-metric'>
-                      <span>{t('dashboard.admin.health.chart.health_score')}</span>
+                      <span>
+                        {t('dashboard.admin.health.chart.health_score')}
+                      </span>
                       <strong>{item.health_score.toFixed(0)}</strong>
                     </div>
                     <div className='admin-dashboard-channel-health-metric'>
                       <span>{t('dashboard.admin.health.chart.pass_rate')}</span>
-                      <strong>{item.has_test_data ? formatPercent(item.pass_rate_percent) : '-'}</strong>
+                      <strong>
+                        {item.has_runtime_data
+                          ? formatPercent(item.success_rate_percent)
+                          : '-'}
+                      </strong>
                     </div>
                     <div className='admin-dashboard-channel-health-metric'>
-                      <span>{t('dashboard.admin.health.chart.avg_latency')}</span>
-                      <strong>{item.avg_latency_ms > 0 ? `${formatCount(item.avg_latency_ms)} ms` : '-'}</strong>
+                      <span>
+                        {t('dashboard.admin.health.chart.avg_latency')}
+                      </span>
+                      <strong>
+                        {item.avg_latency_ms > 0
+                          ? `${formatCount(item.avg_latency_ms)} ms`
+                          : '-'}
+                      </strong>
                     </div>
                     <div className='admin-dashboard-channel-health-metric'>
-                      <span>{t('dashboard.admin.health.chart.request_count')}</span>
+                      <span>
+                        {t('dashboard.admin.health.chart.request_count')}
+                      </span>
                       <strong>{formatCount(item.request_count)}</strong>
                     </div>
                   </div>

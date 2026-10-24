@@ -39,11 +39,6 @@ export const ADMIN_MENU_GROUPS = [
         icon: 'sitemap',
       },
       {
-        name: 'publisher_operations.title',
-        to: '/admin/publisher',
-        icon: 'cloud upload',
-      },
-      {
         name: 'header.group',
         to: '/admin/group',
         icon: 'group',
@@ -196,7 +191,7 @@ export const isAdminRouteActive = (location, to) => {
   if (path === '/admin/setting' && targetTab !== '') {
     const { tab: currentTab } = resolveAdminSettingLocation(
       currentParams.get('tab') || 'basic',
-      currentParams.get('section') || 'general',
+      currentParams.get('section') || 'general'
     );
     if (currentTab !== targetTab) {
       return false;
@@ -217,7 +212,7 @@ export const isAdminRouteActive = (location, to) => {
     return true;
   }
   return entries.every(
-    ([key, value]) => (currentParams.get(key) || '') === value,
+    ([key, value]) => (currentParams.get(key) || '') === value
   );
 };
 
