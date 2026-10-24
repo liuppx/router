@@ -198,110 +198,6 @@
   margin-bottom: 8px;
 }
 
-.admin-dashboard-spending-headline {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  gap: 16px;
-  margin-bottom: 16px;
-  padding: 20px 24px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 12px;
-  background: linear-gradient(180deg, var(--router-surface-muted, var(--router-surface-muted, #f8fafc)) 0%, var(--router-surface, var(--router-surface, var(--router-surface, #fff))fff) 100%);
-}
-
-.admin-dashboard-spending-headline-main {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.admin-dashboard-spending-headline-label {
-  color: var(--router-text-muted, var(--router-text-muted, #64748b));
-  font-size: 13px;
-}
-
-.admin-dashboard-spending-headline-value {
-  color: var(--router-text-primary, var(--router-text-primary, #0f172a));
-  font-size: 36px;
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-}
-
-.admin-dashboard-spending-headline-value-positive {
-  color: var(--router-status-success, var(--router-status-success, #15803d));
-}
-
-.admin-dashboard-spending-headline-value-negative {
-  color: var(--router-status-danger, var(--router-status-danger, #dc2626));
-}
-
-.admin-dashboard-model-headline-cta {
-  appearance: none;
-  -webkit-appearance: none;
-  border: none;
-  background: none;
-  padding: 0;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-
-.admin-dashboard-model-headline-cta:hover {
-  opacity: 0.82;
-  text-decoration: underline;
-}
-
-.admin-dashboard-spending-headline-hint {
-  color: var(--router-text-secondary, var(--router-text-secondary, #475569));
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.admin-dashboard-spending-headline-side {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 16px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 10px;
-  background: var(--router-surface, var(--router-surface, #fff));
-}
-
-.admin-dashboard-spending-headline-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--router-text-muted, var(--router-text-muted, #64748b));
-  font-size: 12px;
-}
-
-.admin-dashboard-spending-headline-row strong {
-  color: var(--router-text-primary, var(--router-text-primary, #0f172a));
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* Clickable side-row value: looks like the strong value, drills into a filtered list. */
-.admin-dashboard-spending-headline-row-cta {
-  padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--router-link, #2563eb);
-}
-
-.admin-dashboard-spending-headline-row-cta:hover {
-  color: var(--router-link-hover, #1d4ed8);
-  text-decoration: underline;
-}
-
 /* User section: monetization metrics as a slim inline strip, not a card grid. */
 .admin-dashboard-user-monetization-strip {
   display: flex;
@@ -1303,7 +1199,7 @@
 
 .admin-dashboard-model-overview-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   margin-bottom: 10px;
 }
@@ -1317,56 +1213,6 @@
 
 .admin-dashboard-model-chart {
   margin-top: 6px;
-}
-
-.admin-dashboard-model-distribution-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.admin-dashboard-model-distribution-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: var(--router-surface-muted, var(--router-surface-muted, #f8fafc));
-}
-
-.admin-dashboard-model-distribution-main {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.admin-dashboard-model-distribution-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  flex-shrink: 0;
-}
-
-.admin-dashboard-model-distribution-label {
-  color: var(--router-text-secondary, var(--router-text-secondary, #334155));
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.admin-dashboard-model-distribution-value {
-  color: var(--router-text-primary, var(--router-text-primary, #0f172a));
-  font-size: 16px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.admin-dashboard-model-distribution-footnote {
-  color: var(--router-text-muted, var(--router-text-muted, #64748b));
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 .admin-dashboard-model-card {
@@ -1513,7 +1359,6 @@
     grid-template-columns: 1fr;
   }
 
-  .admin-dashboard-spending-headline,
   .admin-dashboard-user-growth-grid,
   .admin-dashboard-user-segment-grid,
   .admin-dashboard-model-overview-grid {

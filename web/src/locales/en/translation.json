@@ -3723,21 +3723,6 @@
       "models": {
         "title": "Model Overview",
         "description": "Aggregate model requests, spend, and test health for the selected period.",
-        "headline": {
-          "hint": "Click the at-risk count to drill into models that need attention."
-        },
-        "summary": {
-          "selected_model_count": "Selected Models",
-          "tested_model_count": "Tested Models",
-          "healthy_model_count": "Healthy Models",
-          "warning_model_count": "Warning Models",
-          "critical_model_count": "Critical Models",
-          "request_count": "Requests",
-          "total_tokens": "Tokens",
-          "total_spend": "Spend (USD)",
-          "avg_pass_rate": "Average Pass Rate",
-          "avg_latency": "Average Latency"
-        },
         "sort": {
           "spend": "By Spend",
           "requests": "By Requests",
@@ -3745,9 +3730,7 @@
           "latency": "By Latency"
         },
         "chart": {
-          "leaderboard": "Model Leaderboard",
-          "distribution": "Health Distribution",
-          "distribution_hint": "Health distribution is computed from channel coverage, test pass rate, and average latency in the selected period."
+          "leaderboard": "Model Leaderboard"
         },
         "card": {
           "requests": "Requests",

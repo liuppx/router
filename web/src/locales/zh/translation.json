@@ -3723,21 +3723,6 @@
       "models": {
         "title": "模型概览",
         "description": "按当前统计周期聚合模型请求、消费与测试健康数据。",
-        "headline": {
-          "hint": "点击风险模型数,下钻到需处置的模型列表。"
-        },
-        "summary": {
-          "selected_model_count": "已启用模型数",
-          "tested_model_count": "已测试模型数",
-          "healthy_model_count": "健康模型数",
-          "warning_model_count": "预警模型数",
-          "critical_model_count": "风险模型数",
-          "request_count": "周期请求数",
-          "total_tokens": "周期 Tokens",
-          "total_spend": "周期消费（美元）",
-          "avg_pass_rate": "平均通过率",
-          "avg_latency": "平均延迟"
-        },
         "sort": {
           "spend": "按消费",
           "requests": "按请求",
@@ -3745,9 +3730,7 @@
           "latency": "按延迟"
         },
         "chart": {
-          "leaderboard": "模型排行榜",
-          "distribution": "健康分布",
-          "distribution_hint": "健康分布基于当前周期内的渠道覆盖、测试通过率与平均延迟综合计算。"
+          "leaderboard": "模型排行榜"
         },
         "card": {
           "requests": "请求数",
