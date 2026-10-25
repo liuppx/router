@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 //go:embed provider_migration_snapshot.json
@@ -12,19 +13,23 @@ var providerMigrationSnapshotJSON []byte
 //go:embed provider_catalog_expansion_202609.json
 var providerCatalogExpansion202609JSON []byte
 
+//go:embed provider_catalog_refresh_20261025.json
+var providerCatalogRefresh20261025JSON []byte
+
 func LoadProviderMigrationSeeds(now int64) ([]ProviderSeed, error) {
-	if len(providerMigrationSnapshotJSON) == 0 {
-		return nil, fmt.Errorf("provider migration snapshot is empty")
+	snapshotSeeds, err := unmarshalProviderMigrationSeeds(providerMigrationSnapshotJSON, "provider migration snapshot")
+	if err != nil {
+		return nil, err
 	}
-	seeds := make([]ProviderSeed, 0)
-	if err := json.Unmarshal(providerMigrationSnapshotJSON, &seeds); err != nil {
-		return nil, fmt.Errorf("unmarshal provider migration snapshot: %w", err)
+	expansionSeeds, err := unmarshalProviderMigrationSeeds(providerCatalogExpansion202609JSON, "provider catalog expansion 202609")
+	if err != nil {
+		return nil, err
 	}
-	additionalSeeds := make([]ProviderSeed, 0)
-	if err := json.Unmarshal(providerCatalogExpansion202609JSON, &additionalSeeds); err != nil {
-		return nil, fmt.Errorf("unmarshal provider catalog expansion: %w", err)
+	refreshSeeds, err := unmarshalProviderMigrationSeeds(providerCatalogRefresh20261025JSON, "provider catalog refresh 20261025")
+	if err != nil {
+		return nil, err
 	}
-	seeds = append(seeds, additionalSeeds...)
+	seeds := mergeProviderMigrationSeedSets(snapshotSeeds, expansionSeeds, refreshSeeds)
 	normalized := make([]ProviderSeed, 0, len(seeds))
 	for _, seed := range seeds {
 		seed.ModelDetails = normalizeProviderMigrationSeedModelDetails(
@@ -35,6 +40,88 @@ func LoadProviderMigrationSeeds(now int64) ([]ProviderSeed, error) {
 		normalized = append(normalized, seed)
 	}
 	return normalized, nil
+}
+
+func unmarshalProviderMigrationSeeds(data []byte, label string) ([]ProviderSeed, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("%s is empty", label)
+	}
+	seeds := make([]ProviderSeed, 0)
+	if err := json.Unmarshal(data, &seeds); err != nil {
+		return nil, fmt.Errorf("unmarshal %s: %w", label, err)
+	}
+	return seeds, nil
+}
+
+// mergeProviderMigrationSeedSets builds one complete provider catalog from the
+// baseline snapshot and later incremental reviews. Provider metadata is patched
+// only when a later file supplies a non-zero value. A repeated model is a full
+// replacement, which keeps lifecycle and pricing changes explicit and avoids
+// accidentally retaining stale fields from the earlier snapshot.
+func mergeProviderMigrationSeedSets(seedSets ...[]ProviderSeed) []ProviderSeed {
+	merged := make([]ProviderSeed, 0)
+	providerIndex := make(map[string]int)
+	modelIndexes := make(map[string]map[string]int)
+
+	for _, seeds := range seedSets {
+		for _, rawSeed := range seeds {
+			provider := strings.TrimSpace(strings.ToLower(rawSeed.Provider))
+			if provider == "" {
+				continue
+			}
+			idx, exists := providerIndex[provider]
+			if !exists {
+				next := rawSeed
+				next.Provider = provider
+				next.ModelDetails = append([]ProviderModelDetail(nil), rawSeed.ModelDetails...)
+				providerIndex[provider] = len(merged)
+				merged = append(merged, next)
+				idx = len(merged) - 1
+				indexes := make(map[string]int, len(next.ModelDetails))
+				for modelIdx, detail := range next.ModelDetails {
+					modelName := canonicalizeModelNameForProvider(provider, detail.Model)
+					if modelName != "" {
+						indexes[modelName] = modelIdx
+					}
+				}
+				modelIndexes[provider] = indexes
+				continue
+			}
+
+			seed := merged[idx]
+			if strings.TrimSpace(rawSeed.Name) != "" {
+				seed.Name = rawSeed.Name
+			}
+			if strings.TrimSpace(rawSeed.BaseURL) != "" {
+				seed.BaseURL = rawSeed.BaseURL
+			}
+			if strings.TrimSpace(rawSeed.OfficialURL) != "" {
+				seed.OfficialURL = rawSeed.OfficialURL
+			}
+			if strings.TrimSpace(rawSeed.PricingURL) != "" {
+				seed.PricingURL = rawSeed.PricingURL
+			}
+			if rawSeed.SortOrder > 0 {
+				seed.SortOrder = rawSeed.SortOrder
+			}
+			indexes := modelIndexes[provider]
+			for _, detail := range rawSeed.ModelDetails {
+				modelName := canonicalizeModelNameForProvider(provider, detail.Model)
+				if modelName == "" {
+					continue
+				}
+				if modelIdx, ok := indexes[modelName]; ok {
+					seed.ModelDetails[modelIdx] = detail
+					continue
+				}
+				indexes[modelName] = len(seed.ModelDetails)
+				seed.ModelDetails = append(seed.ModelDetails, detail)
+			}
+			merged[idx] = seed
+		}
+	}
+
+	return merged
 }
 
 func resetProviderMigrationDetailTimestamps(details []ProviderModelDetail) []ProviderModelDetail {

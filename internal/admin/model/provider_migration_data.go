@@ -15,6 +15,9 @@ func normalizeProviderMigrationSeedModelDetails(provider string, details []Provi
 			next.Type = normalizeModelType("", next.Model)
 		}
 		next.Tags = normalizeProviderMigrationSeedModelTags(normalizedProvider, next)
+		if taggedType := ProviderModelTypeFromTags(next.Tags); taggedType != "" {
+			next.Type = taggedType
+		}
 		if next.UpdatedAt <= 0 {
 			next.UpdatedAt = now
 		}
@@ -55,6 +58,9 @@ func normalizeProviderMigrationSeedModelTags(provider string, detail ProviderMod
 		return reasoningOnlyProviderModelTags()
 	}
 	tags := NormalizeProviderModelTags(detail.Tags)
+	if ProviderModelTypeFromTags(tags) != "" {
+		return tags
+	}
 	return NormalizeProviderModelTags(append([]string{detail.Type}, tags...))
 }
 

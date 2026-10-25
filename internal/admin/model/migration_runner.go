@@ -2325,6 +2325,13 @@ func runMainVersionedMigrations(db *gorm.DB) error {
 				return restoreCompletedChannelModelTestOperationsWithDB(tx)
 			},
 		},
+		{
+			Version:     "202610251200_refresh_official_provider_catalog",
+			Description: "refresh verified OpenAI, Anthropic, xAI, and Moonshot model additions and lifecycle statuses",
+			Up: func(tx *gorm.DB) error {
+				return upsertProviderMigrationProvidersWithDB(tx, "openai", "anthropic", "xai", "moonshot")
+			},
+		},
 	}
 	return runVersionedMigrations(db, migrationScopeMain, migrations)
 }

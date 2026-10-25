@@ -44,9 +44,30 @@ func defaultProviderModelDeleted(provider string, modelName string) bool {
 	modelName = strings.TrimSpace(strings.ToLower(modelName))
 	switch provider {
 	case "openai":
-		return modelName == "sora-2" || modelName == "sora-2-pro" || modelName == "gpt-5.4-cyber"
+		switch modelName {
+		case "codex-mini-latest",
+			"dall-e-3",
+			"gpt-4.1-nano",
+			"gpt-4o-2024-05-13",
+			"gpt-5-codex",
+			"gpt-5.1-codex",
+			"gpt-5.1-codex-max",
+			"gpt-5.1-codex-mini",
+			"gpt-5.2-codex",
+			"gpt-5.4-cyber",
+			"gpt-image-1",
+			"o1-pro",
+			"o4-mini",
+			"sora-2",
+			"sora-2-pro":
+			return true
+		default:
+			return false
+		}
 	case "anthropic":
-		return modelName == "claude-3-5-haiku-20241022"
+		return modelName == "claude-3-5-haiku-20241022" || modelName == "claude-opus-4-1-20250805"
+	case "moonshot":
+		return modelName == "kimi-k2.5"
 	case "google":
 		return modelName == "gemini-live-2.5-flash-preview"
 	case "xai":
@@ -65,27 +86,57 @@ func defaultProviderModelStatus(provider string, modelName string) string {
 		switch modelName {
 		case "codex-mini-latest",
 			"dall-e-3",
+			"gpt-4o",
+			"gpt-4o-mini",
 			"gpt-4o-2024-05-13",
+			"gpt-4o-transcribe",
+			"gpt-4o-mini-transcribe",
+			"gpt-4o-mini-tts",
+			"gpt-4.1",
+			"gpt-4.1-mini",
 			"gpt-4.1-nano",
+			"gpt-5",
 			"gpt-5-codex",
+			"gpt-5-mini",
+			"gpt-5-nano",
+			"gpt-5-pro",
+			"gpt-5.1",
 			"gpt-5.1-codex",
 			"gpt-5.1-codex-max",
 			"gpt-5.1-codex-mini",
 			"gpt-5.2-codex",
+			"gpt-5.3-codex",
+			"gpt-5.4-nano",
+			"gpt-audio",
+			"gpt-audio-mini",
 			"gpt-image-1",
 			"gpt-image-1-mini",
 			"gpt-image-1.5",
+			"gpt-realtime",
+			"gpt-realtime-mini",
+			"o3",
+			"o3-pro",
+			"o4-mini",
 			"sora-2",
 			"sora-2-pro",
-			"gpt-5.4-cyber":
+			"gpt-5.4-cyber",
+			"tts-1",
+			"tts-1-hd",
+			"whisper-1":
 			return ProviderModelStatusDeprecated
 		}
 	case "anthropic":
 		// https://platform.claude.com/docs/en/about-claude/model-deprecations
 		switch modelName {
 		case "claude-3-5-haiku-20241022",
+			"claude-mythos-preview",
 			"claude-opus-4-1-20250805",
 			"claude-sonnet-4-5-20250929":
+			return ProviderModelStatusDeprecated
+		}
+	case "moonshot":
+		// https://platform.moonshot.ai/docs/models
+		if modelName == "kimi-k2.5" {
 			return ProviderModelStatusDeprecated
 		}
 	case "deepseek":
