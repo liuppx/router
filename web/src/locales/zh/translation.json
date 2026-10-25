@@ -141,7 +141,7 @@
       "load_failed": "加载额度总览失败"
     },
     "model_usage": {
-      "title": "我的模型使用"
+      "title": "模型使用"
     },
     "quota_cards": {
       "active_title": "有效额度",

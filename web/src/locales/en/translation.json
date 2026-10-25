@@ -141,7 +141,7 @@
       "load_failed": "Failed to load quota overview"
     },
     "model_usage": {
-      "title": "My Model Usage"
+      "title": "Model Usage"
     },
     "quota_cards": {
       "active_title": "Active Quota",
