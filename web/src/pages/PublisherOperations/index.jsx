@@ -297,8 +297,10 @@ function PublisherOperations({ embedded = false }) {
         dataIndex: 'display_name',
         render: (value, row) => (
           <div className='publisher-operations-name'>
-            <strong>{value}</strong>
-            <span>{row.wallet_identity_did}</span>
+            <span className='publisher-operations-primary-text'>{value}</span>
+            <span className='publisher-operations-secondary-text'>
+              {row.wallet_identity_did}
+            </span>
           </div>
         ),
       },
@@ -345,8 +347,10 @@ function PublisherOperations({ embedded = false }) {
         dataIndex: 'name',
         render: (value, row) => (
           <div className='publisher-operations-name'>
-            <strong>{value}</strong>
-            <span>{row.base_url}</span>
+            <span className='publisher-operations-primary-text'>{value}</span>
+            <span className='publisher-operations-secondary-text'>
+              {row.base_url}
+            </span>
           </div>
         ),
       },
@@ -559,8 +563,12 @@ function PublisherOperations({ embedded = false }) {
         title: '发布者 / 服务',
         render: (_, row) => (
           <div className='publisher-operations-name'>
-            <strong>{row.publisher_display_name || '-'}</strong>
-            <span>{row.service_name || row.offer_id}</span>
+            <span className='publisher-operations-primary-text'>
+              {row.publisher_display_name || '-'}
+            </span>
+            <span className='publisher-operations-secondary-text'>
+              {row.service_name || row.offer_id}
+            </span>
           </div>
         ),
       },
@@ -627,24 +635,13 @@ function PublisherOperations({ embedded = false }) {
       }`}
     >
       <AppTabs
+        className='publisher-operations-tabs'
         items={[
           {
             key: 'group-supplies',
             label: '分组供给',
             children: (
-              <AppSection
-                title='分组供给'
-                extra={
-                  <AppButton
-                    color='blue'
-                    loading={groupSupplySaving}
-                    disabled={!selectedGroupID}
-                    onClick={saveGroupSupplies}
-                  >
-                    保存分组供给
-                  </AppButton>
-                }
-              >
+              <AppSection>
                 <div className='publisher-operations-group-toolbar'>
                   <AppField label='运营分组'>
                     <AppSelect
@@ -660,6 +657,16 @@ function PublisherOperations({ embedded = false }) {
                   <p>
                     模型报价通过独立绑定参与自动路由。绑定只决定路由范围，不会把供给渠道变成平台自营渠道；分组只能由运营管理。
                   </p>
+                  <div className='publisher-operations-group-actions'>
+                    <AppButton
+                      color='blue'
+                      loading={groupSupplySaving}
+                      disabled={!selectedGroupID}
+                      onClick={saveGroupSupplies}
+                    >
+                      保存分组供给
+                    </AppButton>
+                  </div>
                 </div>
                 <AppTable
                   rowKey='offer_id'
@@ -686,7 +693,7 @@ function PublisherOperations({ embedded = false }) {
                 : ''
             }`,
             children: (
-              <AppSection title='发布者审核'>
+              <AppSection>
                 <AppTable
                   rowKey='id'
                   columns={publisherColumns}
@@ -703,7 +710,7 @@ function PublisherOperations({ embedded = false }) {
             key: 'services',
             label: '供给渠道',
             children: (
-              <AppSection title='独立运营供给渠道治理'>
+              <AppSection>
                 <AppTable
                   rowKey='id'
                   columns={serviceColumns}
@@ -728,7 +735,7 @@ function PublisherOperations({ embedded = false }) {
                 : ''
             }`,
             children: (
-              <AppSection title='可售报价审核'>
+              <AppSection>
                 <AppTable
                   rowKey='id'
                   columns={offerColumns}
@@ -745,7 +752,7 @@ function PublisherOperations({ embedded = false }) {
             key: 'settlements',
             label: '结算账本',
             children: (
-              <AppSection title='供给结算账本'>
+              <AppSection>
                 <AppTable
                   rowKey='request_log_id'
                   columns={settlementColumns}
@@ -778,7 +785,7 @@ function PublisherOperations({ embedded = false }) {
                 : ''
             }`,
             children: (
-              <AppSection title='跨库结算投递'>
+              <AppSection>
                 <AppTable
                   rowKey='request_log_id'
                   columns={deliveryColumns}
