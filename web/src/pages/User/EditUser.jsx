@@ -50,6 +50,7 @@ import {
 } from '../../helpers/package';
 
 const BALANCE_LOT_PAGE_SIZE = 20;
+const USER_PAYMENT_RECORD_HIDDEN_COLUMNS = Object.freeze(['username']);
 
 const ROLE_OPTIONS = (t) => [
   { key: 1, value: 1, text: t('user.table.role_types.normal') },
@@ -1230,6 +1231,25 @@ const UserDetail = () => {
       disabled: editSection !== '' && activeDetailTab !== 'tokens',
     },
   ];
+  // The embedded record list persists its filters to this route's query
+  // string. Keep data-source props stable so that URL synchronization does
+  // not look like a new request configuration and trigger another load.
+  const paymentRecordRequestParams = useMemo(
+    () => ({ user_id: userId }),
+    [userId],
+  );
+  const buildPaymentRecordDetailPath = useCallback(
+    (row, defaultPath) => {
+      const paymentID = (row?.id || '').toString().trim();
+      if (!paymentID) {
+        return defaultPath;
+      }
+      return `/admin/user/detail/${encodeURIComponent(
+        userId,
+      )}/payment/${encodeURIComponent(paymentID)}`;
+    },
+    [userId],
+  );
 
   return (
     <div className='dashboard-container'>
@@ -1844,17 +1864,11 @@ const UserDetail = () => {
                   embedded
                   title=''
                   breadcrumbs={[]}
-                  requestParams={{ user_id: userId }}
+                  requestParams={paymentRecordRequestParams}
                   searchPlaceholder={t('topup.payment_history.user_search_placeholder')}
                   emptyText={t('topup.payment_history.user_empty')}
-                  hiddenColumnKeys={['username']}
-                  detailPathBuilder={(row, defaultPath) => {
-                    const paymentID = (row?.id || '').toString().trim();
-                    if (!paymentID) {
-                      return defaultPath;
-                    }
-                    return `/admin/user/detail/${encodeURIComponent(userId)}/payment/${encodeURIComponent(paymentID)}`;
-                  }}
+                  hiddenColumnKeys={USER_PAYMENT_RECORD_HIDDEN_COLUMNS}
+                  detailPathBuilder={buildPaymentRecordDetailPath}
                 />
               </AppDetailSection>
               ) : null}
