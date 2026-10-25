@@ -1,9 +1,8 @@
 import React, {
-  Suspense,
-  lazy,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,7 +20,6 @@ import {
   AppInput,
   AppPopover,
   AppSelect,
-  AppSection,
   AppSkeleton,
   AppSpin,
   AppTag,
@@ -29,16 +27,13 @@ import {
   AppTooltip,
   AppToolbar,
 } from '../../router-ui';
+import ModelRankingSection from './ModelRankingSection';
 import './WorkspaceModels.css';
 import '../../components/SectionTabs.css';
 import '../AdminDashboard/Dashboard.css';
 import '../AdminDashboard/AdminDashboard.css';
 
 const MODEL_HEALTH_HISTORY_SIZE = 60;
-const ModelOperationsSection = lazy(() =>
-  import('../AdminDashboard/sections/ModelOperationsSection'),
-);
-
 const POINT_COLORS = {
   success: '#22c55e',
   warning: '#f59e0b',
@@ -254,11 +249,15 @@ const WorkspaceModels = () => {
   // Keyword / health / sort all persist to the URL so a refresh or back-nav
   // restores the operator's view, and cross-page CTAs (e.g. the admin dashboard
   // "at-risk models" headline) can deep-link straight to a filtered view.
-  const [{ keyword, healthFilter, sortBy, tab }, patchFilters] = useUrlState({
+  const [
+    { keyword, healthFilter, sortBy, tab, rankingScope, rankingPeriod },
+    patchFilters,
+  ] = useUrlState({
     tab: {
       param: 'tab',
       default: 'health',
-      parse: (raw) => (raw === 'operations' ? 'operations' : 'health'),
+      parse: (raw) =>
+        raw === 'ranking' || raw === 'operations' ? 'ranking' : 'health',
     },
     keyword: { param: 'q', default: '' },
     healthFilter: {
@@ -277,8 +276,34 @@ const WorkspaceModels = () => {
         return SORT_OPTIONS.includes(normalized) ? normalized : 'health';
       },
     },
+    rankingScope: {
+      param: 'scope',
+      default: 'me',
+      parse: (raw) => (raw === 'global' ? 'global' : 'me'),
+    },
+    rankingPeriod: {
+      param: 'period',
+      default: 'last_7_days',
+      parse: (raw) =>
+        ['last_24_hours', 'last_7_days', 'last_30_days'].includes(raw)
+          ? raw
+          : 'last_7_days',
+    },
   });
-  const showOperations = hasAdminAccess && tab === 'operations';
+  const showRanking = tab === 'ranking';
+  const adminScopeDefaultHandledRef = useRef(false);
+
+  useEffect(() => {
+    if (!hasAdminAccess || adminScopeDefaultHandledRef.current) {
+      return;
+    }
+    adminScopeDefaultHandledRef.current = true;
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('scope')) {
+      patchFilters({ rankingScope: 'global' });
+    }
+  }, [hasAdminAccess, patchFilters]);
+
   // Admins can jump straight from a model to the publish tab of a channel that
   // serves it (channel_ids comes from /api/v1/public/model/status). Single
   // channel → direct deep link; multiple → a popover of per-channel links.
@@ -373,8 +398,8 @@ const WorkspaceModels = () => {
   }, []);
 
   useEffect(() => {
-    if (!showOperations) loadData();
-  }, [loadData, showOperations]);
+    if (!showRanking) loadData();
+  }, [loadData, showRanking]);
 
   const healthFilterOptions = useMemo(
     () =>
@@ -461,6 +486,7 @@ const WorkspaceModels = () => {
 
   return (
     <div className='dashboard-container workspace-models-page'>
+      <h1 className='workspace-models-visually-hidden'>{t('workspace_models.title')}</h1>
       <AppFilterHeader
         breadcrumbs={[
           {
@@ -474,25 +500,47 @@ const WorkspaceModels = () => {
           },
         ]}
         title={t('header.model')}
+        actions={
+          <AppButton
+            type='link'
+            icon={<AppIcon name='book' />}
+            onClick={() => navigate('/workspace/service/router-guide')}
+          >
+            {t('workspace_models.usage_guide')}
+          </AppButton>
+        }
       />
-      {hasAdminAccess && (
-        <AppTabs
-          className='section-tabs'
-          activeKey={tab}
-          items={['health', 'operations'].map((key) => ({
-            key,
-            label: t(`workspace_models.tabs.${key}`),
-          }))}
-          onChange={(value) => patchFilters({ tab: value })}
+      <AppTabs
+        className='section-tabs'
+        activeKey={tab}
+        items={['health', 'ranking'].map((key) => ({
+          key,
+          label: t(`workspace_models.tabs.${key}`),
+        }))}
+        onChange={(value) => patchFilters({ tab: value })}
+      />
+      {showRanking ? (
+        <ModelRankingSection
+          hasAdminAccess={hasAdminAccess}
+          keyword={keyword}
+          scope={rankingScope}
+          period={rankingPeriod}
+          onKeywordChange={(value) => patchFilters({ keyword: value })}
+          onScopeChange={(value) => patchFilters({ rankingScope: value })}
+          onPeriodChange={(value) => patchFilters({ rankingPeriod: value })}
         />
-      )}
-      {showOperations ? (
-        <Suspense fallback={<AppSkeleton variant='list' count={3} />}>
-          <ModelOperationsSection />
-        </Suspense>
       ) : (
         <AppSpin spinning={loading}>
-          <AppSection className='workspace-models-section'>
+          <section
+            className='workspace-models-section'
+            aria-labelledby='workspace-model-health-heading'
+          >
+            <h2 id='workspace-model-health-heading' className='workspace-model-section-heading'>
+              {t('workspace_models.health_title')}
+            </h2>
+            <p className='workspace-model-section-description'>
+              {t('workspace_models.health_window')}
+            </p>
             {loadFailed && (
               <AppAlert
                 type='error'
@@ -565,9 +613,12 @@ const WorkspaceModels = () => {
                 }
               />
               <div className='workspace-models-meta'>
-                {t('workspace_models.generated_at', {
-                  time: formatUpdatedAt(payload.generated_at),
-                })}
+                <span>{t('workspace_models.health_window_short')}</span>
+                <span>
+                  {t('workspace_models.generated_at', {
+                    time: formatUpdatedAt(payload.generated_at),
+                  })}
+                </span>
               </div>
             </div>
             <div className='workspace-models-legend'>
@@ -764,7 +815,7 @@ const WorkspaceModels = () => {
                 })}
               </div>
             )}
-          </AppSection>
+          </section>
         </AppSpin>
       )}
     </div>

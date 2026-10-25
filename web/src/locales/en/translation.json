@@ -4704,11 +4704,16 @@
     "mit": "MIT License"
   },
   "workspace_models": {
-    "title": "Available Models",
+    "title": "Model Center",
+    "usage_guide": "Usage Guide",
     "tabs": {
       "health": "Runtime Status",
+      "ranking": "Usage Ranking",
       "operations": "Operations Analytics"
     },
+    "health_title": "Model Runtime Status",
+    "health_window": "This view is fixed to the past 5 hours. Each cell represents a 5-minute observation window. Real traffic takes precedence, channel probes fill gaps, and grey means that window had no sample.",
+    "health_window_short": "Past 5 hours · 5 minutes per cell",
     "health_filter": "Recent status",
     "sort_label": "Sort models",
     "health_hint": "Summarized from recent traffic and channel checks; individual upstream channels may differ.",
@@ -4785,6 +4790,56 @@
       "copy_model": "Copy model name",
       "copied": "Model name copied: {{model}}",
       "copy_failed": "Copy failed, please copy manually"
+    },
+    "ranking": {
+      "title": "Model Usage Ranking",
+      "description": {
+        "me": "See your successful model calls during the selected period. Models you used historically remain visible even if they are no longer published.",
+        "global": "See model preferences based on successful calls from all users. The public view reveals exact figures only after the minimum aggregation threshold is met."
+      },
+      "load_failed": "Could not load model usage ranking. Try again.",
+      "search_placeholder": "Search ranked models, providers, or capabilities",
+      "period_label": "Ranking period",
+      "scope": {
+        "me": "My Usage",
+        "global": "Global Preference"
+      },
+      "period": {
+        "last_24_hours": "Past 24 Hours",
+        "last_7_days": "Past 7 Days",
+        "last_30_days": "Past 30 Days"
+      },
+      "window": "Range: {{start}} to {{end}}",
+      "count_definition": "Call volume counts successfully completed requests. Failed requests affect runtime status only.",
+      "privacy_note": "To protect low-volume usage, the public ranking reveals exact figures only for models with at least {{requests}} calls from at least {{users}} users.",
+      "chart_title": "Top 10 by Call Volume",
+      "total_calls": "Visible call volume: {{count}}",
+      "chart_empty": "There is no ranking data to chart for this range",
+      "table_label": "Model usage ranking details",
+      "rank": "Rank",
+      "model": "Model",
+      "usage": "Usage",
+      "cost": "Operations",
+      "status": "Current Status",
+      "action": "Action",
+      "calls": "Calls",
+      "share": "Share",
+      "tokens": "Tokens",
+      "last_used": "Last Used",
+      "spend": "Spend",
+      "channels": "Channels",
+      "sample_insufficient": "Insufficient Sample",
+      "health": {
+        "healthy": "Healthy",
+        "warning": "Warning",
+        "critical": "At Risk",
+        "unknown": "Unknown",
+        "unpublished": "Not Currently Published"
+      },
+      "empty": {
+        "me": "You have no model calls in the selected period",
+        "global": "There is no global model ranking to show for this period"
+      }
     }
   },
   "auth": {

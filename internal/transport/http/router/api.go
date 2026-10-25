@@ -63,6 +63,7 @@ func SetApiRouter(engine *gin.Engine) {
 		publicRouter.POST("/topup/callback", admin.ProcessTopupCallback)
 		publicRouter.POST("/payment/node/webhook", admin.ProcessNodePaymentWebhook)
 		publicRouter.GET("/model/status", middleware.UserAuth(), admin.GetUserModelStatus)
+		publicRouter.GET("/model/ranking", middleware.UserAuth(), admin.GetUserModelRanking)
 
 		// 仅保留密码找回，无额外人机验证
 		publicRouter.GET("/reset_password", middleware.CriticalRateLimit(), admin.SendPasswordResetEmail)

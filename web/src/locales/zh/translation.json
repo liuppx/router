@@ -4704,11 +4704,16 @@
     "mit": "MIT 协议"
   },
   "workspace_models": {
-    "title": "可用模型",
+    "title": "模型中心",
+    "usage_guide": "使用说明",
     "tabs": {
       "health": "运行状态",
+      "ranking": "使用排行",
       "operations": "运营分析"
     },
+    "health_title": "模型运行状态",
+    "health_window": "固定展示过去 5 小时。每个格子代表 5 分钟观测窗口，真实调用优先；没有真实调用时使用渠道检测补充，灰色表示该窗口没有样本。",
+    "health_window_short": "最近 5 小时 · 每格 5 分钟",
     "health_filter": "近期状态",
     "sort_label": "排序方式",
     "health_hint": "根据近期真实调用和渠道检测汇总，不代表每个上游渠道的单独状态。",
@@ -4785,6 +4790,56 @@
       "copy_model": "复制模型名",
       "copied": "已复制模型名：{{model}}",
       "copy_failed": "复制失败，请手动复制"
+    },
+    "ranking": {
+      "title": "模型使用排行",
+      "description": {
+        "me": "查看你在所选周期内使用各模型的成功调用量，历史上使用过但当前未发布的模型也会保留。",
+        "global": "查看所有用户成功调用形成的模型偏好。公开视图只展示达到最小聚合样本的精确数据。"
+      },
+      "load_failed": "模型使用排行加载失败，请重试。",
+      "search_placeholder": "搜索排行中的模型、供应商或能力",
+      "period_label": "排行周期",
+      "scope": {
+        "me": "我的使用",
+        "global": "全站偏好"
+      },
+      "period": {
+        "last_24_hours": "近 24 小时",
+        "last_7_days": "近 7 天",
+        "last_30_days": "近 30 天"
+      },
+      "window": "统计范围：{{start}} 至 {{end}}",
+      "count_definition": "调用量按成功完成的请求统计；失败请求只参与运行状态判断。",
+      "privacy_note": "为保护低样本使用信息，全站公开排行仅展示至少 {{requests}} 次调用且来自至少 {{users}} 位用户的精确数据。",
+      "chart_title": "调用量前十",
+      "total_calls": "可展示调用量合计 {{count}}",
+      "chart_empty": "当前范围内暂无可绘制的排行数据",
+      "table_label": "模型使用排行明细",
+      "rank": "排名",
+      "model": "模型",
+      "usage": "使用情况",
+      "cost": "运营数据",
+      "status": "当前状态",
+      "action": "操作",
+      "calls": "调用量",
+      "share": "占比",
+      "tokens": "Tokens",
+      "last_used": "最近使用",
+      "spend": "消费",
+      "channels": "覆盖渠道",
+      "sample_insufficient": "样本不足",
+      "health": {
+        "healthy": "健康",
+        "warning": "预警",
+        "critical": "风险",
+        "unknown": "未知",
+        "unpublished": "当前未发布"
+      },
+      "empty": {
+        "me": "所选周期内还没有模型调用记录",
+        "global": "所选周期内还没有可展示的全站模型排行"
+      }
     }
   },
   "auth": {
