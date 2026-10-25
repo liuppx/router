@@ -500,23 +500,23 @@ const WorkspaceModels = () => {
           },
         ]}
         title={t('header.model')}
-        actions={
+      />
+      <AppTabs
+        className='section-tabs workspace-models-tabs'
+        activeKey={tab}
+        items={['health', 'ranking'].map((key) => ({
+          key,
+          label: t(`workspace_models.tabs.${key}`),
+        }))}
+        tabBarExtraContent={
           <AppButton
-            type='link'
+            className='router-inline-button workspace-models-guide-button'
             icon={<AppIcon name='book' />}
             onClick={() => navigate('/workspace/service/router-guide')}
           >
             {t('workspace_models.usage_guide')}
           </AppButton>
         }
-      />
-      <AppTabs
-        className='section-tabs'
-        activeKey={tab}
-        items={['health', 'ranking'].map((key) => ({
-          key,
-          label: t(`workspace_models.tabs.${key}`),
-        }))}
         onChange={(value) => patchFilters({ tab: value })}
       />
       {showRanking ? (
