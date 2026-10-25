@@ -15,6 +15,7 @@ import {
   buildTopUpReturnURL,
   formatTopupBusinessType,
   formatTopupOrderStatusHint,
+  isNativePaymentURL,
   renderTopupOrderStatus,
   useTopUpWorkspace,
 } from './shared.jsx';
@@ -191,6 +192,10 @@ const TopUpOrderDetailInner = () => {
     const redirectURL = String(targetOrder.redirect_url || '').trim();
     if (redirectURL === '') {
       showError(t('topup.records.redirect_missing'));
+      return;
+    }
+    if (isNativePaymentURL(redirectURL)) {
+      navigate(buildTopUpOrderReturnURL(targetOrder.id));
       return;
     }
     const popup = window.open(redirectURL, '_blank');

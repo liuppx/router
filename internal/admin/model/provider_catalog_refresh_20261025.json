@@ -1,0 +1,443 @@
+[
+  {
+    "Provider": "openai",
+    "ModelDetails": [
+      {
+        "model": "gpt-audio-1.5",
+        "tags": ["audio"],
+        "status": "active",
+        "description": "GPT Audio 1.5 是 OpenAI 的音频输入输出模型，适合语音生成和音频交互。",
+        "supported_endpoints": ["/v1/audio/speech"],
+        "input_price": 0.032,
+        "output_price": 0.064,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://platform.openai.com/docs/pricing"
+      },
+      {
+        "model": "gpt-live-1",
+        "tags": ["audio", "realtime"],
+        "status": "active",
+        "description": "GPT Live 1 是 OpenAI 的低延迟实时语音模型。",
+        "supported_endpoints": ["/v1/realtime"],
+        "input_price": 0.05,
+        "price_unit": "per_minute",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://platform.openai.com/docs/pricing"
+      },
+      {
+        "model": "gpt-live-transcribe",
+        "tags": ["audio", "realtime"],
+        "status": "active",
+        "description": "GPT Live Transcribe 是 OpenAI 当前推荐的实时语音转写模型。",
+        "supported_endpoints": ["/v1/realtime"],
+        "input_price": 0.017,
+        "price_unit": "per_minute",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://platform.openai.com/docs/pricing"
+      },
+      {
+        "model": "gpt-realtime-whisper",
+        "tags": ["audio", "realtime"],
+        "status": "active",
+        "description": "GPT Realtime Whisper 是 OpenAI 的实时语音识别模型。",
+        "supported_endpoints": ["/v1/realtime"],
+        "input_price": 0.017,
+        "price_unit": "per_minute",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://platform.openai.com/docs/pricing"
+      },
+      {
+        "model": "gpt-4o-transcribe",
+        "tags": ["audio"],
+        "status": "deprecated",
+        "description": "GPT-4o Transcribe 是 OpenAI 的语音转写模型，当前已进入弃用周期。",
+        "supported_endpoints": ["/v1/audio/transcriptions"],
+        "input_price": 0.006,
+        "price_unit": "per_minute",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://developers.openai.com/api/docs/deprecations"
+      },
+      {
+        "model": "gpt-4o-mini-transcribe",
+        "tags": ["audio"],
+        "status": "deprecated",
+        "description": "GPT-4o Mini Transcribe 是 OpenAI 的低成本语音转写模型，当前已进入弃用周期。",
+        "supported_endpoints": ["/v1/audio/transcriptions"],
+        "input_price": 0.003,
+        "price_unit": "per_minute",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://developers.openai.com/api/docs/deprecations"
+      }
+    ]
+  },
+  {
+    "Provider": "anthropic",
+    "ModelDetails": [
+      {
+        "model": "claude-mythos-5-1",
+        "tags": ["text", "vision"],
+        "status": "active",
+        "description": "Claude Mythos 5.1 是 Anthropic 的高能力模型，适合复杂推理、分析和智能体任务。",
+        "supported_endpoints": ["/v1/messages"],
+        "input_price": 0.01,
+        "output_price": 0.05,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://platform.claude.com/docs/en/about-claude/pricing"
+      },
+      {
+        "model": "claude-fable-5",
+        "tags": ["text", "vision"],
+        "status": "active",
+        "description": "Claude Fable 5 是 Anthropic 的高能力模型，适合复杂生成、分析和智能体任务。",
+        "supported_endpoints": ["/v1/messages"],
+        "input_price": 0.01,
+        "output_price": 0.05,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://platform.claude.com/docs/en/about-claude/pricing"
+      },
+      {
+        "model": "claude-mythos-5",
+        "tags": ["text", "vision"],
+        "status": "active",
+        "description": "Claude Mythos 5 是 Anthropic 的高能力模型，适合复杂推理和长上下文任务。",
+        "supported_endpoints": ["/v1/messages"],
+        "input_price": 0.01,
+        "output_price": 0.05,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://platform.claude.com/docs/en/about-claude/pricing"
+      },
+      {
+        "model": "claude-mythos-preview",
+        "tags": ["text", "vision"],
+        "status": "deprecated",
+        "description": "Claude Mythos Preview 是 Anthropic 的历史预览模型，保留目录用于兼容和历史识别。",
+        "supported_endpoints": ["/v1/messages"],
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://platform.claude.com/docs/en/about-claude/model-deprecations"
+      }
+    ]
+  },
+  {
+    "Provider": "moonshot",
+    "ModelDetails": [
+      {
+        "model": "kimi-k3.1-pro",
+        "tags": ["text", "reasoning", "tool_calling", "vision"],
+        "status": "active",
+        "description": "Kimi K3.1 Pro 是 Moonshot AI 的高能力多模态推理和 Agent 模型。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.002,
+        "output_price": 0.01,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://platform.moonshot.ai/docs/pricing/chat"
+      },
+      {
+        "model": "kimi-k3.1-pro-highspeed",
+        "tags": ["text", "reasoning", "tool_calling", "vision"],
+        "status": "active",
+        "description": "Kimi K3.1 Pro Highspeed 是 Moonshot AI 的高吞吐多模态推理和 Agent 模型。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.004,
+        "output_price": 0.02,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://platform.moonshot.ai/docs/pricing/chat"
+      },
+      {
+        "model": "kimi-k3",
+        "tags": ["text", "reasoning", "tool_calling", "vision"],
+        "status": "active",
+        "description": "Kimi K3 是 Moonshot AI 的多模态通用推理模型。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.003,
+        "output_price": 0.015,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://platform.moonshot.ai/docs/pricing/chat"
+      },
+      {
+        "model": "kimi-k2.7-code-highspeed",
+        "tags": ["text", "reasoning", "tool_calling"],
+        "status": "active",
+        "description": "Kimi K2.7 Code Highspeed 是 Moonshot AI 面向高吞吐代码和 Agent 任务的推理模型。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.0019,
+        "output_price": 0.008,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://platform.moonshot.ai/docs/pricing/chat"
+      }
+    ]
+  },
+  {
+    "Provider": "xai",
+    "ModelDetails": [
+      {
+        "model": "grok-4.5",
+        "tags": ["text", "reasoning", "tool_calling"],
+        "status": "active",
+        "description": "Grok 4.5 是 xAI 的高能力通用推理模型。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.002,
+        "output_price": 0.006,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://docs.x.ai/docs/models"
+      },
+      {
+        "model": "grok-4.6",
+        "tags": ["text", "reasoning", "tool_calling"],
+        "status": "active",
+        "description": "Grok 4.6 是 xAI 的高能力通用推理模型。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.002,
+        "output_price": 0.006,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://docs.x.ai/docs/models"
+      },
+      {
+        "model": "grok-4.7",
+        "tags": ["text", "reasoning", "tool_calling"],
+        "status": "active",
+        "description": "Grok 4.7 是 xAI 的高能力通用推理模型。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.002,
+        "output_price": 0.006,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://docs.x.ai/docs/models"
+      },
+      {
+        "model": "grok-build-0.1",
+        "tags": ["text", "tool_calling"],
+        "status": "active",
+        "description": "Grok Build 0.1 是 xAI 面向软件构建和代码智能体任务的模型。",
+        "supported_endpoints": ["/v1/chat/completions"],
+        "input_price": 0.001,
+        "output_price": 0.002,
+        "price_unit": "per_1k_tokens",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://docs.x.ai/docs/models"
+      },
+      {
+        "model": "grok-imagine-image",
+        "tags": ["image"],
+        "status": "active",
+        "description": "Grok Imagine Image 是 xAI 的图像生成模型。",
+        "supported_endpoints": ["/v1/images/generations"],
+        "input_price": 0.02,
+        "price_unit": "per_image",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://docs.x.ai/docs/models"
+      },
+      {
+        "model": "grok-imagine-image-quality",
+        "tags": ["image"],
+        "status": "active",
+        "description": "Grok Imagine Image Quality 是 xAI 的高质量图像生成模型。",
+        "supported_endpoints": ["/v1/images/generations"],
+        "input_price": 0.05,
+        "price_unit": "per_image",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://docs.x.ai/docs/models"
+      },
+      {
+        "model": "grok-imagine-image-2.0",
+        "tags": ["image"],
+        "status": "active",
+        "description": "Grok Imagine Image 2.0 是 xAI 的新一代图像生成模型。",
+        "supported_endpoints": ["/v1/images/generations"],
+        "input_price": 0.06,
+        "price_unit": "per_image",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://docs.x.ai/docs/models"
+      },
+      {
+        "model": "grok-imagine-video",
+        "tags": ["video"],
+        "status": "active",
+        "description": "Grok Imagine Video 是 xAI 的视频生成模型，按生成时长和分辨率计费。",
+        "supported_endpoints": ["/v1/videos"],
+        "input_price": 0.05,
+        "price_unit": "per_second",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://docs.x.ai/docs/models",
+        "price_components": [
+          {
+            "component": "video_generation",
+            "condition": "resolution=480p",
+            "input_price": 0.05,
+            "price_unit": "per_second",
+            "currency": "USD",
+            "source": "migration",
+            "source_url": "https://docs.x.ai/docs/models",
+            "sort_order": 10
+          },
+          {
+            "component": "video_generation",
+            "condition": "resolution=720p",
+            "input_price": 0.07,
+            "price_unit": "per_second",
+            "currency": "USD",
+            "source": "migration",
+            "source_url": "https://docs.x.ai/docs/models",
+            "sort_order": 20
+          }
+        ]
+      },
+      {
+        "model": "grok-imagine-video-1.5",
+        "tags": ["video"],
+        "status": "active",
+        "description": "Grok Imagine Video 1.5 是 xAI 的高质量视频生成模型，按生成时长和分辨率计费。",
+        "supported_endpoints": ["/v1/videos"],
+        "input_price": 0.08,
+        "price_unit": "per_second",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://docs.x.ai/docs/models",
+        "price_components": [
+          {
+            "component": "video_generation",
+            "condition": "resolution=480p",
+            "input_price": 0.08,
+            "price_unit": "per_second",
+            "currency": "USD",
+            "source": "migration",
+            "source_url": "https://docs.x.ai/docs/models",
+            "sort_order": 10
+          },
+          {
+            "component": "video_generation",
+            "condition": "resolution=720p",
+            "input_price": 0.14,
+            "price_unit": "per_second",
+            "currency": "USD",
+            "source": "migration",
+            "source_url": "https://docs.x.ai/docs/models",
+            "sort_order": 20
+          },
+          {
+            "component": "video_generation",
+            "condition": "resolution=1080p",
+            "input_price": 0.25,
+            "price_unit": "per_second",
+            "currency": "USD",
+            "source": "migration",
+            "source_url": "https://docs.x.ai/docs/models",
+            "sort_order": 30
+          }
+        ]
+      },
+      {
+        "model": "grok-imagine-video-1.5-lite",
+        "tags": ["video"],
+        "status": "active",
+        "description": "Grok Imagine Video 1.5 Lite 是 xAI 的低成本视频生成模型，按生成时长和分辨率计费。",
+        "supported_endpoints": ["/v1/videos"],
+        "input_price": 0.02,
+        "price_unit": "per_second",
+        "currency": "USD",
+        "source": "migration",
+        "source_url": "https://docs.x.ai/docs/models",
+        "price_components": [
+          {
+            "component": "video_generation",
+            "condition": "resolution=480p",
+            "input_price": 0.02,
+            "price_unit": "per_second",
+            "currency": "USD",
+            "source": "migration",
+            "source_url": "https://docs.x.ai/docs/models",
+            "sort_order": 10
+          },
+          {
+            "component": "video_generation",
+            "condition": "resolution=720p",
+            "input_price": 0.03,
+            "price_unit": "per_second",
+            "currency": "USD",
+            "source": "migration",
+            "source_url": "https://docs.x.ai/docs/models",
+            "sort_order": 20
+          },
+          {
+            "component": "video_generation",
+            "condition": "resolution=1080p",
+            "input_price": 0.14,
+            "price_unit": "per_second",
+            "currency": "USD",
+            "source": "migration",
+            "source_url": "https://docs.x.ai/docs/models",
+            "sort_order": 30
+          }
+        ]
+      },
+      {
+        "model": "grok-tts",
+        "tags": ["audio"],
+        "status": "active",
+        "description": "Grok TTS 是 xAI 的文本转语音模型；默认价格留空，待统一计量能够完整表达官方语音计费后补充。",
+        "supported_endpoints": ["/v1/audio/speech"],
+        "source": "migration",
+        "source_url": "https://docs.x.ai/docs/models"
+      },
+      {
+        "model": "grok-voice-2.0",
+        "tags": ["audio", "realtime"],
+        "status": "active",
+        "description": "Grok Voice 2.0 是 xAI 的实时语音交互模型；默认价格留空，待统一计量能够完整表达官方语音计费后补充。",
+        "supported_endpoints": ["/v1/realtime"],
+        "source": "migration",
+        "source_url": "https://docs.x.ai/docs/models"
+      },
+      {
+        "model": "grok-voice-3.0",
+        "tags": ["audio", "realtime"],
+        "status": "active",
+        "description": "Grok Voice 3.0 是 xAI 的实时语音交互模型；默认价格留空，待统一计量能够完整表达官方语音计费后补充。",
+        "supported_endpoints": ["/v1/realtime"],
+        "source": "migration",
+        "source_url": "https://docs.x.ai/docs/models"
+      },
+      {
+        "model": "grok-voice-transcribe-2.0",
+        "tags": ["audio"],
+        "status": "active",
+        "description": "Grok Voice Transcribe 2.0 是 xAI 的语音转写模型；默认价格留空，待统一计量能够完整表达官方语音计费后补充。",
+        "supported_endpoints": ["/v1/audio/transcriptions"],
+        "source": "migration",
+        "source_url": "https://docs.x.ai/docs/models"
+      }
+    ]
+  }
+]

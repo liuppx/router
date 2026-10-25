@@ -9,6 +9,7 @@ import {
 import {
   TopUpWorkspaceContext,
   buildInitialDisplayCurrencyIndex,
+  isNativePaymentURL,
   normalizeTopUpResult,
   resolveDisplayCurrency,
   storeDisplayCurrency,
@@ -240,7 +241,11 @@ const TopUpWorkspaceProvider = ({ children }) => {
           showError(t('topup.external_topup.request_failed'));
           return false;
         }
-        if (popup && !popup.closed) {
+        if (isNativePaymentURL(redirectURL)) {
+          if (popup && !popup.closed) {
+            popup.close();
+          }
+        } else if (popup && !popup.closed) {
           popup.location.href = redirectURL;
           popup.focus();
         } else {

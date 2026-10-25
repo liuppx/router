@@ -12,6 +12,7 @@ export const DashboardSectionControls = ({
   loading,
   onRefresh,
   extra = null,
+  showGeneratedAt = true,
 }) => {
   const { t } = useTranslation();
   const hasPeriodControl =
@@ -32,9 +33,11 @@ export const DashboardSectionControls = ({
       ) : null}
       {extra}
       <div className='admin-dashboard-refresh-controls'>
-        <span className='admin-dashboard-generated-at'>
-          {formatUpdatedAt(generatedAt)}
-        </span>
+        {showGeneratedAt ? (
+          <span className='admin-dashboard-generated-at'>
+            {formatUpdatedAt(generatedAt)}
+          </span>
+        ) : null}
         <AppTooltip title={t('dashboard.admin.buttons.refresh')}>
           <AppButton
             className='router-inline-button admin-dashboard-refresh-button'

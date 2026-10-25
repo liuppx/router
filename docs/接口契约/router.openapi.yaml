@@ -358,8 +358,40 @@ paths:
     get:
       tags: [Public User]
       summary: List platform model service status
+      description: |
+        Returns the fixed five-hour model health window. Each health point
+        represents five minutes; real traffic is preferred and channel probes
+        are used only as fallback evidence when traffic is unavailable.
       responses:
         "200": { $ref: "#/components/responses/APIResponse" }
+  /api/v1/public/model/ranking:
+    get:
+      tags: [Public User]
+      summary: Rank model usage for the current user or the platform
+      description: |
+        Counts successful consume requests only. `scope=me` is isolated by the
+        authenticated user ID. `scope=global` returns model-level aggregates;
+        non-admin callers receive privacy suppression for models below five
+        successful requests or two distinct users. Admin callers additionally
+        receive token, spend, channel and health operations fields.
+      parameters:
+        - name: scope
+          in: query
+          description: Defaults to `me` for normal users and `global` for admins.
+          schema:
+            type: string
+            enum: [me, global]
+        - name: period
+          in: query
+          description: Ranking window, independent from the fixed health window.
+          schema:
+            type: string
+            enum: [last_24_hours, last_7_days, last_30_days]
+            default: last_7_days
+      responses:
+        "200": { $ref: "#/components/responses/APIResponse" }
+        "400": { $ref: "#/components/responses/ErrorResponse" }
+        "401": { $ref: "#/components/responses/ErrorResponse" }
   /api/v1/public/user/tasks/options:
     get:
       tags: [Public User]
@@ -1885,15 +1917,21 @@ paths:
   /api/v1/admin/channel/{id}/tests/artifact:
     get:
       tags: [Admin Channels]
-      summary: Download latest channel test artifact
+      summary: Download a channel test artifact
       parameters:
         - $ref: "#/components/parameters/IDPath"
         - name: model
           in: query
+          required: true
           schema: { type: string }
         - name: endpoint
           in: query
+          required: true
           schema: { type: string }
+        - name: round
+          in: query
+          description: Optional test round. Omit or pass 0 to download the latest matching artifact.
+          schema: { type: integer, format: int64, minimum: 0 }
       responses:
         "200":
           description: Artifact binary
@@ -1905,7 +1943,7 @@ paths:
   /api/v1/admin/channel/{id}/refresh:
     post:
       tags: [Admin Channels]
-      summary: Submit channel refresh task
+      summary: Submit a channel refresh operation
       parameters:
         - $ref: "#/components/parameters/IDPath"
       requestBody:
@@ -1921,8 +1959,8 @@ paths:
         "200": { $ref: "#/components/responses/APIResponse" }
   /api/v1/admin/tasks:
     get:
-      tags: [Admin Tasks]
-      summary: List system tasks
+      tags: [Admin Operations]
+      summary: List internal background executions
       parameters:
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
@@ -1930,30 +1968,30 @@ paths:
         "200": { $ref: "#/components/responses/PaginatedAPIResponse" }
   /api/v1/admin/tasks/options:
     get:
-      tags: [Admin Tasks]
-      summary: Get system task filters
+      tags: [Admin Operations]
+      summary: Get background execution filters
       responses:
         "200": { $ref: "#/components/responses/APIResponse" }
   /api/v1/admin/tasks/{id}:
     get:
-      tags: [Admin Tasks]
-      summary: Get system task detail
+      tags: [Admin Operations]
+      summary: Get background execution detail
       parameters:
         - $ref: "#/components/parameters/IDPath"
       responses:
         "200": { $ref: "#/components/responses/APIResponse" }
   /api/v1/admin/tasks/{id}/cancel:
     post:
-      tags: [Admin Tasks]
-      summary: Cancel task
+      tags: [Admin Operations]
+      summary: Cancel a background execution
       parameters:
         - $ref: "#/components/parameters/IDPath"
       responses:
         "200": { $ref: "#/components/responses/APIResponse" }
   /api/v1/admin/tasks/{id}/retry:
     post:
-      tags: [Admin Tasks]
-      summary: Retry task
+      tags: [Admin Operations]
+      summary: Retry a background execution
       parameters:
         - $ref: "#/components/parameters/IDPath"
       responses:

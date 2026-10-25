@@ -13,8 +13,10 @@ import {
   AppButton,
   AppEmpty,
   AppFilterHeader,
+  AppQRCode,
   AppSection,
 } from '../../router-ui';
+import { isNativePaymentURL } from './shared.jsx';
 
 const TERMINAL_STATUSES = new Set(['paid', 'fulfilled', 'failed', 'canceled']);
 const POLL_INTERVAL_MS = 4000;
@@ -71,11 +73,48 @@ const TopUpOrderReturn = () => {
     }
   }, [orderID, t]);
 
+  const loadOrder = useCallback(async () => {
+    if (!orderID) {
+      setPhase('missing');
+      return null;
+    }
+    try {
+      const res = await API.get(
+        `/api/v1/public/user/topup/orders/${encodeURIComponent(orderID)}`,
+      );
+      const { success, message, data } = res?.data || {};
+      if (!success) {
+        showError(message || t('topup.external_topup.request_failed'));
+        return null;
+      }
+      if (data) {
+        setOrder(data);
+        const status = String(data.status || '').trim();
+        if (status === 'paid' || status === 'fulfilled') {
+          setPhase('success');
+        } else if (status === 'failed' || status === 'canceled') {
+          setPhase('failed');
+        }
+      }
+      return data || null;
+    } catch (error) {
+      showError(error?.message || t('topup.external_topup.request_failed'));
+      return null;
+    }
+  }, [orderID, t]);
+
   useEffect(() => {
     activeRef.current = true;
     deadlineRef.current = Date.now() + POLL_TIMEOUT_MS;
 
-    refreshOrder();
+    const initialize = async () => {
+      const initialOrder = await loadOrder();
+      const status = String(initialOrder?.status || '').trim();
+      if (initialOrder && !TERMINAL_STATUSES.has(status)) {
+        await refreshOrder();
+      }
+    };
+    initialize();
 
     const tick = async () => {
       if (!activeRef.current) return;
@@ -112,7 +151,7 @@ const TopUpOrderReturn = () => {
     };
     // order 从 orderRef 读取最新值,故不进依赖数组。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshOrder, orderID]);
+  }, [loadOrder, refreshOrder, orderID]);
 
   const renderBody = () => {
     if (phase === 'missing') {
@@ -183,9 +222,21 @@ const TopUpOrderReturn = () => {
     }
     return (
       <AppSection>
-        <div className='router-empty-cell'>
-          {t('topup.external_topup.sync.return_confirming')}
-        </div>
+        {isNativePaymentURL(order?.redirect_url) ? (
+          <div className='router-topup-payment-qr'>
+            <AppQRCode value={order.redirect_url} size={240} />
+            <div className='router-topup-payment-qr-title'>
+              {t('topup.external_topup.sync.native_qr_title')}
+            </div>
+            <div className='router-topup-payment-qr-hint'>
+              {t('topup.external_topup.sync.native_qr_hint')}
+            </div>
+          </div>
+        ) : (
+          <div className='router-empty-cell'>
+            {t('topup.external_topup.sync.return_confirming')}
+          </div>
+        )}
       </AppSection>
     );
   };

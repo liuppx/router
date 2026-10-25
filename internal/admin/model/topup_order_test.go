@@ -199,6 +199,94 @@ func TestBuildTopupOrderRedirectURLRejectsInvalidBaseLink(t *testing.T) {
 	}
 }
 
+func TestIsExpiredNodeTopupOrder(t *testing.T) {
+	now := helper.GetTimestamp()
+	tests := []struct {
+		name  string
+		order TopupOrder
+		want  bool
+	}{
+		{
+			name: "recent node order is reusable",
+			order: TopupOrder{
+				ProviderName: nodePaymentProviderName,
+				CreatedAt:    now - topupOrderPaymentTTLSeconds + 1,
+			},
+			want: false,
+		},
+		{
+			name: "node order expires at payment ttl",
+			order: TopupOrder{
+				ProviderName: nodePaymentProviderName,
+				CreatedAt:    now - topupOrderPaymentTTLSeconds,
+			},
+			want: true,
+		},
+		{
+			name: "old non node order keeps legacy reuse behavior",
+			order: TopupOrder{
+				ProviderName: "external-pay",
+				CreatedAt:    now - topupOrderPaymentTTLSeconds - 1,
+			},
+			want: false,
+		},
+		{
+			name: "missing creation time is not treated as expired",
+			order: TopupOrder{
+				ProviderName: nodePaymentProviderName,
+			},
+			want: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := isExpiredNodeTopupOrder(test.order, now); got != test.want {
+				t.Fatalf("isExpiredNodeTopupOrder() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestFindReusableTopupOrderSkipsExpiredNodeOrder(t *testing.T) {
+	db := newTopupOrderTestDB(t)
+	now := helper.GetTimestamp()
+	expiredOrder := TopupOrder{
+		Id:              "expired-node-order",
+		UserID:          "user-1",
+		Status:          TopupOrderStatusPending,
+		Source:          TopupOrderSourceTopUpAPI,
+		ProviderName:    nodePaymentProviderName,
+		ProviderOrderID: "node-trade-1",
+		TransactionID:   "router-transaction-1",
+		BusinessType:    TopupOrderBusinessBalance,
+		OperationType:   TopupOrderOperationTopup,
+		Amount:          10,
+		Currency:        TopupOrderCurrencyCNY,
+		Quota:           100,
+		CreatedAt:       now - topupOrderPaymentTTLSeconds,
+		UpdatedAt:       now - topupOrderPaymentTTLSeconds,
+	}
+	if err := db.Create(&expiredOrder).Error; err != nil {
+		t.Fatalf("create expired order: %v", err)
+	}
+
+	reusable, found, err := findReusableTopupOrderWithDB(db, TopupOrder{
+		UserID:        expiredOrder.UserID,
+		BusinessType:  expiredOrder.BusinessType,
+		OperationType: expiredOrder.OperationType,
+		Amount:        expiredOrder.Amount,
+		Currency:      expiredOrder.Currency,
+		Quota:         expiredOrder.Quota,
+	})
+	if err != nil {
+		t.Fatalf("find reusable order: %v", err)
+	}
+	if found {
+		t.Fatalf("reused expired Node order %+v", reusable)
+	}
+}
+
 func TestResolveTopupOrderBusinessType(t *testing.T) {
 	tests := []struct {
 		name       string

@@ -63,6 +63,7 @@ func SetApiRouter(engine *gin.Engine) {
 		publicRouter.POST("/topup/callback", admin.ProcessTopupCallback)
 		publicRouter.POST("/payment/node/webhook", admin.ProcessNodePaymentWebhook)
 		publicRouter.GET("/model/status", middleware.UserAuth(), admin.GetUserModelStatus)
+		publicRouter.GET("/model/ranking", middleware.UserAuth(), admin.GetUserModelRanking)
 
 		// 仅保留密码找回，无额外人机验证
 		publicRouter.GET("/reset_password", middleware.CriticalRateLimit(), admin.SendPasswordResetEmail)
@@ -160,6 +161,7 @@ func SetApiRouter(engine *gin.Engine) {
 			publisherRoute.POST("/applications", publisher.SubmitApplication)
 			publisherRoute.GET("/services", publisher.ListServices)
 			publisherRoute.POST("/services", publisher.CreateService)
+			publisherRoute.POST("/services/from-personal/:connection_id", publisher.CreateServiceFromPersonalConnection)
 			publisherRoute.GET("/services/:id", publisher.GetService)
 			publisherRoute.PUT("/services/:id", publisher.UpdateService)
 			publisherRoute.DELETE("/services/:id", publisher.DeleteService)
@@ -170,6 +172,7 @@ func SetApiRouter(engine *gin.Engine) {
 			publisherRoute.DELETE("/offers/:id", publisher.DeleteOffer)
 			publisherRoute.POST("/offers/:id/submit", publisher.SubmitOffer)
 			publisherRoute.GET("/settlements", publisher.ListSettlements)
+			publisherRoute.GET("/group-assignments", publisher.ListGroupAssignments)
 		}
 
 		modelServiceRoute := publicRouter.Group("/model-services")
@@ -485,8 +488,10 @@ func SetApiRouter(engine *gin.Engine) {
 			adminGroupRoute.DELETE("/:id", group.DeleteGroup)
 			adminGroupRoute.GET("/:id/quota/daily", group.GetGroupDailyQuota)
 			adminGroupRoute.GET("/:id/channels", group.GetGroupChannels)
+			adminGroupRoute.GET("/:id/supplies", group.GetGroupSupplies)
 			adminGroupRoute.GET("/:id/models", group.GetGroupModels)
 			adminGroupRoute.PUT("/:id/channels", group.UpdateGroupChannels)
+			adminGroupRoute.PUT("/:id/supplies", group.UpdateGroupSupplies)
 			adminGroupRoute.PUT("/:id/models", group.UpdateGroupModels)
 			adminGroupRoute.PUT("/:id/models/:model", group.UpdateSingleGroupModel)
 			adminGroupRoute.DELETE("/:id/models/:model", group.DeleteSingleGroupModel)
