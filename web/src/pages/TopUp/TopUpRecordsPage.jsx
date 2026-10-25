@@ -22,6 +22,8 @@ import {
 import {
   formatTopupBusinessType,
   formatTopupOrderStatusHint,
+  buildTopUpOrderReturnURL,
+  isNativePaymentURL,
   useTopUpWorkspace,
   renderTopupOrderStatus,
 } from './shared.jsx';
@@ -77,6 +79,28 @@ const TopUpRecordsPage = ({ embedded = false }) => {
 
   const ordersTotalPages = Math.max(1, Math.ceil(ordersTotal / PAGE_SIZE));
 
+  const openOrderDetailPage = useCallback(
+    (order) => {
+      const normalizedOrderID = (order?.id || '').trim();
+      if (!normalizedOrderID) {
+        return;
+      }
+      const currentPagePath = `${location.pathname}${location.search}${location.hash}`;
+      navigate(`/workspace/topup/orders/${encodeURIComponent(normalizedOrderID)}`, {
+        state: {
+          from: currentPagePath,
+          recordKey: 'payment',
+        },
+      });
+    },
+    [
+      location.hash,
+      location.pathname,
+      location.search,
+      navigate,
+    ],
+  );
+
   const refreshOrderStatus = useCallback(
     async (orderID) => {
       const normalizedOrderID = (orderID || '').trim();
@@ -126,12 +150,16 @@ const TopUpRecordsPage = ({ embedded = false }) => {
         showError(t('topup.records.redirect_missing'));
         return;
       }
+      if (isNativePaymentURL(redirectURL)) {
+        navigate(buildTopUpOrderReturnURL(targetOrder.id));
+        return;
+      }
       const popup = window.open(redirectURL, '_blank');
       if (!popup) {
         showError(t('topup.external_topup.popup_blocked'));
       }
     },
-    [loadOrders, page, refreshOrderStatus, t],
+    [loadOrders, navigate, page, refreshOrderStatus, t],
   );
 
   const manualRefreshOrder = useCallback(
@@ -173,28 +201,6 @@ const TopUpRecordsPage = ({ embedded = false }) => {
       }
     },
     [t],
-  );
-
-  const openOrderDetailPage = useCallback(
-    (order) => {
-      const normalizedOrderID = (order?.id || '').trim();
-      if (!normalizedOrderID) {
-        return;
-      }
-      const currentPagePath = `${location.pathname}${location.search}${location.hash}`;
-      navigate(`/workspace/topup/orders/${encodeURIComponent(normalizedOrderID)}`, {
-        state: {
-          from: currentPagePath,
-          recordKey: 'payment',
-        },
-      });
-    },
-    [
-      location.hash,
-      location.pathname,
-      location.search,
-      navigate,
-    ],
   );
 
   const orderColumns = useMemo(

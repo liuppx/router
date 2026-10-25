@@ -20,6 +20,7 @@ import (
 
 const (
 	TopupOrdersTableName            = "topup_orders"
+	topupOrderPaymentTTLSeconds     = 15 * 60
 	TopupOrderStatusCreated         = "created"
 	TopupOrderStatusPending         = "pending"
 	TopupOrderStatusPaid            = "paid"
@@ -1072,6 +1073,9 @@ func findReusableTopupOrderWithDB(db *gorm.DB, order TopupOrder) (TopupOrder, bo
 			strings.Contains(candidate.RedirectURL, "trade_no=") {
 			continue
 		}
+		if isExpiredNodeTopupOrder(candidate, helper.GetTimestamp()) {
+			continue
+		}
 		if candidate.Source == TopupOrderSourceTopUpAPI &&
 			strings.TrimSpace(candidate.ProviderOrderID) != "" &&
 			(candidate.Status == TopupOrderStatusCreated ||
@@ -1094,6 +1098,13 @@ func findReusableTopupOrderWithDB(db *gorm.DB, order TopupOrder) (TopupOrder, bo
 		}
 	}
 	return TopupOrder{}, false, nil
+}
+
+func isExpiredNodeTopupOrder(order TopupOrder, now int64) bool {
+	if !isNodeTopupOrder(order) || order.CreatedAt <= 0 || now <= order.CreatedAt {
+		return false
+	}
+	return now-order.CreatedAt >= topupOrderPaymentTTLSeconds
 }
 
 func GetTopupOrderByIDWithDB(db *gorm.DB, orderID string, userID string) (TopupOrder, error) {

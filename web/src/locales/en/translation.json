@@ -280,6 +280,8 @@
         "auto_refresh_hint": "We'll auto-sync the payment result when you return to this tab.",
         "return_title": "Payment result",
         "return_confirming": "Confirming payment...",
+        "native_qr_title": "Pay with WeChat",
+        "native_qr_hint": "Scan this QR code with WeChat to complete payment. The order status will sync automatically.",
         "return_success": "Payment successful, balance credited.",
         "return_pending": "Payment not complete yet, will auto-confirm shortly.",
         "return_failed": "Payment not successful. Please retry or contact admin.",

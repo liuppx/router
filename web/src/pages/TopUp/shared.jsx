@@ -20,6 +20,9 @@ export const TOPUP_HISTORY_KEYS = ['topup', 'package', 'redeem', 'gift'];
 export const TOPUP_ALLOWED_QUERY_KEYS = ['tab', 'history', 'intent'];
 export const TopUpWorkspaceContext = createContext(null);
 
+export const isNativePaymentURL = (value = '') =>
+  String(value || '').trim().toLowerCase().startsWith('weixin://');
+
 export const normalizeTopUpTab = (rawTab) => {
   const normalizedTab = String(rawTab || '').trim().toLowerCase();
   if (

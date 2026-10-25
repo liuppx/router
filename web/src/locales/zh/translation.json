@@ -280,6 +280,8 @@
         "auto_refresh_hint": "切回本页面时自动同步支付结果",
         "return_title": "支付结果确认",
         "return_confirming": "正在确认支付结果…",
+        "native_qr_title": "微信扫码支付",
+        "native_qr_hint": "请使用微信扫描二维码完成支付，页面会自动同步订单状态。",
         "return_success": "支付成功,额度已到账",
         "return_pending": "支付尚未完成,稍后将自动确认",
         "return_failed": "支付未成功,请重试或联系管理员",

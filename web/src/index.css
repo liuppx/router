@@ -622,6 +622,23 @@ html[data-theme='dark'] .router-error-boundary-detail {
     gap: 12px;
     flex-wrap: wrap;
 }
+
+.router-topup-payment-qr {
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+    padding: 12px 0 4px;
+    text-align: center;
+}
+
+.router-topup-payment-qr-title {
+    font-weight: 600;
+}
+
+.router-topup-payment-qr-hint {
+    color: var(--router-text-muted, rgba(0, 0, 0, 0.45));
+    font-size: 13px;
+}
 html[data-theme='dark'] .router-topup-return-next {
     border-color: rgba(96, 165, 250, 0.28);
     background: rgba(96, 165, 250, 0.1);
