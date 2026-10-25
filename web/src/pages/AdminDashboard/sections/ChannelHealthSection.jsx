@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AppErrorState,
+  AppIcon,
   AppSegmented,
   AppSelect,
   AppSpin,
@@ -48,6 +49,13 @@ const OPERATOR_OPTION_DEFINITIONS = [
     value: 'independent',
     labelKey: 'dashboard.admin.channels.operator.independent',
   },
+];
+
+const CHANNEL_HEALTH_HISTORY_STATES = [
+  'success',
+  'warning',
+  'failure',
+  'unknown',
 ];
 
 const normalizeOperatorType = (operatorType, ownershipType, sourceKind) => {
@@ -97,7 +105,7 @@ const compareRiskFirst = (left, right) => {
 
 // Channel health is an observation surface, not a second incident queue. It
 // stays intentionally flat: one diagnostic matrix, one strong visual signal
-// (the five-hour heatmap), and a direct hand-off to the duty station.
+// (the runtime timeline), and only the filters needed to interpret it.
 const ChannelHealthSection = ({ injectedData = null }) => {
   const { t } = useTranslation();
   const location = useLocation();
@@ -120,18 +128,6 @@ const ChannelHealthSection = ({ injectedData = null }) => {
         value: option.value,
         label: t(option.labelKey),
       })),
-    [t]
-  );
-
-  const renderCapabilities = useCallback(
-    (raw) => {
-      if (!Array.isArray(raw) || raw.length === 0) return '-';
-      return raw
-        .map((item) =>
-          t(`dashboard.admin.capabilities.${item}`, { defaultValue: item })
-        )
-        .join(' / ');
-    },
     [t]
   );
 
@@ -191,13 +187,11 @@ const ChannelHealthSection = ({ injectedData = null }) => {
           owner_name: row.owner_name || row.owner_id || '',
           visibility: row.visibility || '',
           group_names: Array.isArray(row.group_names) ? row.group_names : [],
-          models: Array.isArray(row.models) ? row.models : [],
           offer_count: Number(row.offer_count || 0),
           published_offer_count: Number(row.published_offer_count || 0),
           supply_status: row.supply_status || '',
           name: row.name || row.id || '-',
           status: Number(row.status || 0),
-          capabilities: renderCapabilities(row.capabilities),
           health_score: Number(row.health_score || 0),
           request_count: Number(row.recent_request_count || 0),
           health_level: healthLevel,
@@ -224,7 +218,7 @@ const ChannelHealthSection = ({ injectedData = null }) => {
             activeCircuit || needsRetest || isRisk || isHighLatency,
         };
       }),
-    [dashboard.top_channels, renderCapabilities]
+    [dashboard.top_channels]
   );
 
   const sortedChannelHealthData = useMemo(
@@ -253,9 +247,11 @@ const ChannelHealthSection = ({ injectedData = null }) => {
           : 'grey';
       return (
         <AppTag color={color} className='router-tag'>
-          {t(`dashboard.admin.health.level.${normalized}`, {
-            defaultValue: t('dashboard.admin.health.level.unknown'),
-          })}
+          {normalized === 'unknown'
+            ? t('dashboard.admin.channels.history.no_data')
+            : t(`dashboard.admin.health.level.${normalized}`, {
+                defaultValue: t('dashboard.admin.health.level.unknown'),
+              })}
         </AppTag>
       );
     },
@@ -326,7 +322,6 @@ const ChannelHealthSection = ({ injectedData = null }) => {
       <section className='admin-dashboard-channel-health-surface'>
         <header className='admin-dashboard-channel-health-page-header'>
           <div className='admin-dashboard-channel-health-page-heading'>
-            <h1>{t('dashboard.admin.channels.title')}</h1>
             <p>{t('dashboard.admin.channels.page_hint')}</p>
           </div>
           <AppToolbar
@@ -350,45 +345,11 @@ const ChannelHealthSection = ({ injectedData = null }) => {
                 generatedAt={dashboard.generated_at}
                 loading={loading}
                 onRefresh={reload}
-                extra={
-                  <button
-                    type='button'
-                    className='admin-dashboard-channel-duty-link'
-                    onClick={() =>
-                      navigate(
-                        '/admin/dashboard?view=incidents&domain=channels'
-                      )
-                    }
-                  >
-                    {t('dashboard.admin.channels.open_duty')}
-                  </button>
-                }
+                showGeneratedAt={false}
               />
             }
           />
         </header>
-
-        <div className='admin-dashboard-channel-health-list-header'>
-          <div className='admin-dashboard-health-strip-legend'>
-            {['success', 'warning', 'failure', 'unknown'].map((state) => (
-              <span
-                key={state}
-                className='admin-dashboard-health-strip-legend-item'
-              >
-                <span
-                  aria-hidden='true'
-                  className='admin-dashboard-health-strip-legend-dot'
-                  style={{
-                    background:
-                      CHANNEL_HEALTH_POINT_COLORS[state] ||
-                      CHANNEL_HEALTH_POINT_COLORS.unknown,
-                  }}
-                />
-                {t(`dashboard.admin.channels.history.state.${state}`)}
-              </span>
-            ))}
-          </div>
-        </div>
 
         {sortedChannelHealthData.length === 0 ? (
           <div className='admin-dashboard-channel-health-empty'>
@@ -398,10 +359,47 @@ const ChannelHealthSection = ({ injectedData = null }) => {
           <div className='admin-dashboard-channel-health-matrix'>
             <div
               className='admin-dashboard-channel-health-matrix-header'
-              aria-hidden='true'
             >
               <span>{t('dashboard.admin.channels.columns.channel')}</span>
-              <span>{t('dashboard.admin.channels.columns.history')}</span>
+              <span className='admin-dashboard-channel-health-history-heading'>
+                {t('dashboard.admin.channels.columns.history')}
+                <AppTooltip
+                  trigger={['hover', 'focus', 'click']}
+                  title={
+                    <span className='admin-dashboard-health-strip-legend-tooltip'>
+                      {CHANNEL_HEALTH_HISTORY_STATES.map((state) => (
+                        <span
+                          key={state}
+                          className='admin-dashboard-health-strip-legend-item'
+                        >
+                          <span
+                            aria-hidden='true'
+                            className='admin-dashboard-health-strip-legend-dot'
+                            style={{
+                              background:
+                                CHANNEL_HEALTH_POINT_COLORS[state] ||
+                                CHANNEL_HEALTH_POINT_COLORS.unknown,
+                            }}
+                          />
+                          {t(
+                            `dashboard.admin.channels.history.state.${state}`
+                          )}
+                        </span>
+                      ))}
+                    </span>
+                  }
+                >
+                  <button
+                    type='button'
+                    className='admin-dashboard-channel-health-legend-trigger'
+                  >
+                    <AppIcon name='info circle' />
+                    <span className='admin-dashboard-channel-health-visually-hidden'>
+                      {t('dashboard.admin.channels.history.legend_label')}
+                    </span>
+                  </button>
+                </AppTooltip>
+              </span>
               <div>
                 <span>{t('dashboard.admin.health.chart.health_score')}</span>
                 <span>{t('dashboard.admin.health.chart.pass_rate')}</span>
@@ -440,12 +438,6 @@ const ChannelHealthSection = ({ injectedData = null }) => {
                 `dashboard.admin.channels.supply_status.${item.supply_status}`,
                 { defaultValue: item.supply_status }
               );
-              const modelSummary =
-                item.models.length > 3
-                  ? `${item.models.slice(0, 3).join(' / ')} +${
-                      item.models.length - 3
-                    }`
-                  : item.models.join(' / ');
               const historyCounts = item.health_history.reduce(
                 (counts, point) => ({
                   ...counts,
@@ -537,13 +529,6 @@ const ChannelHealthSection = ({ injectedData = null }) => {
                           {item.group_names.join(' / ')}
                         </span>
                       ) : null}
-                      {item.models.length ? (
-                        <span>
-                          {t('dashboard.admin.channels.metadata.models')}：
-                          {modelSummary}
-                        </span>
-                      ) : null}
-                      <span>{item.capabilities}</span>
                       <span>
                         {t('dashboard.admin.channels.metadata.verification')}：
                         {item.verification_status === 'verified'
@@ -625,7 +610,11 @@ const ChannelHealthSection = ({ injectedData = null }) => {
                       <span>
                         {t('dashboard.admin.health.chart.health_score')}
                       </span>
-                      <strong>{item.health_score.toFixed(0)}</strong>
+                      <strong>
+                        {item.has_runtime_data
+                          ? item.health_score.toFixed(0)
+                          : '-'}
+                      </strong>
                     </div>
                     <div className='admin-dashboard-channel-health-metric'>
                       <span>{t('dashboard.admin.health.chart.pass_rate')}</span>

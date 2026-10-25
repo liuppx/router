@@ -3512,6 +3512,7 @@
         },
         "history": {
           "accessible_summary": "{{channel}} in the selected range: {{success}} successful windows, {{warning}} partially degraded, {{failure}} failed, and {{unknown}} without data.",
+          "legend_label": "View runtime timeline color legend",
           "no_data": "No call sample",
           "window": "Time Window",
           "success_count": "Successes",

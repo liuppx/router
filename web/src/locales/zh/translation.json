@@ -3512,6 +3512,7 @@
         },
         "history": {
           "accessible_summary": "{{channel}} 所选时间范围：成功 {{success}} 个窗口，部分异常 {{warning}} 个，失败 {{failure}} 个，无数据 {{unknown}} 个。",
+          "legend_label": "查看运行时间带颜色说明",
           "no_data": "无调用样本",
           "window": "时间窗口",
           "success_count": "成功数",
