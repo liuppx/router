@@ -140,6 +140,9 @@
       "balance_detail": "Balance Details",
       "load_failed": "Failed to load quota overview"
     },
+    "model_usage": {
+      "title": "My Model Usage"
+    },
     "quota_cards": {
       "active_title": "Active Quota",
       "active_empty": "No active quota cards",
@@ -4793,7 +4796,7 @@
       "copy_failed": "Copy failed, please copy manually"
     },
     "ranking": {
-      "title": "Model Usage Ranking",
+      "title": "Global Model Preference",
       "description": {
         "me": "See your successful model calls during the selected period. Models you used historically remain visible even if they are no longer published.",
         "global": "See model preferences based on successful calls from all users. The public view reveals exact figures only after the minimum aggregation threshold is met."
@@ -4801,10 +4804,6 @@
       "load_failed": "Could not load model usage ranking. Try again.",
       "search_placeholder": "Search ranked models, providers, or capabilities",
       "period_label": "Ranking period",
-      "scope": {
-        "me": "My Usage",
-        "global": "Global Preference"
-      },
       "period": {
         "last_24_hours": "Past 24 Hours",
         "last_7_days": "Past 7 Days",

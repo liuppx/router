@@ -17,8 +17,7 @@ html[data-theme='dark']
 html[data-theme='dark']
   .workspace-models-page
   .ant-breadcrumb-separator,
-html[data-theme='dark'] .workspace-models-page .workspace-models-count,
-html[data-theme='dark'] .workspace-models-page .workspace-models-meta {
+html[data-theme='dark'] .workspace-models-page .workspace-models-count {
   color: var(--router-text-secondary, #cbd5e1);
 }
 
@@ -71,10 +70,21 @@ html[data-theme='dark']
 
 .workspace-model-section-description {
   max-width: 920px;
-  margin: 4px 0 14px;
+  margin: 4px 0 6px;
   color: var(--router-text-secondary, #64748b);
   font-size: 13px;
   line-height: 1.6;
+}
+
+.workspace-models-health-context {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  color: var(--router-text-secondary, #64748b);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .workspace-models-toolbar {
@@ -127,25 +137,13 @@ html[data-theme='dark']
   max-width: 100%;
 }
 
-.workspace-models-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
 .workspace-models-legend {
   display: flex;
   justify-content: flex-start;
   gap: 10px;
   flex-wrap: wrap;
-  margin-top: 10px;
-  color: #64748b;
-  font-size: 12px;
+  color: inherit;
+  font-size: inherit;
 }
 
 .workspace-models-legend-item {
@@ -497,12 +495,41 @@ html[data-theme='dark']
   min-width: 0;
 }
 
-.workspace-model-ranking-scope {
-  min-width: 210px;
-}
-
 .workspace-model-ranking-period {
   width: 142px;
+}
+
+.router-quota-model-usage {
+  margin-top: 0;
+  padding: 4px 0 10px;
+}
+
+/* The quota workspace still uses a light canvas when the global theme toggles
+   dark. Keep the embedded ranking on that same canvas instead of inheriting
+   light-on-dark model-center tokens and becoming unreadable. This remains a
+   flat section; no compensating card or decorative surface is introduced. */
+html[data-theme='dark'] .router-quota-model-usage {
+  --router-surface: #fff;
+  --router-surface-muted: #f8fafc;
+  --router-text-primary: #0f172a;
+  --router-text-secondary: #475569;
+  --router-text-muted: #64748b;
+  --router-border-subtle: rgba(15, 23, 42, 0.08);
+  --router-border-faint: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}
+
+html[data-theme='dark']
+  .router-quota-model-usage
+  .recharts-cartesian-axis-tick-value {
+  fill: #64748b;
+}
+
+html[data-theme='dark']
+  .router-quota-model-usage
+  .recharts-cartesian-grid
+  line {
+  stroke: rgba(15, 23, 42, 0.08);
 }
 
 .workspace-model-ranking-meta {
@@ -744,8 +771,7 @@ html[data-theme='dark']
   }
 
   .workspace-model-ranking-toolbar-start,
-  .workspace-model-ranking-toolbar-end,
-  .workspace-model-ranking-scope {
+  .workspace-model-ranking-toolbar-end {
     width: 100%;
   }
 

@@ -140,6 +140,9 @@
       "balance_detail": "余额详情",
       "load_failed": "加载额度总览失败"
     },
+    "model_usage": {
+      "title": "我的模型使用"
+    },
     "quota_cards": {
       "active_title": "有效额度",
       "active_empty": "当前没有有效额度卡片",
@@ -4793,7 +4796,7 @@
       "copy_failed": "复制失败，请手动复制"
     },
     "ranking": {
-      "title": "模型使用排行",
+      "title": "全站模型偏好",
       "description": {
         "me": "查看你在所选周期内使用各模型的成功调用量，历史上使用过但当前未发布的模型也会保留。",
         "global": "查看所有用户成功调用形成的模型偏好。公开视图只展示达到最小聚合样本的精确数据。"
@@ -4801,10 +4804,6 @@
       "load_failed": "模型使用排行加载失败，请重试。",
       "search_placeholder": "搜索排行中的模型、供应商或能力",
       "period_label": "排行周期",
-      "scope": {
-        "me": "我的使用",
-        "global": "全站偏好"
-      },
       "period": {
         "last_24_hours": "近 24 小时",
         "last_7_days": "近 7 天",

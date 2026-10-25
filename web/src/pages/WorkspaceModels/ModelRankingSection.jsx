@@ -18,7 +18,6 @@ import {
   AppEmpty,
   AppIcon,
   AppInput,
-  AppSegmented,
   AppSelect,
   AppSpin,
   AppTag,
@@ -32,9 +31,10 @@ import {
   chartTooltipStyle,
 } from '../../router-ui';
 import { useUsdFormatter } from '../AdminDashboard/dashboardShared';
+import './WorkspaceModels.css';
 
 const EMPTY_PAYLOAD = {
-  scope: 'me',
+  scope: 'global',
   period: 'last_7_days',
   start_at: 0,
   end_at: 0,
@@ -47,7 +47,6 @@ const EMPTY_PAYLOAD = {
 };
 
 const PERIODS = ['last_24_hours', 'last_7_days', 'last_30_days'];
-const SCOPES = ['me', 'global'];
 
 const toNumber = (value) => {
   const next = Number(value || 0);
@@ -104,13 +103,15 @@ const normalizePayload = (payload) => {
 };
 
 function ModelRankingSection({
-  hasAdminAccess,
+  hasAdminAccess = false,
   keyword,
-  scope,
+  scope = 'global',
   period,
   onKeywordChange,
-  onScopeChange,
   onPeriodChange,
+  titleKey = 'workspace_models.ranking.title',
+  headingId = 'workspace-model-ranking-heading',
+  className = '',
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -142,15 +143,6 @@ function ModelRankingSection({
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  const scopeOptions = useMemo(
-    () =>
-      SCOPES.map((value) => ({
-        value,
-        label: t(`workspace_models.ranking.scope.${value}`),
-      })),
-    [t],
-  );
 
   const periodOptions = useMemo(
     () =>
@@ -206,11 +198,13 @@ function ModelRankingSection({
   return (
     <AppSpin spinning={loading}>
       <section
-        className='workspace-model-ranking-section'
-        aria-labelledby='workspace-model-ranking-heading'
+        className={['workspace-model-ranking-section', className]
+          .filter(Boolean)
+          .join(' ')}
+        aria-labelledby={headingId}
       >
-        <h2 id='workspace-model-ranking-heading' className='workspace-model-section-heading'>
-          {t('workspace_models.ranking.title')}
+        <h2 id={headingId} className='workspace-model-section-heading'>
+          {t(titleKey)}
         </h2>
         <p className='workspace-model-section-description'>
           {t(`workspace_models.ranking.description.${scope}`)}
@@ -237,12 +231,6 @@ function ModelRankingSection({
                 aria-label={t('workspace_models.ranking.search_placeholder')}
                 placeholder={t('workspace_models.ranking.search_placeholder')}
                 onChange={(event, { value }) => onKeywordChange(value)}
-              />
-              <AppSegmented
-                className='workspace-model-ranking-scope'
-                options={scopeOptions}
-                value={scope}
-                onChange={(event, { value }) => onScopeChange(value)}
               />
             </div>
           }

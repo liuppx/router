@@ -2,7 +2,6 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -250,7 +249,7 @@ const WorkspaceModels = () => {
   // restores the operator's view, and cross-page CTAs (e.g. the admin dashboard
   // "at-risk models" headline) can deep-link straight to a filtered view.
   const [
-    { keyword, healthFilter, sortBy, tab, rankingScope, rankingPeriod },
+    { keyword, healthFilter, sortBy, tab, rankingPeriod },
     patchFilters,
   ] = useUrlState({
     tab: {
@@ -276,11 +275,6 @@ const WorkspaceModels = () => {
         return SORT_OPTIONS.includes(normalized) ? normalized : 'health';
       },
     },
-    rankingScope: {
-      param: 'scope',
-      default: 'me',
-      parse: (raw) => (raw === 'global' ? 'global' : 'me'),
-    },
     rankingPeriod: {
       param: 'period',
       default: 'last_7_days',
@@ -291,18 +285,6 @@ const WorkspaceModels = () => {
     },
   });
   const showRanking = tab === 'ranking';
-  const adminScopeDefaultHandledRef = useRef(false);
-
-  useEffect(() => {
-    if (!hasAdminAccess || adminScopeDefaultHandledRef.current) {
-      return;
-    }
-    adminScopeDefaultHandledRef.current = true;
-    const params = new URLSearchParams(window.location.search);
-    if (!params.has('scope')) {
-      patchFilters({ rankingScope: 'global' });
-    }
-  }, [hasAdminAccess, patchFilters]);
 
   // Admins can jump straight from a model to the publish tab of a channel that
   // serves it (channel_ids comes from /api/v1/public/model/status). Single
@@ -523,10 +505,9 @@ const WorkspaceModels = () => {
         <ModelRankingSection
           hasAdminAccess={hasAdminAccess}
           keyword={keyword}
-          scope={rankingScope}
+          scope='global'
           period={rankingPeriod}
           onKeywordChange={(value) => patchFilters({ keyword: value })}
-          onScopeChange={(value) => patchFilters({ rankingScope: value })}
           onPeriodChange={(value) => patchFilters({ rankingPeriod: value })}
         />
       ) : (
@@ -541,6 +522,19 @@ const WorkspaceModels = () => {
             <p className='workspace-model-section-description'>
               {t('workspace_models.health_window')}
             </p>
+            <div className='workspace-models-health-context'>
+              <div className='workspace-models-legend'>
+                {['success', 'warning', 'failure', 'unknown'].map((state) => (
+                  <span key={state} className='workspace-models-legend-item'>
+                    <span
+                      className='workspace-models-legend-dot'
+                      style={{ background: POINT_COLORS[state] }}
+                    />
+                    {t(`workspace_models.history.${state}`)}
+                  </span>
+                ))}
+              </div>
+            </div>
             {loadFailed && (
               <AppAlert
                 type='error'
@@ -612,25 +606,6 @@ const WorkspaceModels = () => {
                   </div>
                 }
               />
-              <div className='workspace-models-meta'>
-                <span>{t('workspace_models.health_window_short')}</span>
-                <span>
-                  {t('workspace_models.generated_at', {
-                    time: formatUpdatedAt(payload.generated_at),
-                  })}
-                </span>
-              </div>
-            </div>
-            <div className='workspace-models-legend'>
-              {['success', 'warning', 'failure', 'unknown'].map((state) => (
-                <span key={state} className='workspace-models-legend-item'>
-                  <span
-                    className='workspace-models-legend-dot'
-                    style={{ background: POINT_COLORS[state] }}
-                  />
-                  {t(`workspace_models.history.${state}`)}
-                </span>
-              ))}
             </div>
             {filteredModels.length === 0 ? (
               loading ? (
