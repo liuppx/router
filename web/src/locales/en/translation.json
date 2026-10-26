@@ -1546,7 +1546,7 @@
         "image_edit_uploaded": "Image uploaded",
         "image_edit_file_failed": "Failed to read image",
         "single": "Test",
-        "task_created": "Model verification completed.",
+        "task_created": "Submitted {{count}} model tests and reused {{reused}} tests already in progress.",
         "group_count": "{{count}} models",
         "group_type": "Type: {{type}}",
         "history_tasks": "Test History",

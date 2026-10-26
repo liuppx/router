@@ -1546,7 +1546,7 @@
         "image_edit_uploaded": "已上传图片",
         "image_edit_file_failed": "读取图片失败",
         "single": "测试",
-        "task_created": "模型测试已完成。",
+        "task_created": "已提交 {{count}} 项模型测试，其中复用 {{reused}} 项正在执行的测试。",
         "group_count": "{{count}} 个模型",
         "group_type": "类型：{{type}}",
         "history_tasks": "历史测试",
