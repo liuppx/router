@@ -2339,6 +2339,13 @@ func runMainVersionedMigrations(db *gorm.DB) error {
 				return upsertProviderMigrationProvidersWithDB(tx, "minimax", "zhipu")
 			},
 		},
+		{
+			Version:     "202610291200_refresh_official_provider_catalog",
+			Description: "refresh official Qwen, MiniMax, xAI, and Deepgram models, prices, and lifecycle states",
+			Up: func(tx *gorm.DB) error {
+				return upsertProviderMigrationProvidersWithDB(tx, "qwen", "minimax", "xai", "deepgram")
+			},
+		},
 	}
 	return runVersionedMigrations(db, migrationScopeMain, migrations)
 }
