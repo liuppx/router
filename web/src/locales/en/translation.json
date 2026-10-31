@@ -4117,19 +4117,19 @@
         }
       },
       "retry": {
-        "title": "Failure Retry",
-        "description": "Control whether a failed request should continue trying other available channels.",
-        "description_title": "What happens after the first failure",
-        "description_effective": "When enabled, if the error is retryable, no specific channel is pinned, and unused candidates remain, the system keeps trying them in order.",
-        "description_disabled": "When disabled, the first failure is returned immediately. When enabled, channels that already failed in the same request are not retried again.",
-        "limit": "Retry strategy",
-        "limit_placeholder": "Select a retry strategy",
+        "title": "Network Failure Retry",
+        "description": "Controls candidate retries only for explicit upstream transport failures. Upstream quota, auth, rate-limit, service, and capability responses use failover and are not controlled here.",
+        "description_title": "Upstream transport failure handling",
+        "description_effective": "When enabled, an explicit upstream transport failure can continue to unused candidate channels.",
+        "description_disabled": "When disabled, upstream transport failures do not retry candidates. Other upstream failures still follow candidate failover rules.",
+        "limit": "Network retry strategy",
+        "limit_placeholder": "Select a network retry strategy",
         "options": {
-          "disabled": "No retry",
-          "all_candidates": "Retry all candidate channels"
+          "disabled": "Do not retry network failures",
+          "all_candidates": "Try all available candidate channels"
         },
         "buttons": {
-          "save": "Save Retry Settings"
+          "save": "Save Network Retry Settings"
         }
       },
       "payment": {
