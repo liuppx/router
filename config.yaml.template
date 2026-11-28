@@ -253,7 +253,7 @@ relay:
   test_prompt: "Output only your specific model name with no additional text."
 
 rate_limit:
-  # 登录等关键接口的限流窗口（秒），每个客户端在窗口内可发起 20 次请求。
+  # 登录等关键接口的限流窗口（1–1200 秒，0 使用默认值 1200），每个客户端在窗口内可发起 20 次请求。
   critical_rate_limit_duration_seconds: 1200
   # 全局 API 限流次数（窗口内）。
   global_api_rate_limit: 480

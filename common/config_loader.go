@@ -529,6 +529,10 @@ func ApplyAppConfig(cfg *AppConfig, portFlagSet bool, logDirFlagSet bool) error 
 		config.TestPrompt = "Output only your specific model name with no additional text."
 	}
 
+	maxCriticalWindow := int(config.RateLimitKeyExpirationDuration / time.Second)
+	if cfg.RateLimit.CriticalRateLimitDurationSeconds < 0 || cfg.RateLimit.CriticalRateLimitDurationSeconds > maxCriticalWindow {
+		return fmt.Errorf("invalid rate_limit.critical_rate_limit_duration_seconds: must be between 0 and %d", maxCriticalWindow)
+	}
 	config.CriticalRateLimitDuration = 20 * 60
 	if cfg.RateLimit.CriticalRateLimitDurationSeconds > 0 {
 		config.CriticalRateLimitDuration = int64(cfg.RateLimit.CriticalRateLimitDurationSeconds)
